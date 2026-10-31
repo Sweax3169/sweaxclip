@@ -125,7 +125,7 @@ Kütüphaneyi tepsiden (ya da panelde <kbd>Ctrl</kbd> <kbd>E</kbd>) aç: soldaki
 - **Tek veritabanı dosyası** (SQLite, WAL günlüğü, tam senkron yazma) ve SHA-256 özetiyle adlandırılan görsel dosyaları; aynı görsel iki kez saklanmaz.
 - **Günlük yedek:** veritabanının son 7 günü ve her aydan bir kopya, süresiz saklanır.
 - **Dışa aktar:** Ayarlar'dan bütün arşivi tek bir `.zip` dosyasına al.
-- **Taşınabilir mod:** exe'nin yanına boş bir `sweaxclip-data` klasörü koy, arşiv orada tutulsun — USB bellek, eşitlenen bir klasör, başka bir disk.
+- **Taşınabilir mod:** ilk açılıştan önce exe'nin yanına boş bir `sweaxclip-data` klasörü koy, arşiv orada tutulsun — USB bellek, eşitlenen bir klasör, başka bir disk.
 
 | | Windows pano geçmişi | SweaxClip |
 | --- | :---: | :---: |
@@ -174,9 +174,11 @@ flowchart LR
 
 <img src="docs/media/sec-install-tr.svg" alt="06 — Kurulum" width="100%">
 
-1. [Sürümler](https://github.com/Sweax3169/sweaxclip/releases/latest) sayfasından **`SweaxClip.exe`** dosyasını indir.
-2. Çalıştır. Kendini `%LOCALAPPDATA%\Programs\SweaxClip` klasörüne kopyalar, Windows ile başlar, Başlat menüsüne eklenir ve mevcut ekran görüntülerini içe aktarır.
+1. [Sürümler](https://github.com/Sweax3169/sweaxclip/releases/latest) sayfasından **[`SweaxClip-win-x64.zip`](https://github.com/Sweax3169/sweaxclip/releases/latest/download/SweaxClip-win-x64.zip)** dosyasını indir ve aç.
+2. `SweaxClip.exe`'yi çalıştır. Kendini `%LOCALAPPDATA%\Programs\SweaxClip` klasörüne kopyalar, Windows ile başlar, Başlat menüsüne eklenir ve mevcut ekran görüntülerini içe aktarır.
 3. <kbd>Win</kbd> + <kbd>V</kbd>'ye bas.
+
+Bilgisayarında [.NET 9 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/9.0) zaten kuruluysa [`SweaxClip-lite.exe`](https://github.com/Sweax3169/sweaxclip/releases/latest/download/SweaxClip-lite.exe) aynı uygulamanın çok daha küçük indirmesidir.
 
 > **"Windows bilgisayarınızı korudu"** uyarısı — exe henüz kod imzalı değil. *Ek bilgi → Yine de çalıştır*'a tıkla. Kaynak kodun tamamı burada; sürüm dosyası bu depodan GitHub Actions ile derlenir.
 
@@ -195,8 +197,8 @@ flowchart LR
 git clone https://github.com/Sweax3169/sweaxclip
 cd sweaxclip
 dotnet run --project src/SweaxClip
-# tek dosyalık sürüm
-dotnet publish src/SweaxClip -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish
+# tek dosyalık sürüm (sürüm iş akışının çalıştırdığı komut)
+dotnet publish src/SweaxClip -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishReadyToRun=true -o publish
 ```
 
 `SweaxClip.exe --demo` kütüphaneyi örnek verilerle dolu geçici bir arşivde açar; `--shots <klasör>` bu sayfadaki tüm ekran görüntülerini üretir.

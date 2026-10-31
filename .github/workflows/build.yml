@@ -23,11 +23,13 @@ jobs:
       - name: Build
         run: dotnet build src/SweaxClip -c Release
 
+      # Not compressed on purpose: an uncompressed bundle is memory-mapped from disk,
+      # a compressed one is inflated into private memory (~240 MB vs ~100 MB commit).
       - name: Publish (self-contained single file)
         run: >
           dotnet publish src/SweaxClip -c Release -r win-x64 --self-contained true
           -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
-          -p:EnableCompressionInSingleFile=true -p:PublishReadyToRun=true -o out/full
+          -p:PublishReadyToRun=true -o out/full
 
       - name: Publish (framework-dependent single file)
         run: >
@@ -38,13 +40,21 @@ jobs:
       - name: Package
         shell: pwsh
         run: |
-          New-Item -ItemType Directory dist, portable/SweaxClip/sweaxclip-data -Force | Out-Null
-          Copy-Item out/full/SweaxClip.exe dist/SweaxClip.exe
+          New-Item -ItemType Directory dist, pkg/SweaxClip -Force | Out-Null
+          Copy-Item out/full/SweaxClip.exe pkg/SweaxClip/SweaxClip.exe
+          @(
+            "SweaxClip - a clipboard that never forgets",
+            "",
+            "Run SweaxClip.exe. It installs itself to %LOCALAPPDATA%\Programs\SweaxClip,",
+            "starts with Windows and replaces Win + V.",
+            "",
+            "Portable mode: create an empty folder named 'sweaxclip-data' next to SweaxClip.exe",
+            "before the first start. The archive then lives in that folder and nothing is installed.",
+            "",
+            "https://github.com/Sweax3169/sweaxclip"
+          ) | Set-Content pkg/SweaxClip/README.txt
+          Compress-Archive pkg/SweaxClip dist/SweaxClip-win-x64.zip
           Copy-Item out/lite/SweaxClip.exe dist/SweaxClip-lite.exe
-          Copy-Item out/full/SweaxClip.exe portable/SweaxClip/SweaxClip.exe
-          "SweaxClip keeps its archive in this folder (portable mode). Move the whole SweaxClip folder to keep everything together." |
-            Set-Content portable/SweaxClip/sweaxclip-data/README.txt
-          Compress-Archive portable/SweaxClip dist/SweaxClip-portable.zip
           Get-ChildItem dist -File | ForEach-Object { "{0}  {1}" -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(), $_.Name } |
             Set-Content dist/SHA256SUMS.txt
           Get-ChildItem dist | Format-Table Name, Length

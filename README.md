@@ -125,7 +125,7 @@ Open the library from the tray (or <kbd>Ctrl</kbd> <kbd>E</kbd> in the panel): e
 - **One database file** (SQLite, WAL journal, fully synchronous writes) plus image files named by their SHA-256 hash, so the same image is never stored twice.
 - **Daily snapshots** of the database: the last 7 days and one per month, kept forever.
 - **Export** the whole archive to a single `.zip` from Settings.
-- **Portable:** put an empty `sweaxclip-data` folder next to the exe and the archive lives there instead — on a USB stick, a synced folder, another drive.
+- **Portable:** put an empty `sweaxclip-data` folder next to the exe before the first start and the archive lives there instead — on a USB stick, a synced folder, another drive.
 
 | | Windows clipboard history | SweaxClip |
 | --- | :---: | :---: |
@@ -150,7 +150,7 @@ SweaxClip is a native .NET / WPF app — no browser engine inside. Measured on W
 | Memory while waiting in the tray | **≈ 6 MB** working set |
 | CPU while waiting | **0 %** — 16 ms over 15 s, nothing polls |
 | Memory with the panel open | ≈ 110 MB, handed back 2 s after it closes |
-| Install size | one exe, no runtime to install |
+| Install | one exe, no runtime to install |
 
 - The clipboard is watched with `AddClipboardFormatListener`: Windows wakes SweaxClip when something is copied, otherwise it does not run at all.
 - The <kbd>Win</kbd> + <kbd>V</kbd> hook lives on its own thread with its own message loop, so a busy UI can never make Windows drop it; it is re-armed every 10 minutes and after unlocking the PC.
@@ -174,9 +174,11 @@ flowchart LR
 
 <img src="docs/media/sec-install-en.svg" alt="06 — Install" width="100%">
 
-1. Download **`SweaxClip.exe`** from [Releases](https://github.com/Sweax3169/sweaxclip/releases/latest).
-2. Run it. It copies itself to `%LOCALAPPDATA%\Programs\SweaxClip`, starts with Windows, adds itself to the Start menu and imports the screenshots you already have.
+1. Download **[`SweaxClip-win-x64.zip`](https://github.com/Sweax3169/sweaxclip/releases/latest/download/SweaxClip-win-x64.zip)** from [Releases](https://github.com/Sweax3169/sweaxclip/releases/latest) and unzip it.
+2. Run `SweaxClip.exe`. It copies itself to `%LOCALAPPDATA%\Programs\SweaxClip`, starts with Windows, adds itself to the Start menu and imports the screenshots you already have.
 3. Press <kbd>Win</kbd> + <kbd>V</kbd>.
+
+Already have the [.NET 9 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/9.0)? [`SweaxClip-lite.exe`](https://github.com/Sweax3169/sweaxclip/releases/latest/download/SweaxClip-lite.exe) is a much smaller download of the same app.
 
 > **"Windows protected your PC"** — the exe is not code-signed yet. Click *More info → Run anyway*. The full source is here, and the release is built by GitHub Actions from this repository.
 
@@ -195,8 +197,8 @@ flowchart LR
 git clone https://github.com/Sweax3169/sweaxclip
 cd sweaxclip
 dotnet run --project src/SweaxClip
-# single-file release build
-dotnet publish src/SweaxClip -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish
+# single-file release build (what the release workflow runs)
+dotnet publish src/SweaxClip -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishReadyToRun=true -o publish
 ```
 
 `SweaxClip.exe --demo` opens the library on a throw-away archive filled with sample data; `--shots <dir>` renders every screenshot in this README.

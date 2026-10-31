@@ -1,0 +1,334 @@
+<Window x:Class="SweaxClip.UI.LibraryWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="clr-namespace:SweaxClip.Core"
+        xmlns:ui="clr-namespace:SweaxClip.UI"
+        Title="SweaxClip" Width="1280" Height="800" MinWidth="980" MinHeight="600"
+        Background="{StaticResource Bg0}" Foreground="{StaticResource Text}"
+        FontFamily="{StaticResource UiFont}" UseLayoutRounding="True" SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType"
+        WindowStartupLocation="CenterScreen" Icon="pack://application:,,,/Assets/sweaxclip.ico">
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="52" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <ui:RowSelector x:Key="Rows" ClipKey="Row.Library"/>
+
+        <Style x:Key="CaptionButton" TargetType="Button" BasedOn="{StaticResource IconButton}">
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="52"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
+        </Style>
+
+        <Style x:Key="MetaKey" TargetType="TextBlock" BasedOn="{StaticResource Mono}">
+            <Setter Property="Margin" Value="0,0,0,12"/>
+            <Setter Property="Foreground" Value="{StaticResource Text3}"/>
+        </Style>
+        <Style x:Key="MetaVal" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,0,0,12"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+
+        <Storyboard x:Key="Blink" RepeatBehavior="Forever">
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="caret" Storyboard.TargetProperty="Opacity">
+                <DiscreteDoubleKeyFrame KeyTime="0:0:0" Value="1"/>
+                <DiscreteDoubleKeyFrame KeyTime="0:0:0.55" Value="0"/>
+                <DiscreteDoubleKeyFrame KeyTime="0:0:1.1" Value="1"/>
+            </DoubleAnimationUsingKeyFrames>
+        </Storyboard>
+    </Window.Resources>
+
+    <Border x:Name="frame" Background="{StaticResource Bg0}">
+        <Grid>
+            <Grid.RowDefinitions><RowDefinition Height="52"/><RowDefinition/></Grid.RowDefinitions>
+
+            <!-- ═══ title bar ═══════════════════════════════════════════════════ -->
+            <Border BorderBrush="{StaticResource Line2}" BorderThickness="0,0,0,1" Background="{StaticResource Bg0}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="232"/><ColumnDefinition/><ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="18,0,0,0">
+                        <Canvas Width="22" Height="22">
+                            <Canvas.RenderTransform><ScaleTransform ScaleX="0.34375" ScaleY="0.34375"/></Canvas.RenderTransform>
+                            <Rectangle Width="64" Height="64" RadiusX="13" RadiusY="13" Fill="{StaticResource Accent}"/>
+                            <Path Data="{StaticResource MarkS}" Fill="{StaticResource AccentInk}"/>
+                            <Rectangle x:Name="caret" Canvas.Left="42.8" Canvas.Top="11" Width="4.6" Height="42" Fill="{StaticResource AccentInk}"/>
+                        </Canvas>
+                        <TextBlock Style="{StaticResource Display}" FontSize="19" Margin="11,0,0,1" VerticalAlignment="Center"><Run Text="SWEAX"/><Run Text="CLIP" Foreground="{StaticResource Accent}"/></TextBlock>
+                    </StackPanel>
+
+                    <Border Grid.Column="1" Width="560" HorizontalAlignment="Left" Height="34" Margin="20,0,0,0" BorderBrush="{StaticResource Line2}" BorderThickness="1" Background="{StaticResource Bg1}"
+                            WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="{x:Static c:Glyphs.Search}" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Text3}"/>
+                            <TextBox x:Name="search" Grid.Column="1" Style="{StaticResource SearchBox}" FontSize="13" Tag="{c:T SearchHint}"
+                                     Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"/>
+                            <Border Grid.Column="2" Style="{StaticResource Keycap}" Margin="0,0,8,0">
+                                <TextBlock Text="Ctrl F" Style="{StaticResource Mono}" FontSize="9.5"/>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <Button x:Name="pauseBtn" Style="{StaticResource CaptionButton}" FontSize="12" Click="Pause_Click"/>
+                        <Button Style="{StaticResource CaptionButton}" FontSize="12" Content="{x:Static c:Glyphs.Settings}" Click="Settings_Click" ToolTip="{c:T Settings}"/>
+                        <Border Width="1" Height="20" Background="{StaticResource Line2}" Margin="6,0"/>
+                        <Button Style="{StaticResource CaptionButton}" Content="{x:Static c:Glyphs.Minimize}" Click="Min_Click"/>
+                        <Button x:Name="maxBtn" Style="{StaticResource CaptionButton}" Content="{x:Static c:Glyphs.Maximize}" Click="Max_Click"/>
+                        <Button x:Name="closeBtn" Style="{StaticResource CaptionButton}" Content="{x:Static c:Glyphs.Close}" Click="Close_Click"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ═══ body ═══════════════════════════════════════════════════════ -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="232"/><ColumnDefinition/><ColumnDefinition x:Name="inspectorCol" Width="392"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- sidebar -->
+                <Border Background="{StaticResource Bg1}" BorderBrush="{StaticResource Line2}" BorderThickness="0,0,1,0">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <TextBlock Text="{c:T Storage, Upper=True}" Style="{StaticResource Label}" Margin="20,22,0,10"/>
+                        <ItemsControl Grid.Row="1" ItemsSource="{Binding Scopes}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type c:ScopeInfo}">
+                                    <Grid>
+                                        <Border x:Name="gap" Height="1" Background="{StaticResource Line2}" Margin="20,10,20,10" Visibility="Collapsed" VerticalAlignment="Top"/>
+                                        <Button x:Name="btn" Style="{StaticResource Bare}" Height="36" HorizontalContentAlignment="Stretch" Command="{x:Static ui:Cmds.SetScope}" CommandParameter="{Binding Scope}">
+                                            <Grid Width="231">
+                                                <Border x:Name="bar" Width="3" HorizontalAlignment="Left" Background="{StaticResource Accent}" Visibility="Hidden"/>
+                                                <TextBlock x:Name="glyph" Text="{Binding Glyph}" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource Text3}" HorizontalAlignment="Left" Margin="21,0,0,0"/>
+                                                <TextBlock x:Name="lbl" Text="{Binding Label}" FontSize="13" Foreground="{StaticResource Text2}" VerticalAlignment="Center" Margin="50,0,0,0"/>
+                                                <TextBlock x:Name="num" Text="{Binding CountText}" Style="{StaticResource Mono}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,20,0" Foreground="{StaticResource Text4}"/>
+                                            </Grid>
+                                        </Button>
+                                    </Grid>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding Active}" Value="True">
+                                            <Setter TargetName="btn" Property="Background" Value="{StaticResource Bg3}"/>
+                                            <Setter TargetName="bar" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="glyph" Property="Foreground" Value="{StaticResource Accent}"/>
+                                            <Setter TargetName="lbl" Property="Foreground" Value="{StaticResource Text}"/>
+                                            <Setter TargetName="num" Property="Foreground" Value="{StaticResource Text2}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Scope}" Value="Pinned">
+                                            <Setter TargetName="gap" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="btn" Property="Margin" Value="0,21,0,0"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- archive stats -->
+                        <Border Grid.Row="2" BorderBrush="{StaticResource Line2}" BorderThickness="0,1,0,0" Padding="20,18,20,20">
+                            <StackPanel>
+                                <TextBlock x:Name="statCount" Style="{StaticResource Display}" FontSize="40" Foreground="{StaticResource Text}"/>
+                                <TextBlock x:Name="statLabel" Style="{StaticResource Mono}" Margin="0,2,0,0"/>
+                                <Border Height="1" Background="{StaticResource Line2}" Margin="0,14,0,12"/>
+                                <TextBlock x:Name="statSince" Style="{StaticResource Mono}"/>
+                                <TextBlock x:Name="statDisk" Style="{StaticResource Mono}" Margin="0,5,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- list -->
+                <Grid x:Name="listArea" Grid.Column="1">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/></Grid.RowDefinitions>
+                    <Grid Margin="24,22,20,6">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom">
+                            <TextBlock Text="{Binding ScopeTitle, Converter={StaticResource Upper}}" Style="{StaticResource Display}" FontSize="38"/>
+                            <TextBlock x:Name="scopeCount" Style="{StaticResource Mono}" FontSize="12" Foreground="{StaticResource Accent}" VerticalAlignment="Top" Margin="10,6,0,0"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,0,6">
+                            <StackPanel x:Name="viewToggle" Orientation="Horizontal" Visibility="Collapsed">
+                                <RadioButton x:Name="gridView" Style="{StaticResource Segment}" GroupName="view" Checked="View_Checked">
+                                    <TextBlock Text="{x:Static c:Glyphs.Grid}" FontFamily="{StaticResource IconFont}" FontSize="12"/>
+                                </RadioButton>
+                                <RadioButton x:Name="listView" Style="{StaticResource Segment}" GroupName="view" Checked="View_Checked">
+                                    <TextBlock Text="{x:Static c:Glyphs.List}" FontFamily="{StaticResource IconFont}" FontSize="12"/>
+                                </RadioButton>
+                            </StackPanel>
+                            <Button x:Name="emptyTrash" Style="{StaticResource DangerAction}" Click="EmptyTrash_Click" Visibility="Collapsed">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{x:Static c:Glyphs.Trash}" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBlock Text="{c:T EmptyTrash}"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                    <ListBox x:Name="list" Grid.Row="1" Style="{StaticResource BareList}" ItemsSource="{Binding Rows}" ItemTemplateSelector="{StaticResource Rows}"
+                             Padding="0,0,0,24" SizeChanged="List_SizeChanged" ScrollViewer.ScrollChanged="List_ScrollChanged"/>
+                    <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="40,0,40,80"
+                                Visibility="{Binding IsEmpty, Converter={StaticResource Vis}}" IsHitTestVisible="False">
+                        <TextBlock Text="{Binding EmptyTitle, Converter={StaticResource Upper}}" Style="{StaticResource Display}" FontSize="46" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
+                        <Border Width="48" Height="4" Background="{StaticResource Accent}" Margin="0,18"/>
+                        <TextBlock Text="{Binding EmptyBody}" Foreground="{StaticResource Text3}" FontSize="14" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- inspector -->
+                <Border x:Name="inspector" Grid.Column="2" Background="{StaticResource Bg1}" BorderBrush="{StaticResource Line2}" BorderThickness="1,0,0,0">
+                    <Grid>
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="40" x:Name="noSel">
+                            <TextBlock Text="{x:Static c:Glyphs.Info}" Style="{StaticResource Icon}" FontSize="22" Foreground="{StaticResource Text4}"/>
+                            <TextBlock Text="{c:T NoSelection}" Foreground="{StaticResource Text3}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,14,0,0"/>
+                        </StackPanel>
+
+                        <Grid x:Name="detail" DataContext="{Binding Detail, RelativeSource={RelativeSource AncestorType=Window}}" Visibility="Collapsed">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- head -->
+                            <StackPanel Margin="22,22,22,16">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding KindGlyph}" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource Accent}"/>
+                                    <TextBlock Text="{Binding KindLabel, Converter={StaticResource Upper}}" Style="{StaticResource Label}" Foreground="{StaticResource Accent}" Margin="9,0,0,0" VerticalAlignment="Center"/>
+                                    <TextBlock Style="{StaticResource Mono}" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource Text4}">
+                                        <Run Text="#"/><Run Text="{Binding Id, Mode=OneWay, StringFormat={}{0:00000}}"/>
+                                    </TextBlock>
+                                </StackPanel>
+                                <WrapPanel Margin="0,16,0,0">
+                                    <Button Style="{StaticResource Primary}" Command="{x:Static ui:Cmds.Copy}" CommandParameter="{Binding}" Margin="0,0,8,8">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{x:Static c:Glyphs.Copy}" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            <TextBlock Text="{c:T CopyShort}"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="pinAction" Style="{StaticResource Action}" Command="{x:Static ui:Cmds.TogglePin}" CommandParameter="{Binding}" Margin="0,0,8,8" Padding="10,0">
+                                        <TextBlock x:Name="pinGlyph" Text="{x:Static c:Glyphs.Pin}" FontFamily="{StaticResource IconFont}" FontSize="12"/>
+                                    </Button>
+                                    <Button x:Name="openAction" Style="{StaticResource Action}" Command="{x:Static ui:Cmds.Open}" CommandParameter="{Binding}" Margin="0,0,8,8" Padding="10,0" ToolTip="{c:T OpenFile}">
+                                        <TextBlock Text="{x:Static c:Glyphs.Open}" FontFamily="{StaticResource IconFont}" FontSize="12"/>
+                                    </Button>
+                                    <Button x:Name="folderAction" Style="{StaticResource Action}" Command="{x:Static ui:Cmds.ShowInFolder}" CommandParameter="{Binding}" Margin="0,0,8,8" Padding="10,0" ToolTip="{c:T ShowInFolder}">
+                                        <TextBlock Text="{x:Static c:Glyphs.Folder}" FontFamily="{StaticResource IconFont}" FontSize="12"/>
+                                    </Button>
+                                    <Button x:Name="saveAction" Style="{StaticResource Action}" Command="{x:Static ui:Cmds.SaveImage}" CommandParameter="{Binding}" Margin="0,0,8,8" Padding="10,0" ToolTip="{c:T SaveImage}">
+                                        <TextBlock Text="{x:Static c:Glyphs.Save}" FontFamily="{StaticResource IconFont}" FontSize="12"/>
+                                    </Button>
+                                    <Button x:Name="deleteAction" Style="{StaticResource Action}" Command="{x:Static ui:Cmds.Delete}" CommandParameter="{Binding}" Margin="0,0,8,8" Padding="10,0" ToolTip="{c:T Delete}">
+                                        <TextBlock Text="{x:Static c:Glyphs.Trash}" FontFamily="{StaticResource IconFont}" FontSize="12"/>
+                                    </Button>
+                                    <Button x:Name="restoreAction" Style="{StaticResource Action}" Command="{x:Static ui:Cmds.Restore}" CommandParameter="{Binding}" Margin="0,0,8,8" Visibility="Collapsed">
+                                        <TextBlock Text="{c:T Restore}"/>
+                                    </Button>
+                                    <Button x:Name="foreverAction" Style="{StaticResource DangerAction}" Command="{x:Static ui:Cmds.DeleteForever}" CommandParameter="{Binding}" Margin="0,0,8,8" Visibility="Collapsed">
+                                        <TextBlock Text="{c:T DeleteForever}"/>
+                                    </Button>
+                                </WrapPanel>
+                            </StackPanel>
+
+                            <!-- preview -->
+                            <Border Grid.Row="1" BorderBrush="{StaticResource Line2}" BorderThickness="0,1,0,1" Background="{StaticResource Bg0}">
+                                <Grid x:Name="preview">
+                                    <TextBox x:Name="pvText" Style="{StaticResource ReadText}" Margin="22,18,10,18" Visibility="Collapsed" Typography.StandardLigatures="False" Typography.ContextualAlternates="False"/>
+                                    <Grid x:Name="pvImage" Visibility="Collapsed" Margin="18" Cursor="Hand" MouseLeftButtonUp="PreviewImage_Click">
+                                        <Image x:Name="pvImg" Stretch="Uniform" StretchDirection="DownOnly" RenderOptions.BitmapScalingMode="HighQuality" ui:ThumbLoader.Full="True" ui:ThumbLoader.Width="900"/>
+                                    </Grid>
+                                    <StackPanel x:Name="pvColor" Visibility="Collapsed" Margin="22">
+                                        <Border Height="180" Background="{Binding Swatch}" BorderBrush="#30FFFFFF" BorderThickness="1"/>
+                                        <TextBlock Text="{Binding Text}" FontFamily="{StaticResource MonoFont}" FontSize="22" Margin="0,18,0,6" Foreground="{StaticResource Text}"/>
+                                        <TextBlock Text="{Binding ColorDetail}" Style="{StaticResource Mono}" FontSize="11.5" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <StackPanel x:Name="pvLink" Visibility="Collapsed" Margin="22,26">
+                                        <TextBlock Text="{Binding LinkHost}" Style="{StaticResource Display}" FontSize="30" TextWrapping="Wrap"/>
+                                        <Border Width="40" Height="3" Background="{StaticResource Accent}" HorizontalAlignment="Left" Margin="0,14"/>
+                                        <TextBox Text="{Binding LinkUrl, Mode=OneWay}" Style="{StaticResource ReadText}" FontFamily="{StaticResource MonoFont}" FontSize="12" Foreground="{StaticResource Text2}"/>
+                                    </StackPanel>
+                                    <ScrollViewer x:Name="pvFiles" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" Focusable="False">
+                                        <ItemsControl x:Name="fileList" Margin="14,10">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="8,7">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="30"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                                        <Image Source="{Binding Icon}" Width="20" Height="20"/>
+                                                        <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                                            <TextBlock Text="{Binding Name}" FontSize="12.5" Foreground="{StaticResource Text}" TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock Text="{Binding Detail}" Style="{StaticResource Mono}" FontSize="9.5" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Grid>
+                            </Border>
+
+                            <!-- metadata -->
+                            <ScrollViewer Grid.Row="2" MaxHeight="300" VerticalScrollBarVisibility="Auto" Focusable="False">
+                                <StackPanel Margin="22,18,22,8">
+                                    <StackPanel x:Name="ocrBlock" Visibility="Collapsed" Margin="0,0,0,16">
+                                        <Grid Margin="0,0,0,8">
+                                            <TextBlock Text="{c:T Recognised, Upper=True}" Style="{StaticResource Label}" Foreground="{StaticResource Accent}"/>
+                                            <Button Style="{StaticResource Bare}" HorizontalAlignment="Right" Padding="6,2" Command="{x:Static ui:Cmds.CopyOcr}" CommandParameter="{Binding}">
+                                                <TextBlock Text="{c:T CopyOcr}" Style="{StaticResource Mono}" Foreground="{StaticResource Text2}"/>
+                                            </Button>
+                                        </Grid>
+                                        <TextBox Text="{Binding Ocr, Mode=OneWay}" Style="{StaticResource ReadText}" FontFamily="{StaticResource MonoFont}" FontSize="11" MaxHeight="110" Foreground="{StaticResource Text2}"/>
+                                    </StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="118"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Text="{c:T Source, Upper=True}" Style="{StaticResource MetaKey}"/>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,12">
+                                            <Image Source="{Binding AppIcon}" Width="14" Height="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding AppName}" FontSize="12.5" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <TextBlock Grid.Row="1" Text="{c:T Window, Upper=True}" Style="{StaticResource MetaKey}"/>
+                                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Title}" Style="{StaticResource MetaVal}" Foreground="{StaticResource Text2}" MaxHeight="36" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Grid.Row="2" Text="{c:T FirstCopied, Upper=True}" Style="{StaticResource MetaKey}"/>
+                                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding CreatedText}" Style="{StaticResource MetaVal}"/>
+                                        <TextBlock Grid.Row="3" Text="{c:T LastUsed, Upper=True}" Style="{StaticResource MetaKey}"/>
+                                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding UsedText}" Style="{StaticResource MetaVal}"/>
+                                        <TextBlock Grid.Row="4" Text="{c:T TimesCopied, Upper=True}" Style="{StaticResource MetaKey}"/>
+                                        <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Uses}" Style="{StaticResource MetaVal}"/>
+                                        <TextBlock Grid.Row="5" Text="{c:T Size, Upper=True}" Style="{StaticResource MetaKey}"/>
+                                        <TextBlock Grid.Row="5" Grid.Column="1" Style="{StaticResource MetaVal}">
+                                            <Run Text="{Binding Stats, Mode=OneWay}"/>
+                                        </TextBlock>
+                                    </Grid>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <!-- settings replaces list + inspector -->
+                <ContentControl x:Name="settingsHost" Grid.Column="1" Grid.ColumnSpan="2" Visibility="Collapsed" Focusable="False"/>
+            </Grid>
+
+            <!-- toast -->
+            <Border x:Name="toast" Grid.Row="1" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,26" Background="{StaticResource Accent}" Padding="14,8" Opacity="0" IsHitTestVisible="False">
+                <TextBlock x:Name="toastText" FontFamily="{StaticResource MonoFont}" FontSize="11.5" FontWeight="Medium" Foreground="{StaticResource AccentInk}"/>
+            </Border>
+
+            <!-- confirm -->
+            <Grid x:Name="confirm" Grid.RowSpan="2" Background="#CC0A0A0B" Visibility="Collapsed">
+                <Border Width="440" VerticalAlignment="Center" HorizontalAlignment="Center" Background="{StaticResource Bg1}" BorderBrush="{StaticResource Line2}" BorderThickness="1" Padding="28,26">
+                    <StackPanel>
+                        <Border Width="36" Height="3" Background="{StaticResource Danger}" HorizontalAlignment="Left" Margin="0,0,0,18"/>
+                        <TextBlock x:Name="confirmText" TextWrapping="Wrap" FontSize="14.5" LineHeight="22" Foreground="{StaticResource Text}"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
+                            <Button Style="{StaticResource Action}" Content="{c:T Cancel}" Click="ConfirmNo_Click" Margin="0,0,10,0"/>
+                            <Button Style="{StaticResource DangerPrimary}" Content="{c:T Yes}" Click="ConfirmYes_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

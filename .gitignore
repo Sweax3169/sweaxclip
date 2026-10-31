@@ -1,0 +1,9 @@
+bin/
+obj/
+artifacts/
+publish/
+.vs/
+*.user
+tools/node_modules/
+sweaxclip-data/
+*.tmp

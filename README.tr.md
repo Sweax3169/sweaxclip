@@ -151,6 +151,27 @@ Her görsel ve ekran görüntüsü arka planda, Windows'la gelen OCR motoruyla (
 
 <br>
 
+## Ekrandaki her yazıyı kopyala
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/shots/tr/grab-dark.png">
+  <img alt="Duraklatılmış bir sunum videosu: ekran donmuş ve kararmış, slayttaki listenin üstünden bir kutu sürüklenmiş, bir not 25 kelimenin kopyalandığını söylüyor" src="docs/shots/tr/grab-light.png">
+</picture>
+
+Bazı yazılar seçilemez: bir görselin içindeki kelimeler, duraklatılmış bir video, birinin paylaştığı bir slayt, bir hata penceresi, bir oyun. <kbd>Win</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd>'ye bas, üstünden sürükle; yazı panoda.
+
+- **Ekran donar.** Kısayola bastığın an ekran koyu bir katmanın altında durur; seçerken video ya da animasyon kaçıp gitmez.
+- **Yazının üstünden bir kutu sürükle.** Köşede kutunun piksel boyutu görünür. Bıraktığında yazı okunur ve kopyalanır; kutunun yanındaki not kaç kelime olduğunu ve ilk kelimeleri gösterir.
+- **Her monitörde** aynı şekilde çalışır. <kbd>Esc</kbd> ya da sağ tık iptal eder.
+- **Geçmişine de düşer**, kopyaladığın her şey gibi.
+- **Bilgisayarında okunur:** Windows'un OCR motoruyla, Windows'ta yüklü dillerde. Okumadan önce SweaxClip koyu zemindeki açık yazıyı açık zemine koyu yazıya çevirir ve motorun en iyi okuduğu boya getirir.
+- **İstediğin kısayol:** Ayarlar → Genel → *Ekrandan metin kopyala*. Kısayola tıkla ve istediğin tuşlara bas; özellik oradan kapatılabilir de. Tepsi menüsünde de var; `SweaxClip.exe --grab` ise bir betikten ya da makro tuşundan başlatır.
+
+> [!NOTE]
+> Motor cümleleri ve arayüz yazılarını çok iyi okur. Kodda `=` ya da süslü parantez gibi tek başına duran sembolleri kaçırabilir; kodu çalıştırmadan önce bir göz at.
+
+<br>
+
 ## Kütüphane
 
 Kopyaladığın her şey tek bir masada. Tepsi simgesinden, panelde <kbd>Ctrl</kbd> <kbd>E</kbd> ile ya da `SweaxClip.exe`'yi yeniden çalıştırarak açılır.
@@ -262,6 +283,7 @@ Her kayıt kendi nesnesi olarak çizilir: metin bir kâğıt yaprağında, bağl
 - **Kısayol.** Kendi iş parçacığında çalışan düşük seviyeli bir klavye kancası <kbd>Win</kbd> + <kbd>V</kbd>'yi Windows'tan önce alır; hiçbir Windows ayarı değişmez. Yazı imleci önce `GetGUIThreadInfo` ile, kendi imlecini çizen tarayıcı ve düzenleyicilerde ise erişilebilirlik imleciyle (`OBJID_CARET`) bulunur.
 - **Yapıştırma.** Kayıt tüm biçimleriyle panoya geri konur, odak yazdığın pencereye döner ve SweaxClip <kbd>Ctrl</kbd> + <kbd>V</kbd> gönderir.
 - **Kaynak kullanımı.** Tepside yaklaşık 8–12 MB bellek, sıfır işlemci. Panel kapanınca kullandığı bellek Windows'a geri verilir.
+- **Ekrandan metin.** Koyu katman açılmadan önce her monitör GDI ile yakalanır. Seçim griye çevrilir, çoğu koyuysa ters çevrilir, kontrastı gerilir ve satırları yaklaşık 36 piksel olacak boya getirilir; sonra `Windows.Media.Ocr` ile okunur.
 - **Yedek.** Veritabanı her gün `VACUUM INTO` ile kopyalanır; son yedi gün ve her aydan bir kopya tutulur.
 
 <details>
@@ -321,6 +343,7 @@ Bilgisayarında [.NET 9 Desktop Runtime](https://dotnet.microsoft.com/download/d
 | `SweaxClip.exe` | Başlat; zaten çalışıyorsa kütüphaneyi aç |
 | `SweaxClip.exe --background` | Pencere açmadan tepside başlat |
 | `SweaxClip.exe --toggle` | Paneli aç veya kapat — fare tuşları, makro tuşları ve Stream Deck için |
+| `SweaxClip.exe --grab` | Ekrandan metin kopyala, kısayoluyla aynı |
 | `SweaxClip.exe --quit` | Çalışan örneği kapat |
 
 <br>
@@ -363,6 +386,7 @@ src/SweaxClip/
 │   ├── Motion           yaylar, açılma ve büyüme
 │   ├── LibraryWindow    masa ve ışık kutusu
 │   ├── Cards.xaml       her kayıt türü kendi kartı olarak
+│   ├── TextGrabber      ekrandan metin: donmuş ekran, seçim, not
 │   └── CaretLocator     yazı imlecinin yeri
 └── Dev/                 örnek arşiv ve README görsellerini üreten kod
 ```

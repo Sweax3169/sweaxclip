@@ -216,6 +216,19 @@
                     </Border>
                     <Border Style="{StaticResource Row}">
                         <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Style="{StaticResource RowText}">
+                                <TextBlock Text="{c:T SetGrab}" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{c:T SetGrabNote}" Style="{StaticResource Note}"/>
+                                <TextBlock x:Name="grabStatus" Style="{StaticResource Note}" Foreground="{DynamicResource Accent}" Visibility="Collapsed"/>
+                            </StackPanel>
+                            <Button x:Name="grabKey" Grid.Column="1" Style="{StaticResource Inline}" MinWidth="168" Margin="0,0,18,0" Click="GrabKey_Click"
+                                    FontFamily="{StaticResource UiFont}"/>
+                            <CheckBox x:Name="grab" Grid.Column="2" Style="{StaticResource Switch}" VerticalAlignment="Center" Click="Toggle_Click"/>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <StackPanel Style="{StaticResource RowText}">
                                 <TextBlock Text="{c:T SetStartup}" Style="{StaticResource Label}"/>

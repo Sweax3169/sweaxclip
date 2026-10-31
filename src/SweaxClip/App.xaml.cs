@@ -39,7 +39,7 @@ public partial class App : Application
         base.OnStartup(e);
         var args = e.Args.Select(a => a.ToLowerInvariant()).ToArray();
 
-        if (args.Contains("--demo") || args.Contains("--shots") || args.Contains("--gif") || args.Contains("--appearance") || args.Contains("--classify"))
+        if (args.Contains("--demo") || args.Contains("--shots") || args.Contains("--gif") || args.Contains("--appearance") || args.Contains("--classify") || args.Contains("--grab") && args.Contains("--theme"))
         {
             Dev.Demo.Run(this, e.Args);
             return;
@@ -49,7 +49,7 @@ public partial class App : Application
         if (!first)
         {
             // second launch: --toggle opens the quick panel (bind it to a mouse button or macro key), anything else opens the library
-            string name = InstanceName + (args.Contains("--toggle") ? ".toggle" : args.Contains("--quit") ? ".quit" : ".activate");
+            string name = InstanceName + (args.Contains("--toggle") ? ".toggle" : args.Contains("--grab") ? ".grab" : args.Contains("--quit") ? ".quit" : ".activate");
             try { EventWaitHandle.OpenExisting(name).Set(); } catch { }
             Shutdown();
             return;
@@ -58,14 +58,16 @@ public partial class App : Application
         _activate = new EventWaitHandle(false, EventResetMode.AutoReset, InstanceName + ".activate");
         var toggle = new EventWaitHandle(false, EventResetMode.AutoReset, InstanceName + ".toggle");
         var quit = new EventWaitHandle(false, EventResetMode.AutoReset, InstanceName + ".quit");
+        var grab = new EventWaitHandle(false, EventResetMode.AutoReset, InstanceName + ".grab");
         new Thread(() =>
         {
-            var handles = new WaitHandle[] { _activate, toggle, quit };
+            var handles = new WaitHandle[] { _activate, toggle, quit, grab };
             while (true)
             {
                 int i = WaitHandle.WaitAny(handles);
                 if (i == 0) Dispatcher.BeginInvoke(() => ShowLibrary(null));
                 else if (i == 1) { IntPtr fg = Win32.GetForegroundWindow(); Dispatcher.BeginInvoke(() => TogglePanel(fg)); }
+                else if (i == 3) Dispatcher.BeginInvoke(GrabText);
                 else { Dispatcher.BeginInvoke(Quit); return; }
             }
         }) { IsBackground = true, Name = "SweaxClip.Activate" }.Start();
@@ -136,6 +138,7 @@ public partial class App : Application
             IntPtr fg = Win32.GetForegroundWindow();
             Dispatcher.BeginInvoke(() => TogglePanel(fg), DispatcherPriority.Send);
         };
+        _hook.GrabPressed += () => Dispatcher.BeginInvoke(GrabText, DispatcherPriority.Send);
         ApplyHotkey();
 
         _watcher = new ScreenshotWatcher(_pipeline);
@@ -188,9 +191,30 @@ public partial class App : Application
         _pipeline.Enqueue(clip);
     }
 
+    /// <summary>Freezes the screen and lets you drag over text to copy it.</summary>
+    public void GrabText()
+    {
+        if (_panel is { IsVisible: true }) _panel.HideNow();
+        TextGrabber.Start();
+    }
+
+    /// <summary>Captures the next shortcut pressed anywhere, for the settings recorder (null: cancelled).</summary>
+    public void RecordHotkey(Action<Hotkey?> done)
+    {
+        if (_hook == null) { done(null); return; }
+        _hook.Record(h => Dispatcher.BeginInvoke(() => done(h)));
+    }
+
+    public void StopRecordingHotkey() => _hook?.StopRecording();
+
     public void ApplyHotkey()
     {
         if (_hook != null) _hook.Hotkey = Hotkey.Parse(Settings.Hotkey);
+        if (_hook != null)
+        {
+            var grab = Hotkey.Parse(Settings.GrabHotkey);
+            _hook.GrabHotkey = Settings.GrabEnabled && grab != _hook.Hotkey ? grab : null;
+        }
     }
 
     public void ApplyWatcher()
@@ -278,6 +302,9 @@ public partial class App : Application
             return m;
         }
         menu.Items.Add(Item(Loc.T("OpenLibrary"), Glyphs.History, () => ShowLibrary(null)));
+        var grabItem = Item(Loc.T("GrabText"), "\uE8D2", GrabText);
+        if (Settings.GrabEnabled) grabItem.InputGestureText = Hotkey.Parse(Settings.GrabHotkey).ToString();
+        menu.Items.Add(grabItem);
         menu.Items.Add(Item(Settings.Paused ? Loc.T("ResumeCapture") : Loc.T("PauseCapture"), Settings.Paused ? Glyphs.Play : Glyphs.Pause, () => SetPaused(!Settings.Paused)));
         menu.Items.Add(new Separator());
         menu.Items.Add(Item(Loc.T("Quit"), Glyphs.Close, Quit));

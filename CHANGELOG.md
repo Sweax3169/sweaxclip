@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.5.0 — 2026-10-31
+
+Copy text from screen.
+
+- **Text you can't select.** Press <kbd>Win</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd>: every monitor freezes under a dim layer, you drag a box over the text — a picture, a paused video, a shared slide, an error dialog, a game — and it is on your clipboard and in your history. A note beside the box shows how many words were copied and the first of them. <kbd>Esc</kbd> or a right-click cancels.
+- **Read on your PC** by the Windows OCR engine. Light-on-dark text is turned into dark-on-light first, the contrast is stretched, and the selection is scaled so its lines are about 36 pixels tall, the size the engine reads best. "Ox80070005" becomes "0x80070005".
+- **Your own shortcut.** Settings → General → *Copy text from screen*: click the shortcut, press the keys you want (it needs Win, Ctrl or Alt and can't be the panel's), or turn the feature off. Win and Alt shortcuts don't open Start or a menu bar.
+- Also in the tray menu, and `SweaxClip.exe --grab` starts it from a script or a macro key.
+- README and website: a new section with pictures rendered from the app.
+
 ## 1.4.1 — 2026-10-31
 
 - **One line of code is code.** A single line is now recognised as code when it is a function call (`print("Merhaba Dünya!")`, `console.log(x);`), an assignment (`x = 5`, `local speed = 16`), an import or a declaration (`import os`, `def f():`, `#include <stdio.h>`), an SQL statement, an HTML tag, a JSON object or a CSS rule — not only shell commands. Short scripts where most lines are code count too. Sentences are still text: "Fiyat = 50 TL", "import the files tomorrow" and "Hello (world)" stay where they were.

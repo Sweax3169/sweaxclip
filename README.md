@@ -151,6 +151,27 @@ Every image and screenshot is read once, in the background, by the OCR engine th
 
 <br>
 
+## Copy text from anywhere on screen
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/shots/en/grab-dark.png">
+  <img alt="A paused video of a talk: the screen is frozen and dimmed, a box is dragged over the slide's list, and a note says the 33 words were copied" src="docs/shots/en/grab-light.png">
+</picture>
+
+Some text can't be selected: words inside a picture, a paused video, a slide someone is sharing, an error dialog, a game. Press <kbd>Win</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd>, drag over it, and it is on your clipboard.
+
+- **The screen freezes** under a dim layer the moment you press the shortcut, so a video or an animation can't move away while you select.
+- **Drag a box over the text.** Its size in pixels follows the corner. Let go and the text is read and copied, and a note beside the box shows how many words and the first of them.
+- **Every monitor** works the same. <kbd>Esc</kbd> or a right-click cancels.
+- **It lands in your history** too, like anything else you copy.
+- **Read on your PC** by the Windows OCR engine, in the languages installed in Windows. Before reading, SweaxClip turns light-on-dark text into dark-on-light and scales it to the size the engine reads best.
+- **Any shortcut you like:** Settings → General → *Copy text from screen*. Click the shortcut and press the keys you want; the feature can be turned off there too. It is also in the tray menu, and `SweaxClip.exe --grab` starts it from a script or a macro key.
+
+> [!NOTE]
+> The engine reads sentences and interface text very well. In code it can miss lone symbols such as `=` or braces, so look over code before you run it.
+
+<br>
+
 ## The library
 
 Everything you ever copied, on one desk. Open it from the tray icon, from the panel with <kbd>Ctrl</kbd> <kbd>E</kbd>, or by starting `SweaxClip.exe` again.
@@ -262,6 +283,7 @@ Each clip is drawn as the thing it is: text on a sheet of paper, a link in its s
 - **The shortcut.** A low-level keyboard hook on its own thread receives <kbd>Win</kbd> + <kbd>V</kbd> before Windows does, so no Windows setting is changed. The text cursor is found with `GetGUIThreadInfo`, then through the accessibility caret (`OBJID_CARET`) for browsers and editors that draw their own.
 - **Pasting.** The clip goes back on the clipboard in all its formats, focus returns to the window you were typing in, and SweaxClip sends <kbd>Ctrl</kbd> + <kbd>V</kbd>.
 - **Resources.** In the tray SweaxClip uses about 8–12 MB of memory and no CPU. When the panel closes, the memory it used is handed back to Windows.
+- **Text from screen.** Each monitor is captured with GDI before the dim layer appears. The selection is turned grey, inverted when it is mostly dark, contrast-stretched and scaled so its lines are about 36 pixels tall, then read with `Windows.Media.Ocr`.
 - **Backups.** Every day the database is copied with `VACUUM INTO`; the last seven days and one copy per month are kept.
 
 <details>
@@ -321,6 +343,7 @@ If you already have the [.NET 9 Desktop Runtime](https://dotnet.microsoft.com/do
 | `SweaxClip.exe` | Start, or open the library if SweaxClip is already running |
 | `SweaxClip.exe --background` | Start in the tray without opening a window |
 | `SweaxClip.exe --toggle` | Open or close the panel — for mouse buttons, macro keys and Stream Deck |
+| `SweaxClip.exe --grab` | Copy text from screen, the same as its shortcut |
 | `SweaxClip.exe --quit` | Exit the running instance |
 
 <br>
@@ -363,6 +386,7 @@ src/SweaxClip/
 │   ├── Motion           springs, reveal and grow
 │   ├── LibraryWindow    the desk and the lightbox
 │   ├── Cards.xaml       each kind of clip as its own card
+│   ├── TextGrabber      copy text from screen: frozen screen, selection, note
 │   └── CaretLocator     where the text cursor is
 └── Dev/                 sample archive and the README renderer
 ```

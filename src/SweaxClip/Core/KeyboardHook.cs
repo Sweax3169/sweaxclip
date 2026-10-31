@@ -21,14 +21,24 @@ public readonly record struct Hotkey(bool Win, bool Ctrl, bool Alt, bool Shift, 
                 default:
                     if (part.Length == 1 && char.IsLetterOrDigit(part[0])) key = char.ToUpperInvariant(part[0]);
                     else if (part.StartsWith('F') && int.TryParse(part[1..], out int f) && f is >= 1 and <= 24) key = 0x6F + f;
-                    else if (part.Equals("Insert", StringComparison.OrdinalIgnoreCase)) key = 0x2D;
-                    else if (part.Equals("Space", StringComparison.OrdinalIgnoreCase)) key = 0x20;
+                    else if (Named.FirstOrDefault(n => n.Value.Equals(part, StringComparison.OrdinalIgnoreCase)) is { Value: not null } hit) key = hit.Key;
                     break;
             }
         }
         if (!win && !ctrl && !alt) win = true; // never steal a bare key
         return new Hotkey(win, ctrl, alt, shift, key);
     }
+
+    static readonly Dictionary<int, string> Named = new()
+    {
+        [0x20] = "Space", [0x2D] = "Insert", [0x2C] = "PrtSc", [0x24] = "Home", [0x23] = "End", [0x21] = "PgUp", [0x22] = "PgDn",
+    };
+
+    /// <summary>Keys a shortcut can end on: letters, digits, F1–F24 and a few named keys.</summary>
+    public static bool IsBindable(int vk) => vk is (>= 0x41 and <= 0x5A) or (>= 0x30 and <= 0x39) or (>= 0x70 and <= 0x87) || Named.ContainsKey(vk);
+
+    /// <summary>The form saved in settings: "Win+Shift+T".</summary>
+    public string Spec => ToString().Replace(" ", "");
 
     public override string ToString()
     {
@@ -37,7 +47,7 @@ public readonly record struct Hotkey(bool Win, bool Ctrl, bool Alt, bool Shift, 
         if (Ctrl) parts.Add("Ctrl");
         if (Alt) parts.Add("Alt");
         if (Shift) parts.Add("Shift");
-        parts.Add(Key switch { >= 0x70 and <= 0x87 => "F" + (Key - 0x6F), 0x2D => "Insert", 0x20 => "Space", _ => ((char)Key).ToString() });
+        parts.Add(Key is >= 0x70 and <= 0x87 ? "F" + (Key - 0x6F) : Named.TryGetValue(Key, out var n) ? n : ((char)Key).ToString());
         return string.Join(" + ", parts);
     }
 }
@@ -55,15 +65,27 @@ public sealed class KeyboardHook : IDisposable
     readonly Thread _thread;
     uint _threadId;
     IntPtr _hook;
-    volatile bool _swallowUp;
+    volatile int _swallowKey;
+    volatile Action<Hotkey?>? _record;
     readonly ManualResetEventSlim _ready = new();
 
     public volatile bool Enabled = true;
     public Hotkey Hotkey { get; set; } = Hotkey.Parse("Win+V");
+    /// <summary>"Copy text from screen"; null when it is turned off.</summary>
+    public Hotkey? GrabHotkey { get; set; }
     public long LastPrintScreen;
 
     /// <summary>Raised on the hook thread — handlers must only post work elsewhere.</summary>
     public event Action? Pressed;
+    /// <summary>The text-grab shortcut was pressed (hook thread).</summary>
+    public event Action? GrabPressed;
+
+    /// <summary>
+    /// Captures the next shortcut pressed anywhere (even ones Windows would take, such as Win + letter) and
+    /// reports it instead of acting on it; Esc reports null. The callback runs on the hook thread.
+    /// </summary>
+    public void Record(Action<Hotkey?> done) => _record = done;
+    public void StopRecording() => _record = null;
 
     public KeyboardHook()
     {
@@ -116,30 +138,46 @@ public sealed class KeyboardHook : IDisposable
             {
                 if (kb.vkCode == Win32.VK_SNAPSHOT && down) LastPrintScreen = Environment.TickCount64;
 
-                var hk = Hotkey;
-                if (Enabled && kb.vkCode == hk.Key)
+                int vk = (int)kb.vkCode;
+                if (down && _record is { } record)
                 {
-                    if (down)
+                    if (vk == 0x1B) { _record = null; _swallowKey = vk; record(null); return 1; }
+                    if (Hotkey.IsBindable(vk))
                     {
-                        if (_swallowUp) return 1; // auto-repeat while held
-                        if (ModifiersMatch(hk))
-                        {
-                            _swallowUp = true;
-                            if (hk.Win || hk.Alt) Win32.Send(Win32.Key(Win32.VK_MASK, false), Win32.Key(Win32.VK_MASK, true));
-                            Pressed?.Invoke();
-                            return 1;
-                        }
-                    }
-                    else if (up && _swallowUp)
-                    {
-                        _swallowUp = false;
+                        var got = Current(vk);
+                        _record = null;
+                        Swallow(got);
+                        record(got);
                         return 1;
                     }
+                }
+                else if (Enabled && down)
+                {
+                    if (_swallowKey == vk) return 1; // auto-repeat while held
+                    var hk = Hotkey;
+                    if (vk == hk.Key && ModifiersMatch(hk)) { Swallow(hk); Pressed?.Invoke(); return 1; }
+                    if (GrabHotkey is { } gk && vk == gk.Key && ModifiersMatch(gk)) { Swallow(gk); GrabPressed?.Invoke(); return 1; }
+                }
+                if (up && _swallowKey == vk)
+                {
+                    _swallowKey = 0;
+                    return 1;
                 }
             }
         }
         return Win32.CallNextHookEx(_hook, nCode, wParam, lParam);
     }
+
+    /// <summary>Eats the key's release too, and taps an unused key so a held Win or Alt doesn't open Start or the menu bar.</summary>
+    void Swallow(Hotkey hk)
+    {
+        _swallowKey = hk.Key;
+        if (hk.Win || hk.Alt) Win32.Send(Win32.Key(Win32.VK_MASK, false), Win32.Key(Win32.VK_MASK, true));
+    }
+
+    static Hotkey Current(int vk) => new(
+        Win32.IsKeyDown(Win32.VK_LWIN) || Win32.IsKeyDown(Win32.VK_RWIN), Win32.IsKeyDown(Win32.VK_CONTROL),
+        Win32.IsKeyDown(Win32.VK_MENU), Win32.IsKeyDown(Win32.VK_SHIFT), vk);
 
     static bool ModifiersMatch(Hotkey hk)
     {

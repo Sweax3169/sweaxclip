@@ -31,6 +31,9 @@ public sealed class Settings
     public string ThemeMode { get; set; } = "system";
     /// <summary>Colour palette key (see UI/Palettes.cs).</summary>
     public string Palette { get; set; } = "ember";
+    /// <summary>"Copy text from screen" shortcut, and whether it is on.</summary>
+    public string GrabHotkey { get; set; } = "Win+Shift+T";
+    public bool GrabEnabled { get; set; } = true;
 
     [JsonIgnore] public string FilePath { get; private set; } = "";
 

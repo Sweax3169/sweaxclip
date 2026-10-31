@@ -18,6 +18,14 @@ public partial class SettingsView : UserControl
         _app = app;
         _owner = owner;
         InitializeComponent();
+        // leaving Settings mid-recording must not leave the hook waiting to eat the next shortcut
+        Unloaded += (_, _) =>
+        {
+            if (!_recording) return;
+            _recording = false;
+            _app.StopRecordingHotkey();
+            grabKey.Content = Hotkey.Parse(_app.Settings.GrabHotkey).ToString();
+        };
     }
 
     public void Refresh()
@@ -41,6 +49,9 @@ public partial class SettingsView : UserControl
         dataPath.Text = Paths.Data;
         version.Text = Loc.Format("SetVersion", typeof(App).Assembly.GetName().Version?.ToString(3) ?? "1.0.0");
         using (var p = Process.GetCurrentProcess()) memory.Text = $"{Loc.T("SetMemory")}: {Bytes.Format(p.WorkingSet64)}";
+        grab.IsChecked = s.GrabEnabled;
+        grabKey.Content = Hotkey.Parse(s.GrabHotkey).ToString();
+        grabStatus.Visibility = Visibility.Collapsed;
         styleTimeline.IsChecked = s.PanelStyle != "deck";
         styleDeck.IsChecked = s.PanelStyle == "deck";
         themeSystem.IsChecked = s.ThemeMode is not ("light" or "dark");
@@ -49,6 +60,44 @@ public partial class SettingsView : UserControl
         LoadPalettes();
         _loading = false;
         _ = UpdateDataStats();
+    }
+
+    // ── text from screen: the shortcut recorder ─────────────────────────────
+
+    bool _recording;
+
+    void GrabKey_Click(object sender, RoutedEventArgs e)
+    {
+        if (_recording)
+        {
+            _recording = false;
+            _app.StopRecordingHotkey();
+            grabKey.Content = Hotkey.Parse(_app.Settings.GrabHotkey).ToString();
+            return;
+        }
+        _recording = true;
+        grabStatus.Visibility = Visibility.Collapsed;
+        grabKey.Content = Loc.T("GrabRecording") + "  · Esc";
+        _app.RecordHotkey(h =>
+        {
+            if (!_recording) return;
+            _recording = false;
+            string? problem = h == null ? null
+                : !(h.Value.Win || h.Value.Ctrl || h.Value.Alt) ? Loc.T("GrabNeedsModifier")
+                : h.Value == Hotkey.Parse(_app.Settings.Hotkey) ? Loc.T("GrabTaken")
+                : null;
+            if (h != null && problem == null)
+            {
+                _app.Settings.GrabHotkey = h.Value.Spec;
+                _app.Settings.GrabEnabled = true;
+                _app.Settings.Save();
+                _app.ApplyHotkey();
+                grab.IsChecked = true;
+            }
+            grabKey.Content = Hotkey.Parse(_app.Settings.GrabHotkey).ToString();
+            grabStatus.Text = problem ?? "";
+            grabStatus.Visibility = problem == null ? Visibility.Collapsed : Visibility.Visible;
+        });
     }
 
     // ── appearance ───────────────────────────────────────────────────────────
@@ -118,6 +167,7 @@ public partial class SettingsView : UserControl
             case "ocr": s.Ocr = on; break;
             case "privacy": s.RespectPrivateFlags = on; break;
             case "backups": s.DailyBackups = on; break;
+            case "grab": s.GrabEnabled = on; _app.ApplyHotkey(); break;
         }
         s.Save();
     }

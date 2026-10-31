@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -8,6 +8,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using SweaxClip.Core;
+using SweaxClip.Native;
 using SweaxClip.UI;
 
 namespace SweaxClip.Dev;
@@ -53,6 +54,7 @@ public static class Demo
             if (Arg("--shots") is { } shots) await Shots(app, shots);
             else if (Arg("--gif") is { } gif) await Gif(app, gif, Arg("--film") ?? "panel");
             else if (Arg("--appearance") is { } look) await Appearance(app, look);
+            else if (Arg("--grab") is { } grabDir) await GrabShot(app, grabDir);
             else
             {
                 var lib = new LibraryWindow(app);
@@ -312,6 +314,155 @@ public static class Demo
             if (Named(child, name) is { } hit) return hit;
         }
         return null;
+    }
+
+    // ── copy text from screen ──────────────────────────────────────────────
+
+    static readonly Brush CodeInk = Hex("#E6E8EE"), CodeKey = Hex("#FF8A65"), CodeStr = Hex("#A5D6A7"), CodeFn = Hex("#80CBC4"), CodeDim = Hex("#6B7280");
+
+    /// <summary>A paused frame of a coding tutorial: the code is only pixels, so it can't be selected.</summary>
+    static BitmapSource VideoFrame(bool tr)
+    {
+        var dv = new DrawingVisual();
+        var mono = new Typeface(new FontFamily("Cascadia Mono, Consolas"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+        var ui = new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal);
+        void Run(DrawingContext dc, string text, Brush b, ref double x, double y, Typeface f, double size)
+        {
+            var ft = new FormattedText(text, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight, f, size, b, 1);
+            dc.DrawText(ft, new Point(x, y));
+            x += ft.WidthIncludingTrailingWhitespace;
+        }
+        (string, Brush)[][] lines =
+        [
+            [(tr ? "# 04 — fonksiyonlar" : "# 04 — functions", CodeDim)],
+            [("def ", CodeKey), ("greet", CodeFn), ("(name):", CodeInk)],
+            [("    message = ", CodeInk), ("f\"Merhaba, {name}!\"", CodeStr)],
+            [("    print", CodeFn), ("(message)", CodeInk)],
+            [("    ", CodeInk), ("return ", CodeKey), ("message", CodeInk)],
+            [("", CodeInk)],
+            [("greet", CodeFn), ("(", CodeInk), ("\"Dünya\"", CodeStr), (")", CodeInk)],
+        ];
+        using (var dc = dv.RenderOpen())
+        {
+            dc.DrawRectangle(Hex("#1E1F24"), null, new Rect(0, 0, 1280, 720));
+            dc.DrawRectangle(Hex("#18191D"), null, new Rect(0, 0, 1280, 48));
+            dc.DrawRectangle(Hex("#1E1F24"), null, new Rect(24, 8, 150, 40));
+            double tx = 44;
+            Run(dc, "app.py", CodeInk, ref tx, 17, ui, 16);
+            for (int i = 0; i < lines.Length; i++)
+            {
+                double y = 104 + i * 46, x = 64;
+                Run(dc, (i + 1).ToString(), CodeDim, ref x, y, mono, 26);
+                x = 120;
+                foreach (var (text, brush) in lines[i]) Run(dc, text, brush, ref x, y, mono, 26);
+            }
+        }
+        var rtb = new RenderTargetBitmap(1280, 720, 96, 96, PixelFormats.Pbgra32);
+        rtb.Render(dv);
+        rtb.Freeze();
+        return rtb;
+    }
+
+    /// <summary>A paused frame of a talk: a slide whose words are only pixels.</summary>
+    static BitmapSource SlideFrame(bool tr)
+    {
+        var dv = new DrawingVisual();
+        var head = new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
+        var body = new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+        void Text(DrawingContext dc, string text, double x, double y, Typeface f, double size, Brush b) =>
+            dc.DrawText(new FormattedText(text, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight, f, size, b, 1), new Point(x, y));
+        string[] items = tr
+            ? ["1. Sürümü yükselt ve derlemeyi etiketle", "2. Zip dosyasını ve lite exe'yi ekle", "3. Bağlantıyı #studio kanalında paylaş", "4. Değişiklik notlarını İngilizce ve Türkçe yaz"]
+            : ["1. Bump the version and tag the build", "2. Attach the zip and the lite exe", "3. Share the link in the #studio channel", "4. Write the release notes in English and Turkish"];
+        using (var dc = dv.RenderOpen())
+        {
+            dc.DrawRectangle(new LinearGradientBrush((Color)ColorConverter.ConvertFromString("#1B1D2A"), (Color)ColorConverter.ConvertFromString("#121318"), 90), null, new Rect(0, 0, 1280, 720));
+            dc.DrawRectangle(Hex("#E4572E"), null, new Rect(96, 120, 64, 6));
+            Text(dc, tr ? "Bir sürümü yayınlamak" : "Shipping a release", 96, 150, head, 56, Hex("#F2F2F5"));
+            for (int i = 0; i < items.Length; i++) Text(dc, items[i], 104, 270 + i * 56, body, 32, Hex("#C9CCD8"));
+            Text(dc, "Sweax Studios · 2026", 96, 640, body, 18, Hex("#6B6F82"));
+        }
+        var rtb = new RenderTargetBitmap(1280, 720, 96, 96, PixelFormats.Pbgra32);
+        rtb.Render(dv);
+        rtb.Freeze();
+        return rtb;
+    }
+
+    /// <summary>A plain video player window around the frame.</summary>
+    static FrameworkElement Player(BitmapSource frame, bool tr)
+    {
+        var title = new TextBlock { Text = tr ? "Sürüm günü — sunum.mp4" : "Release day — talk.mp4", Foreground = Hex("#C9CCD3"), FontSize = 13, FontFamily = new FontFamily("Segoe UI"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(18, 0, 0, 0) };
+        var top = new Grid { Height = 44, Background = Hex("#0E0F12"), Children = { title } };
+        var image = new Image { Source = frame, Width = 1280, Height = 720, Stretch = Stretch.None };
+        var bar = new Grid { Height = 56, Background = Hex("#0E0F12") };
+        bar.Children.Add(new TextBlock { Text = "\uE769", FontFamily = new FontFamily("Segoe Fluent Icons"), FontSize = 18, Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(22, 0, 0, 0) });
+        bar.Children.Add(new Border { Height = 4, CornerRadius = new CornerRadius(2), Background = Hex("#3A3D45"), Margin = new Thickness(64, 0, 150, 0) });
+        bar.Children.Add(new Border { Height = 4, CornerRadius = new CornerRadius(2), Background = Hex("#E4572E"), Margin = new Thickness(64, 0, 0, 0), Width = 440, HorizontalAlignment = HorizontalAlignment.Left });
+        bar.Children.Add(new TextBlock { Text = "04:12 / 10:00", Foreground = Hex("#C9CCD3"), FontSize = 13, FontFamily = new FontFamily("Segoe UI"), VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 0, 22, 0) });
+        var dock = new DockPanel { Background = Hex("#0B0C0E"), Width = 1320, Height = 840 };
+        DockPanel.SetDock(top, Dock.Top);
+        DockPanel.SetDock(bar, Dock.Bottom);
+        dock.Children.Add(top);
+        dock.Children.Add(bar);
+        dock.Children.Add(image);
+        dock.Measure(new Size(1320, 840));
+        dock.Arrange(new Rect(0, 0, 1320, 840));
+        dock.UpdateLayout();
+        return dock;
+    }
+
+    /// <summary>Renders grab-{theme}.png and checks the OCR on code, small interface text and Turkish letters.</summary>
+    static async Task GrabShot(App app, string outDir)
+    {
+        Directory.CreateDirectory(outDir);
+        string t = Dark ? "dark" : "light";
+        bool tr = app.Settings.Language == "tr";
+        const double W = 1600, H = 1000;
+        var playerRect = new Rect(140, 70, 1320, 840);
+        var player = Player(SlideFrame(tr), tr);
+        var desk = Scene(new Rect(0, 0, W, H), 1, c => Put(c, Demo.Snap(player, 1320, 840, 1, frame: true), playerRect, true));
+
+        var o = new GrabOverlay(new Win32.RECT { Left = 0, Top = 0, Right = (int)W, Bottom = (int)H }, desk)
+        {
+            Offscreen = true, ShowActivated = false, Left = -32000, Top = -32000, Width = W, Height = H,
+        };
+        o.Show();
+        o.UpdateLayout();
+        await Settle(300);
+        // the slide's list: the frame sits at (160, 114) on the desktop
+        var sel = new Rect(160 + 96, 114 + 250, 820, 250);
+        var crop = o.Select(sel);
+        o.UpdateLayout();
+        string text = (await OcrService.ReadScreenAsync(crop)).Trim();
+
+        var shot = Demo.Snap(Root(o), W, H, 1, frame: false);
+        var chip = GrabToast.Chip(text);
+        Save(Scene(new Rect(0, 0, W, H), 1.25, c =>
+        {
+            Put(c, shot, new Rect(0, 0, W, H), false);
+            Canvas.SetLeft(chip, sel.Left - 16);
+            Canvas.SetTop(chip, sel.Bottom + 4);
+            c.Children.Add(chip);
+        }), System.IO.Path.Combine(outDir, $"grab-{t}.png"));
+        o.Close();
+
+        // small interface text and Turkish letters, the way they appear on screen
+        var report = new System.Text.StringBuilder();
+        report.AppendLine("== code ==").AppendLine(text);
+        var code = VideoFrame(tr);
+        var codeCrop = new CroppedBitmap(code, new Int32Rect(100, 140, 600, 290));
+        report.AppendLine("== code from a video ==").AppendLine((await OcrService.ReadScreenAsync(codeCrop)).Trim());
+        foreach (var (sample, size) in new[] { ("Error 0x80070005: Access is denied.", 13.0), ("Kopyaladığın her şey saklı — Şişli, İstanbul", 14.0), ("Toplam: 4.250,00 ₺ · Son ödeme 15 Kasım 2026", 12.0) })
+        {
+            var tb = new TextBlock { Text = sample, FontSize = size, FontFamily = new FontFamily("Segoe UI"), Foreground = Hex("#1C1C1C"), Background = Hex("#FFFFFF"), Padding = new Thickness(6, 3, 6, 4) };
+            tb.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            tb.Arrange(new Rect(tb.DesiredSize));
+            var img = new RenderTargetBitmap((int)Math.Ceiling(tb.ActualWidth), (int)Math.Ceiling(tb.ActualHeight), 96, 96, PixelFormats.Pbgra32);
+            img.Render(tb);
+            img.Freeze();
+            report.AppendLine($"== {size}px ==").AppendLine(sample).AppendLine((await OcrService.ReadScreenAsync(img)).Trim());
+        }
+        File.WriteAllText(System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"sweaxclip-grab-ocr-{(tr ? "tr" : "en")}-{t}.txt"), report.ToString());
     }
 
     // ── appearance: every palette, and the deck style ──────────────────────

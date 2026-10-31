@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.3 — 2026-11-01
+
+- When a shortcut recorder gets a single ordinary key, the note now names it and says why it can't stand alone. A macro key with nothing recorded on it sends a plain key (F1 on many gaming keyboards); the note says to record a combination on it first.
+
 ## 1.5.2 — 2026-11-01
 
 Macro keys.

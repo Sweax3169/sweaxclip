@@ -92,7 +92,7 @@ public partial class SettingsView : UserControl
             if (_recording != button) return;
             _recording = null;
             string? problem = h is not { } hk ? null
-                : !hk.HasModifier && !Hotkey.IsFree(hk.Key) ? Loc.T("GrabNeedsModifier")
+                : !hk.HasModifier && !Hotkey.IsFree(hk.Key) ? Loc.Format("GrabNeedsModifier", hk.ToString())
                 : clash(hk);
             if (h is { } ok && problem == null)
             {

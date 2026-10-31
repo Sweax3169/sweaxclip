@@ -155,7 +155,7 @@ public static class Loc
         ["SetGrab"] = ("Copy text from screen", "Ekrandan metin kopyala"),
         ["SetGrabNote"] = ("Press the shortcut and drag over any text on screen — in a picture, a video, an app that won't let you select. It is read on your PC and copied.", "Kısayola bas, ekrandaki herhangi bir yazının üstünden sürükle — görselde, videoda, seçtirmeyen bir uygulamada. Bilgisayarında okunur ve kopyalanır."),
         ["GrabRecording"] = ("Press a shortcut…", "Kısayola bas…"),
-        ["GrabNeedsModifier"] = ("Use Win, Ctrl or Alt together with a key. F13–F24, Pause and Scroll Lock work alone.", "Bir tuşla birlikte Win, Ctrl veya Alt kullan. F13–F24, Pause ve Scroll Lock tek başına da olur."),
+        ["GrabNeedsModifier"] = ("That key sent “{0}” on its own; as a shortcut it would stop {0} working everywhere. Hold Win, Ctrl or Alt with it (F13–F24, Pause and Scroll Lock work alone). If it is a macro key, record a combination on it first, for example Ctrl + Alt + F9.", "Bu tuş tek başına “{0}” gönderdi; kısayol yapılırsa {0} her yerde çalışmaz olur. Win, Ctrl veya Alt ile birlikte bas (F13–F24, Pause ve Scroll Lock tek başına olur). Makro tuşuysa önce ona bir birleşim kaydet, ör. Ctrl + Alt + F9."),
         ["GrabTaken"] = ("That shortcut already opens the panel.", "Bu kısayol zaten paneli açıyor."),
         ["PanelTaken"] = ("That shortcut already copies text from screen.", "Bu kısayol zaten ekrandan metin kopyalıyor."),
         ["SetMacro"] = ("Macro keys", "Makro tuşları"),

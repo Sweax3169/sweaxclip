@@ -8,14 +8,14 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const brand = path.join(root, "assets", "brand");
 const appAssets = path.join(root, "src", "SweaxClip", "Assets");
-const svg = fs.readFileSync(path.join(brand, "mark.svg"));
+const svg = fs.readFileSync(path.join(brand, "icon.svg"));
 
 const png = (size) => sharp(svg, { density: Math.max(72, (72 * size) / 64) * 4 }).resize(size, size).png().toBuffer();
 
 for (const s of [16, 32, 48, 64, 128, 256, 512, 1024]) {
-  fs.writeFileSync(path.join(brand, `mark-${s}.png`), await png(s));
+  fs.writeFileSync(path.join(brand, `icon-${s}.png`), await png(s));
 }
-fs.copyFileSync(path.join(brand, "mark-256.png"), path.join(appAssets, "logo-256.png"));
+fs.copyFileSync(path.join(brand, "icon-256.png"), path.join(appAssets, "logo-256.png"));
 
 // ICO with PNG-compressed entries (supported since Windows Vista).
 const sizes = [16, 20, 24, 32, 40, 48, 64, 256];

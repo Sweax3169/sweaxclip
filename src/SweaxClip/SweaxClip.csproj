@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -14,12 +14,12 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\sweaxclip.ico</ApplicationIcon>
 
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Product>SweaxClip</Product>
     <Company>Sweax Studios</Company>
     <Authors>Sweax3169</Authors>
-    <Copyright>© 2026 Sweax Studios</Copyright>
-    <Description>SweaxClip — a clipboard that never forgets.</Description>
+    <Copyright>Â© 2026 Sweax Studios</Copyright>
+    <Description>SweaxClip â€” a clipboard that never forgets.</Description>
 
     <!-- Lean runtime: workstation GC without the background thread, aggressive memory conservation. -->
     <ServerGarbageCollection>false</ServerGarbageCollection>
@@ -40,9 +40,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Assets\Fonts\*.ttf" />
     <Resource Include="Assets\sweaxclip.ico" />
     <Resource Include="Assets\logo-256.png" />
   </ItemGroup>
 
 </Project>
+

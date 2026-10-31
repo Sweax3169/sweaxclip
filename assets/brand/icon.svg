@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="back" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9FD3FF"/>
+      <stop offset="1" stop-color="#5AA8EE"/>
+    </linearGradient>
+    <linearGradient id="board" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#2F8FE8"/>
+      <stop offset="1" stop-color="#0B57B8"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#E4ECF6"/>
+    </linearGradient>
+    <linearGradient id="clip" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6B7789"/>
+      <stop offset="1" stop-color="#36404F"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1.2" stdDeviation="1.2" flood-color="#0A2A5C" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+  <rect x="19" y="9" width="37" height="46" rx="6" fill="url(#back)" filter="url(#soft)"/>
+  <rect x="9" y="14" width="40" height="46" rx="6" fill="url(#board)" filter="url(#soft)"/>
+  <rect x="14" y="21" width="30" height="34" rx="3" fill="url(#paper)"/>
+  <rect x="19" y="29" width="20" height="3" rx="1.5" fill="#2F8FE8"/>
+  <rect x="19" y="35" width="15" height="3" rx="1.5" fill="#A9BCD3"/>
+  <rect x="19" y="41" width="18" height="3" rx="1.5" fill="#A9BCD3"/>
+  <rect x="19" y="47" width="11" height="3" rx="1.5" fill="#A9BCD3"/>
+  <path d="M22 10.5a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3V12h2.5a2.5 2.5 0 0 1 2.5 2.5V17a2 2 0 0 1-2 2H19.5a2 2 0 0 1-2-2v-2.5A2.5 2.5 0 0 1 20 12h2z" fill="url(#clip)" filter="url(#soft)"/>
+  <rect x="26" y="9.5" width="6" height="2.4" rx="1.2" fill="#1E2632"/>
+</svg>

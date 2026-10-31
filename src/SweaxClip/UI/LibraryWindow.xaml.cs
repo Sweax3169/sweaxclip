@@ -1,25 +1,26 @@
-using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using SweaxClip.Core;
 
 namespace SweaxClip.UI;
 
-/// <summary>The full archive: sidebar of categories, timeline or contact sheet, and an inspector.</summary>
+/// <summary>The full archive, laid out like a Windows 11 app: navigation, content layer and a details pane.</summary>
 public partial class LibraryWindow : Window
 {
     readonly App _app;
     readonly ClipListModel _model;
-    readonly DispatcherTimer _toastTimer = new() { Interval = TimeSpan.FromMilliseconds(1500) };
+    readonly DispatcherTimer _toastTimer = new() { Interval = TimeSpan.FromMilliseconds(1600) };
     readonly DispatcherTimer _detailDelay = new(DispatcherPriority.Input) { Interval = TimeSpan.FromMilliseconds(60) };
     readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(30) };
     TaskCompletionSource<bool>? _confirm;
     SettingsView? _settings;
+    IntPtr _hwnd;
 
     public static readonly DependencyProperty DetailProperty = DependencyProperty.Register(nameof(Detail), typeof(ClipItem), typeof(LibraryWindow));
     public ClipItem? Detail { get => (ClipItem?)GetValue(DetailProperty); set => SetValue(DetailProperty, value); }
@@ -60,15 +61,20 @@ public partial class LibraryWindow : Window
         _toastTimer.Tick += (_, _) => { _toastTimer.Stop(); toast.BeginAnimation(OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(180))); };
         _clock.Tick += (_, _) => { _model.RefreshTimes(); UpdateStats(); };
 
-        SourceInitialized += (_, _) => WindowEffects.Apply(new WindowInteropHelper(this).Handle, small: false);
+        SourceInitialized += (_, _) =>
+        {
+            _hwnd = new WindowInteropHelper(this).Handle;
+            if (HwndSource.FromHwnd(_hwnd) is { CompositionTarget: { } ct }) ct.BackgroundColor = Colors.Transparent;
+            ApplyTheme();
+        };
+        ThemeManager.Changed += ApplyTheme;
         StateChanged += (_, _) =>
         {
-            frame.Padding = WindowState == WindowState.Maximized ? new Thickness(7) : new Thickness(0);
+            frame.Margin = WindowState == WindowState.Maximized ? new Thickness(7) : new Thickness(0);
             maxBtn.Content = WindowState == WindowState.Maximized ? Glyphs.Unmax : Glyphs.Maximize;
         };
         Loaded += async (_, _) =>
         {
-            ((Storyboard)Resources["Blink"]).Begin(this, true);
             _clock.Start();
             UpdatePause();
             UpdateHeader();
@@ -78,8 +84,8 @@ public partial class LibraryWindow : Window
         };
         Closed += (_, _) =>
         {
+            ThemeManager.Changed -= ApplyTheme;
             _clock.Stop();
-            ((Storyboard)Resources["Blink"]).Stop(this);
             if (WindowState == WindowState.Normal)
             {
                 _app.Settings.LibraryWidth = ActualWidth;
@@ -88,9 +94,6 @@ public partial class LibraryWindow : Window
             _app.Settings.LibraryGrid = _model.GridPreferred;
             _app.Settings.Save();
         };
-
-        closeBtn.MouseEnter += (_, _) => closeBtn.Background = (System.Windows.Media.Brush)FindResource("Danger");
-        closeBtn.MouseLeave += (_, _) => closeBtn.ClearValue(BackgroundProperty);
 
         CommandBindings.Add(new CommandBinding(Cmds.Select, (_, e) => { if (e.Parameter is ClipItem c) _model.Selected = c; }));
         CommandBindings.Add(new CommandBinding(Cmds.Copy, (_, e) => Copy(e.Parameter as ClipItem, false)));
@@ -113,9 +116,17 @@ public partial class LibraryWindow : Window
         }));
     }
 
+    void ApplyTheme()
+    {
+        if (_hwnd == IntPtr.Zero) return;
+        ThemeManager.ApplyFrame(_hwnd, Backdrop.Mica);
+        frame.Background = ThemeManager.SupportsBackdrop ? Brushes.Transparent : (Brush)FindResource("WindowFallback");
+    }
+
     public async Task FocusClip(long? id)
     {
         if (id is not long v) return;
+        CloseSettings();
         if (_model.Scope != Scope.All) _model.Scope = Scope.All;
         _model.Search = "";
         await _model.Reload(false);
@@ -146,10 +157,8 @@ public partial class LibraryWindow : Window
     {
         var (first, _) = await Task.Run(_app.Store.Stats);
         long disk = await Task.Run(Backup.FolderSize);
-        statCount.Text = _model.Total.ToString("N0", Loc.Culture);
-        statLabel.Text = Loc.Format("ClipsStored", "").Trim().ToUpper(Loc.Culture);
-        statSince.Text = first > 0 ? Loc.Format("Since", TimeText.Local(first).ToString("d MMM yyyy", Loc.Culture)) : "";
-        statDisk.Text = Loc.Format("OnDisk", Bytes.Format(disk));
+        string since = first > 0 ? Loc.Format("Since", TimeText.Local(first).ToString("d MMM yyyy", Loc.Culture)) : "";
+        storage.Text = $"{Loc.Format("ClipsStored", _model.Total.ToString("N0", Loc.Culture))} · {Bytes.Format(disk)}\n{since}";
     }
 
     void UpdatePause()
@@ -157,7 +166,7 @@ public partial class LibraryWindow : Window
         bool paused = _app.Settings.Paused;
         pauseBtn.Content = paused ? Glyphs.Play : Glyphs.Pause;
         pauseBtn.ToolTip = paused ? Loc.T("ResumeCapture") : Loc.T("PauseCapture");
-        pauseBtn.Foreground = paused ? (System.Windows.Media.Brush)FindResource("Accent") : (System.Windows.Media.Brush)FindResource("Text2");
+        pauseBtn.Foreground = paused ? (Brush)FindResource("AccentText") : (Brush)FindResource("TextPrimary");
     }
 
     // ── detail ───────────────────────────────────────────────────────────────
@@ -198,17 +207,16 @@ public partial class LibraryWindow : Window
                 fileList.ItemsSource = full.Files.Take(500).Select(f =>
                 {
                     bool exists = File.Exists(f) || Directory.Exists(f);
-                    string extra = !exists ? Loc.T("Missing").ToUpper(Loc.Culture)
-                        : File.Exists(f) ? Bytes.Format(new FileInfo(f).Length) : "";
-                    return new { Icon = IconCache.ForFile(f), Name = Path.GetFileName(f.TrimEnd('\\')) is { Length: > 0 } n ? n : f, Detail = $"{extra}  ·  {f}" };
+                    string extra = !exists ? Loc.T("Missing") : File.Exists(f) ? Bytes.Format(new FileInfo(f).Length) : "";
+                    return new { Icon = IconCache.ForFile(f), Name = Path.GetFileName(f.TrimEnd('\\')) is { Length: > 0 } n ? n : f, Detail = $"{extra} · {f}" };
                 }).ToList();
                 break;
             default:
                 pvText.Visibility = Visibility.Visible;
                 string t = full.Text ?? "";
                 pvText.Text = t.Length > 300_000 ? t[..300_000] + "\n\n…" : t;
-                pvText.FontFamily = (System.Windows.Media.FontFamily)FindResource(full.Kind == ClipKind.Code ? "MonoFont" : "UiFont");
-                pvText.FontSize = full.Kind == ClipKind.Code ? 12 : 13.5;
+                pvText.FontFamily = (FontFamily)FindResource(full.Kind == ClipKind.Code ? "MonoFont" : "UiFont");
+                pvText.FontSize = full.Kind == ClipKind.Code ? 12.5 : 14;
                 pvText.TextWrapping = full.Kind == ClipKind.Code ? TextWrapping.NoWrap : TextWrapping.Wrap;
                 pvText.HorizontalScrollBarVisibility = full.Kind == ClipKind.Code ? ScrollBarVisibility.Auto : ScrollBarVisibility.Disabled;
                 pvText.ScrollToHome();
@@ -238,8 +246,7 @@ public partial class LibraryWindow : Window
 
     void UpdatePinGlyph(ClipItem c)
     {
-        pinGlyph.Text = c.Pinned ? Glyphs.Pinned : Glyphs.Pin;
-        pinGlyph.Foreground = c.Pinned ? (System.Windows.Media.Brush)FindResource("Accent") : (System.Windows.Media.Brush)FindResource("Text");
+        pinGlyph.Text = c.Pinned ? Glyphs.Unpin : Glyphs.Pin;
         pinAction.ToolTip = c.Pinned ? Loc.T("Unpin") : Loc.T("Pin");
     }
 
@@ -268,7 +275,7 @@ public partial class LibraryWindow : Window
         target.Pinned = !target.Pinned;
         _app.Store.SetPinned(target.Id, target.Pinned);
         if (Detail is { } d && d.Id == target.Id) { d.Pinned = target.Pinned; UpdatePinGlyph(d); }
-        Toast(target.Pinned ? Loc.T("Pin") : Loc.T("Unpin"));
+        Toast(target.Pinned ? Loc.T("Pinned") : Loc.T("Unpinned"));
         if (_model.Scope == Scope.Pinned && !target.Pinned) _model.Drop(target);
         else _ = _model.RefreshCounts();
     }
@@ -279,7 +286,7 @@ public partial class LibraryWindow : Window
         var target = _model.Items.FirstOrDefault(i => i.Id == item.Id) ?? item;
         _app.Store.Trash(target.Id);
         _model.Drop(target);
-        Toast(Loc.T("Delete"));
+        Toast(Loc.T("MovedToTrash"));
     }
 
     void Restore(ClipItem? item)
@@ -288,13 +295,13 @@ public partial class LibraryWindow : Window
         var target = _model.Items.FirstOrDefault(i => i.Id == item.Id) ?? item;
         _app.Store.Restore(target.Id);
         _model.Drop(target);
-        Toast(Loc.T("Restore"));
+        Toast(Loc.T("Restored"));
     }
 
     async void DeleteForever(ClipItem? item)
     {
         if (item == null) return;
-        if (!await Confirm(Loc.T("DeleteForeverConfirm"))) return;
+        if (!await Confirm(Loc.T("DeleteForever"), Loc.T("DeleteForeverConfirm"))) return;
         var target = _model.Items.FirstOrDefault(i => i.Id == item.Id) ?? item;
         var files = _app.Store.DeleteForever([target.Id]);
         App.DeleteFiles(files);
@@ -305,15 +312,16 @@ public partial class LibraryWindow : Window
     {
         var ids = await Task.Run(_app.Store.TrashIds);
         if (ids.Count == 0) return;
-        if (!await Confirm(Loc.Format("EmptyTrashConfirm", ids.Count))) return;
+        if (!await Confirm(Loc.T("EmptyTrash"), Loc.Format("EmptyTrashConfirm", ids.Count))) return;
         var files = await Task.Run(() => _app.Store.DeleteForever(ids));
         App.DeleteFiles(files);
         await _model.Reload(false);
         UpdateStats();
     }
 
-    Task<bool> Confirm(string text)
+    Task<bool> Confirm(string title, string text)
     {
+        confirmTitle.Text = title;
         confirmText.Text = text;
         confirm.Visibility = Visibility.Visible;
         _confirm = new TaskCompletionSource<bool>();
@@ -326,7 +334,7 @@ public partial class LibraryWindow : Window
     public void Toast(string text)
     {
         toastText.Text = text;
-        toast.BeginAnimation(OpacityProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(120)));
+        toast.BeginAnimation(OpacityProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(150)));
         _toastTimer.Stop();
         _toastTimer.Start();
     }
@@ -343,8 +351,8 @@ public partial class LibraryWindow : Window
 
     void UpdateColumns()
     {
-        double w = list.ActualWidth - 30;
-        if (w > 0) _model.Columns = Math.Max(2, (int)(w / 232));
+        double w = list.ActualWidth - 36;
+        if (w > 0) _model.Columns = Math.Max(2, (int)(w / 236));
     }
 
     void List_ScrollChanged(object sender, ScrollChangedEventArgs e)
@@ -366,7 +374,9 @@ public partial class LibraryWindow : Window
         _settings.Refresh();
         settingsHost.Content = _settings;
         settingsHost.Visibility = Visibility.Visible;
-        listArea.Visibility = inspector.Visibility = Visibility.Collapsed;
+        browse.Visibility = Visibility.Collapsed;
+        settingsNav.Background = (Brush)FindResource("SubtleFillHover");
+        settingsPill.Visibility = Visibility.Visible;
         foreach (var s in _model.Scopes) s.Active = false;
     }
 
@@ -374,7 +384,9 @@ public partial class LibraryWindow : Window
     {
         if (settingsHost.Visibility != Visibility.Visible) return;
         settingsHost.Visibility = Visibility.Collapsed;
-        listArea.Visibility = inspector.Visibility = Visibility.Visible;
+        browse.Visibility = Visibility.Visible;
+        settingsNav.ClearValue(BackgroundProperty);
+        settingsPill.Visibility = Visibility.Hidden;
         foreach (var s in _model.Scopes) s.Active = s.Scope == _model.Scope;
     }
 
@@ -382,7 +394,7 @@ public partial class LibraryWindow : Window
     {
         _app.SetPaused(!_app.Settings.Paused);
         UpdatePause();
-        Toast(_app.Settings.Paused ? Loc.T("Paused") : Loc.T("ResumeCapture"));
+        Toast(_app.Settings.Paused ? Loc.T("Paused") : Loc.T("CaptureResumed"));
     }
 
     void Min_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;

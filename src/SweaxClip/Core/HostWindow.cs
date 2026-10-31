@@ -23,6 +23,7 @@ public sealed class HostWindow : IDisposable
     public event Action<int>? TrayMessage;
     public event Action? TaskbarCreated;
     public event Action? SessionUnlocked;
+    public event Action? ThemeChanged;
 
     public HostWindow()
     {
@@ -63,6 +64,10 @@ public sealed class HostWindow : IDisposable
             case WM_TRAY:
                 TrayMessage?.Invoke((int)((long)lParam & 0xFFFF));
                 handled = true;
+                break;
+            case 0x001A when lParam != IntPtr.Zero && System.Runtime.InteropServices.Marshal.PtrToStringUni(lParam) == "ImmersiveColorSet": // WM_SETTINGCHANGE
+            case 0x0320: // WM_DWMCOLORIZATIONCOLORCHANGED
+                ThemeChanged?.Invoke();
                 break;
             case Win32.WM_WTSSESSION_CHANGE:
                 if ((int)wParam is 0x8 or 0x2) SessionUnlocked?.Invoke(); // unlock / console connect

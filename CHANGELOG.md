@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.0 — 2026-10-31
+
+A redesign that makes SweaxClip look and behave like part of Windows 11.
+
+- New interface built on the Windows 11 design language: Segoe UI, Fluent controls, Mica in the library and Acrylic in the quick panel.
+- Follows the Windows light/dark setting and accent colour, and switches live when they change.
+- The quick panel opens under the text cursor in Chrome, Edge and other apps that expose the cursor to accessibility tools; without a cursor it opens above the taskbar. It slides in like a Windows flyout.
+- Category tabs in the quick panel, like the Windows emoji and clipboard panel. Hold Alt to show 1–9 shortcuts.
+- Library laid out like Windows Settings: navigation pane, content layer, details pane and settings cards.
+- New app icon.
+- Bundled fonts removed; the app uses the system fonts.
+
 ## 1.0.0 — 2026-10-31
 
 First release.

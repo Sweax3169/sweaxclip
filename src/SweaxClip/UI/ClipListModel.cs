@@ -157,7 +157,7 @@ public sealed class ClipListModel : Observable
     static HeaderRow MakeHeader(DateTime day)
     {
         var (label, sub) = TimeText.DayHeader(day);
-        return new HeaderRow { Label = label.ToUpper(Loc.Culture), Sub = sub };
+        return new HeaderRow { Label = label, Sub = sub };
     }
 
     void Rebuild()

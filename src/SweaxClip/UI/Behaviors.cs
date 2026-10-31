@@ -132,6 +132,31 @@ public static class ThumbLoader
     }
 }
 
+/// <summary>Clips an element to a rounded rectangle that follows its size.</summary>
+public static class Round
+{
+    public static readonly DependencyProperty RadiusProperty = DependencyProperty.RegisterAttached(
+        "Radius", typeof(double), typeof(Round), new PropertyMetadata(0.0, (d, _) =>
+        {
+            if (d is not FrameworkElement fe) return;
+            fe.SizeChanged -= Update;
+            fe.SizeChanged += Update;
+            Apply(fe);
+        }));
+    public static void SetRadius(DependencyObject d, double v) => d.SetValue(RadiusProperty, v);
+    public static double GetRadius(DependencyObject d) => (double)d.GetValue(RadiusProperty);
+
+    static void Update(object sender, SizeChangedEventArgs e) => Apply((FrameworkElement)sender);
+
+    static void Apply(FrameworkElement fe)
+    {
+        double r = GetRadius(fe);
+        var g = new RectangleGeometry(new Rect(fe.RenderSize), r, r);
+        g.Freeze();
+        fe.Clip = g;
+    }
+}
+
 public sealed class BoolToVis : IValueConverter
 {
     public bool Invert { get; set; }

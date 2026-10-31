@@ -53,6 +53,7 @@ public sealed class ClipItem : Observable
 
     // ── presentation ──────────────────────────────────────────────────────────
     bool _isSelected; public bool IsSelected { get => _isSelected; set => Set(ref _isSelected, value); }
+    bool _showIndex; public bool ShowIndex { get => _showIndex; set => Set(ref _showIndex, value); }
     int _index; public int Index { get => _index; set { if (Set(ref _index, value)) Raise(nameof(IndexLabel)); } }
     public string IndexLabel => _index is > 0 and < 10 ? _index.ToString() : "";
 
@@ -195,6 +196,7 @@ public static class Bytes
 public static class Glyphs
 {
     // Segoe Fluent Icons / Segoe MDL2 Assets code points
+    public const string Unpin = "";
     public const string All = "", Text = "", Link = "", Image = "", Screenshot = "",
         Files = "", Code = "", Color = "", Pin = "", Pinned = "", Trash = "",
         Search = "", Settings = "", Open = "", Copy = "", Paste = "", Close = "",

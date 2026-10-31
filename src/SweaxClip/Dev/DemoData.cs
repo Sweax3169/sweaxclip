@@ -42,7 +42,7 @@ public static class DemoData
                 Ocr: T("Revenue 128,430 Active users 9,812 Conversion 4.7% Weekly report", "Gelir 128.430 Aktif kullanıcı 9.812 Dönüşüm %4,7 Haftalık rapor")),
             new(ClipKind.Code, "public async Task<Clip?> FindAsync(string query)\n{\n    var hits = await _store.SearchAsync(query, limit: 50);\n    return hits.OrderByDescending(h => h.Score)\n               .FirstOrDefault();\n}",
                 "Visual Studio Code", Code, "ClipStore.cs — sweaxclip — Visual Studio Code", 16, Uses: 3),
-            new(ClipKind.Color, "#FFE500", "Google Chrome", Chrome, "Brand — Figma", 22, Pinned: true, Uses: 7),
+            new(ClipKind.Color, "#0F6CBD", "Google Chrome", Chrome, "Brand — Figma", 22, Pinned: true, Uses: 7),
             new(ClipKind.Text, T("The best tool is the one you never have to think about. Copy it once — find it in ten years.",
                 "En iyi araç, hakkında hiç düşünmek zorunda kalmadığındır. Bir kez kopyala — on yıl sonra bile bul."), "Microsoft Word", Word, "manifesto.docx — Word", 38),
             new(ClipKind.Link, "https://www.figma.com/design/k3Yz9/Sweax-Studios-Brand?node-id=12-482", "Google Chrome", Chrome, "Sweax Studios Brand — Figma", 52, Pinned: true),
@@ -56,7 +56,7 @@ public static class DemoData
                        "FATURA #2026-1142 Sweax Studios Miks ve mastering 3 parça Toplam 4.250,00 Son ödeme 15 Kasım 2026")),
 
             // yesterday
-            new(ClipKind.Code, ".hero {\n  display: grid;\n  place-items: center;\n  background: #0A0A0B;\n  color: #FFE500;\n}", "Visual Studio Code", Code, "site.css — Visual Studio Code", D + 120),
+            new(ClipKind.Code, ".hero {\n  display: grid;\n  place-items: center;\n  background: #0A0A0B;\n  color: #0F6CBD;\n}", "Visual Studio Code", Code, "site.css — Visual Studio Code", D + 120),
             new(ClipKind.Link, "https://developer.mozilla.org/en-US/docs/Web/API/Clipboard_API", "Firefox", Firefox, "Clipboard API — MDN", D + 180, Uses: 2),
             new(ClipKind.Screenshot, null, T("Snipping Tool", "Ekran Alıntısı Aracı"), Snip, "Snipping Tool", D + 240, Image: Terminal,
                 Ocr: "dotnet publish -c Release Build succeeded 0 Warning(s) 0 Error(s)"),
@@ -126,9 +126,9 @@ public static class DemoData
 
     // ── synthetic images ────────────────────────────────────────────────────
 
-    static readonly FontFamily Ui = new(new Uri("pack://application:,,,/"), "./Assets/Fonts/#Archivo");
-    static readonly FontFamily Mono = new(new Uri("pack://application:,,,/"), "./Assets/Fonts/#JetBrains Mono");
-    static readonly FontFamily Display = new(new Uri("pack://application:,,,/"), "./Assets/Fonts/#Anton");
+    static readonly FontFamily Ui = new("Segoe UI");
+    static readonly FontFamily Mono = new("Cascadia Mono, Consolas");
+    static readonly FontFamily Display = new("Segoe UI Semibold");
 
     static BitmapSource Draw(int w, int h, Action<DrawingContext> paint)
     {
@@ -176,7 +176,7 @@ public static class DemoData
             var r = new Rect(320 + i * 520, 150, 490, 190);
             dc.DrawRectangle(B("#151820"), new Pen(B("#262A33"), 2), r);
             Text(dc, k[i], r.X + 34, r.Y + 30, 22, "#8B909A");
-            Text(dc, v[i], r.X + 34, r.Y + 72, 64, i == 0 ? "#FFE500" : "#F2F2EE", Display);
+            Text(dc, v[i], r.X + 34, r.Y + 72, 64, i == 0 ? "#3B8BEB" : "#F2F2EE", Display);
         }
         var chart = new Rect(320, 380, 1530, 640);
         dc.DrawRectangle(B("#151820"), new Pen(B("#262A33"), 2), chart);
@@ -184,7 +184,7 @@ public static class DemoData
         for (int i = 0; i < 24; i++)
         {
             double hgt = 120 + rnd.NextDouble() * 380 + i * 6;
-            dc.DrawRectangle(i % 6 == 5 ? B("#FFE500") : B("#3A3F4A"), null, new Rect(380 + i * 60, chart.Bottom - 50 - hgt, 34, hgt));
+            dc.DrawRectangle(i % 6 == 5 ? B("#3B8BEB") : B("#3A3F4A"), null, new Rect(380 + i * 60, chart.Bottom - 50 - hgt, 34, hgt));
         }
     });
 
@@ -196,10 +196,10 @@ public static class DemoData
         for (int i = 0; i < items.Length; i++)
         {
             dc.DrawRectangle(B("#111111"), null, new Rect(120, 250 + i * 110, 44, 44));
-            Text(dc, "✓", 129, 252 + i * 110, 32, "#FFE500", Ui, FontWeights.Bold);
+            Text(dc, "✓", 129, 252 + i * 110, 32, "#3B8BEB", Ui, FontWeights.Bold);
             Text(dc, items[i], 200, 252 + i * 110, 40, "#111111");
         }
-        dc.DrawRectangle(B("#FFE500"), null, new Rect(1260, 0, 660, 1080));
+        dc.DrawRectangle(B("#3B8BEB"), null, new Rect(1260, 0, 660, 1080));
         Text(dc, "v1.0", 1340, 760, 200, "#111111", Display);
     });
 
@@ -219,7 +219,7 @@ public static class DemoData
             Text(dc, amt[i], 1010, 340 + i * 70, 26, "#222222", Mono);
             dc.DrawRectangle(B("#E2E2DC"), null, new Rect(260, 390 + i * 70, 880, 2));
         }
-        dc.DrawRectangle(B("#FFE500"), null, new Rect(700, 600, 440, 110));
+        dc.DrawRectangle(B("#3B8BEB"), null, new Rect(700, 600, 440, 110));
         Text(dc, "Total", 730, 628, 30, "#111111", Ui, FontWeights.SemiBold);
         Text(dc, "4,250.00", 930, 622, 40, "#111111", Display);
         Text(dc, "Due 15 Nov 2026", 260, 640, 24, "#888888", Mono);
@@ -235,7 +235,7 @@ public static class DemoData
         for (int i = 0; i < lines.Length; i++)
             Text(dc, lines[i], 30, 150 + i * 44, 26, i == 3 ? "#7CFC9A" : "#CFCFCF", Mono);
         Text(dc, "PS C:\\dev\\sweaxclip>", 30, 450, 26, "#9A9A9A", Mono);
-        dc.DrawRectangle(B("#FFE500"), null, new Rect(372, 452, 14, 30));
+        dc.DrawRectangle(B("#3B8BEB"), null, new Rect(372, 452, 14, 30));
     });
 
     static BitmapSource Chart() => Draw(1600, 1000, dc =>
@@ -244,7 +244,7 @@ public static class DemoData
         Text(dc, "Where copies come from", 100, 80, 52, "#111111", Ui, FontWeights.Bold);
         string[] names = ["Chrome", "VS Code", "Discord", "Explorer", "Word"];
         double[] vals = [0.42, 0.27, 0.14, 0.10, 0.07];
-        string[] cols = ["#111111", "#FFE500", "#8A8A84", "#C9C9C2", "#E6E6E0"];
+        string[] cols = ["#111111", "#3B8BEB", "#8A8A84", "#C9C9C2", "#E6E6E0"];
         for (int i = 0; i < names.Length; i++)
         {
             dc.DrawRectangle(B(cols[i]), new Pen(B("#111111"), 2), new Rect(100, 220 + i * 140, 1300 * vals[i] / 0.42, 90));
@@ -256,13 +256,13 @@ public static class DemoData
     static BitmapSource Canvas() => Draw(1800, 1100, dc =>
     {
         dc.DrawRectangle(B("#1E1E1E"), null, new Rect(0, 0, 1800, 1100));
-        string[] fills = ["#FFE500", "#F4F4F1", "#0A0A0B"];
+        string[] fills = ["#3B8BEB", "#F4F4F1", "#0A0A0B"];
         for (int i = 0; i < 3; i++)
         {
             var r = new Rect(140 + i * 540, 160, 420, 820);
             dc.DrawRectangle(B(fills[i]), new Pen(B("#3A3A3A"), 2), r);
             Text(dc, $"Frame {i + 1}", r.X, r.Y - 44, 22, "#9A9A9A", Mono);
-            string ink = i == 2 ? "#FFE500" : "#0A0A0B";
+            string ink = i == 2 ? "#3B8BEB" : "#0A0A0B";
             Text(dc, "SWEAX", r.X + 40, r.Y + 80, 96, ink, Display);
             Text(dc, "STUDIOS", r.X + 40, r.Y + 210, 60, ink, Display);
             dc.DrawRectangle(B(ink), null, new Rect(r.X + 40, r.Bottom - 120, 140, 12));
@@ -308,7 +308,7 @@ public static class DemoData
     static BitmapSource Poster() => Draw(1200, 1500, dc =>
     {
         dc.DrawRectangle(B("#0A0A0B"), null, new Rect(0, 0, 1200, 1500));
-        dc.DrawRectangle(B("#FFE500"), null, new Rect(80, 80, 1040, 1040));
+        dc.DrawRectangle(B("#3B8BEB"), null, new Rect(80, 80, 1040, 1040));
         Text(dc, "NIGHT", 130, 160, 300, "#0A0A0B", Display);
         Text(dc, "DRIVE", 130, 520, 300, "#0A0A0B", Display);
         Text(dc, "140 BPM · SWEAX", 90, 1200, 54, "#F2F2EE", Mono);

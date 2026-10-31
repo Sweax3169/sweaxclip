@@ -31,6 +31,7 @@ public partial class App : Application
 
     readonly DispatcherTimer _changed = new(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(180) };
     readonly DispatcherTimer _trim = new(DispatcherPriority.ApplicationIdle) { Interval = TimeSpan.FromSeconds(2) };
+    readonly DispatcherTimer _themeDelay = new(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(300) };
     readonly DispatcherTimer _maintenance = new(DispatcherPriority.ApplicationIdle) { Interval = TimeSpan.FromMinutes(10) };
 
     protected override void OnStartup(StartupEventArgs e)
@@ -87,6 +88,7 @@ public partial class App : Application
         }
         Settings = Settings.Load(Paths.Data);
         Loc.Init(Settings.Language);
+        ThemeManager.Apply();
         Boot();
 
         if (firstRun)
@@ -119,6 +121,8 @@ public partial class App : Application
         _host = new HostWindow();
         _host.ClipboardChanged += OnClipboardChanged;
         _host.SessionUnlocked += () => _hook?.Rearm();
+        _host.ThemeChanged += () => { _themeDelay.Stop(); _themeDelay.Start(); };
+        _themeDelay.Tick += (_, _) => { _themeDelay.Stop(); ThemeManager.Apply(); };
 
         _tray = new TrayIcon(_host, Loc.T("TrayTip"));
         _tray.LeftClick += () => ShowLibrary(null);

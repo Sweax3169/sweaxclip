@@ -3,121 +3,86 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:c="clr-namespace:SweaxClip.Core"
         xmlns:ui="clr-namespace:SweaxClip.UI"
-        Title="SweaxClip" Width="452" Height="620"
+        Title="SweaxClip" Width="384" Height="540"
         WindowStyle="None" ResizeMode="CanResize" ShowInTaskbar="False" Topmost="True"
-        Background="{StaticResource Bg0}" Foreground="{StaticResource Text}"
+        Background="Transparent" Foreground="{DynamicResource TextPrimary}"
         FontFamily="{StaticResource UiFont}" UseLayoutRounding="True" SnapsToDevicePixels="True"
-        TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType"
+        TextOptions.TextFormattingMode="Display"
         WindowStartupLocation="Manual" Left="-10000" Top="-10000" ShowActivated="True">
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="0" ResizeBorderThickness="0" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
+        <WindowChrome CaptionHeight="0" ResizeBorderThickness="0" GlassFrameThickness="-1" CornerRadius="0" UseAeroCaptionButtons="False"/>
     </WindowChrome.WindowChrome>
 
     <Window.Resources>
         <ui:RowSelector x:Key="Rows" ClipKey="Row.Panel"/>
-        <Storyboard x:Key="Enter">
-            <DoubleAnimation Storyboard.TargetName="root" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.12"/>
-            <DoubleAnimation Storyboard.TargetName="shift" Storyboard.TargetProperty="Y" From="10" To="0" Duration="0:0:0.18">
-                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
-            </DoubleAnimation>
-        </Storyboard>
     </Window.Resources>
 
-    <Border x:Name="root" BorderBrush="{StaticResource Line2}" BorderThickness="1" Background="{StaticResource Bg0}">
-        <Border.RenderTransform><TranslateTransform x:Name="shift"/></Border.RenderTransform>
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="52"/>
-                <RowDefinition Height="38"/>
-                <RowDefinition/>
-                <RowDefinition Height="34"/>
-            </Grid.RowDefinitions>
+    <Grid x:Name="root" Background="Transparent">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
 
-            <!-- search -->
-            <Grid Background="{StaticResource Bg0}">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="46"/><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <Image Source="{StaticResource Mark}" Width="20" Height="20" HorizontalAlignment="Center"/>
-                <TextBox x:Name="search" Grid.Column="1" Style="{StaticResource SearchBox}" Tag="{c:T SearchHint}" FontSize="14.5"
-                         Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"/>
-                <TextBlock Grid.Column="2" Style="{StaticResource Mono}" VerticalAlignment="Center" Margin="10,0,6,0" Foreground="{StaticResource Text4}"
-                           Text="{Binding Total, StringFormat={}{0:N0}}"/>
-                <Button Grid.Column="3" Style="{StaticResource IconButton}" Content="{x:Static c:Glyphs.Expand}" Margin="0,0,10,0" ToolTip="Ctrl+E"
-                        Click="OpenLibrary_Click"/>
-            </Grid>
+        <!-- category tabs, icon only like the Windows emoji / clipboard panel -->
+        <ItemsControl x:Name="tabs" ItemsSource="{Binding Scopes}" Margin="8,8,8,0" Focusable="False">
+            <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type c:ScopeInfo}">
+                    <Button x:Name="tab" Style="{StaticResource SubtleButton}" Height="36" Padding="0" Margin="1,0" ToolTip="{Binding Label}" Focusable="False"
+                            Command="{x:Static ui:Cmds.SetScope}" CommandParameter="{Binding Scope}">
+                        <Grid Width="34" Height="36">
+                            <TextBlock x:Name="glyph" Text="{Binding Glyph}" Style="{StaticResource Icon}" FontSize="16" Foreground="{DynamicResource TextSecondary}"/>
+                            <Border x:Name="pill" Width="16" Height="3" CornerRadius="1.5" Background="{DynamicResource AccentFill}" VerticalAlignment="Bottom" Margin="0,0,0,2" Visibility="Hidden"/>
+                        </Grid>
+                    </Button>
+                    <DataTemplate.Triggers>
+                        <DataTrigger Binding="{Binding Active}" Value="True">
+                            <Setter TargetName="tab" Property="Background" Value="{DynamicResource SubtleFillHover}"/>
+                            <Setter TargetName="glyph" Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                            <Setter TargetName="pill" Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </DataTemplate.Triggers>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
-            <!-- scopes -->
-            <Border Grid.Row="1" BorderBrush="{StaticResource Line2}" BorderThickness="0,1,0,1" Background="{StaticResource Bg1}">
-                <ScrollViewer x:Name="scopeScroll" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" Focusable="False">
-                    <ItemsControl ItemsSource="{Binding Scopes}" Margin="6,0" Focusable="False">
-                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="{x:Type c:ScopeInfo}">
-                                <Button Style="{StaticResource Bare}" Padding="9,0" Height="36" Command="{x:Static ui:Cmds.SetScope}" CommandParameter="{Binding Scope}"
-                                        ToolTip="{Binding Label}">
-                                    <Grid>
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock x:Name="lbl" Text="{Binding Short}" FontFamily="{StaticResource MonoFont}" FontSize="10.5" FontWeight="Medium" Foreground="{StaticResource Text3}"/>
-                                            <TextBlock x:Name="cnt" Text="{Binding CountText}" FontFamily="{StaticResource MonoFont}" FontSize="9.5" Foreground="{StaticResource Text4}" Margin="5,0,0,0" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                        <Border x:Name="line" Height="2" Background="{StaticResource Accent}" VerticalAlignment="Bottom" Margin="0,0,0,-1" Visibility="Hidden"/>
-                                    </Grid>
-                                </Button>
-                                <DataTemplate.Triggers>
-                                    <DataTrigger Binding="{Binding Active}" Value="True">
-                                        <Setter TargetName="lbl" Property="Foreground" Value="{StaticResource Text}"/>
-                                        <Setter TargetName="cnt" Property="Foreground" Value="{StaticResource Accent}"/>
-                                        <Setter TargetName="line" Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </DataTemplate.Triggers>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
-            </Border>
-            <Rectangle Grid.Row="1" Width="44" HorizontalAlignment="Right" Margin="0,1,1,1" IsHitTestVisible="False">
-                <Rectangle.Fill>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                        <GradientStop Color="#000F0F11" Offset="0"/>
-                        <GradientStop Color="{StaticResource C.Bg1}" Offset="0.85"/>
-                    </LinearGradientBrush>
-                </Rectangle.Fill>
-            </Rectangle>
+        <TextBox x:Name="search" Grid.Row="1" Style="{StaticResource SearchBox}" Tag="{c:T SearchHintShort}" Margin="12,10,12,4"
+                 Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"/>
 
-            <!-- list -->
-            <ListBox x:Name="list" Grid.Row="2" Style="{StaticResource BareList}" ItemsSource="{Binding Rows}" ItemTemplateSelector="{StaticResource Rows}"
-                     PreviewMouseLeftButtonUp="List_MouseUp" Padding="0,0,0,8"/>
-
-            <StackPanel Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="40,0,40,40"
-                        Visibility="{Binding IsEmpty, Converter={StaticResource Vis}}" IsHitTestVisible="False">
-                <TextBlock Text="{Binding EmptyTitle, Converter={StaticResource Upper}}" Style="{StaticResource Display}" FontSize="30" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
-                <Border Width="36" Height="3" Background="{StaticResource Accent}" Margin="0,14,0,14"/>
-                <TextBlock Text="{Binding EmptyBody}" Foreground="{StaticResource Text3}" FontSize="12.5" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
-            </StackPanel>
-
-            <!-- key hints -->
-            <Border Grid.Row="3" BorderBrush="{StaticResource Line2}" BorderThickness="0,1,0,0" Background="{StaticResource Bg1}">
-                <Grid Margin="14,0">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" TextElement.FontFamily="{StaticResource MonoFont}" TextElement.FontSize="9.5" TextElement.Foreground="{StaticResource Text3}">
-                        <Border Style="{StaticResource Keycap}"><TextBlock Text="↵" Foreground="{StaticResource Text2}"/></Border>
-                        <TextBlock Text="{c:T HintPaste}" VerticalAlignment="Center" Margin="0,0,14,0"/>
-                        <Border Style="{StaticResource Keycap}"><TextBlock Text="⇧↵" Foreground="{StaticResource Text2}"/></Border>
-                        <TextBlock Text="{c:T HintPlain}" VerticalAlignment="Center" Margin="0,0,14,0"/>
-                        <Border Style="{StaticResource Keycap}"><TextBlock Text="⇥" Foreground="{StaticResource Text2}"/></Border>
-                        <TextBlock Text="{c:T HintTabs}" VerticalAlignment="Center" Margin="0,0,14,0"/>
-                        <Border Style="{StaticResource Keycap}"><TextBlock Text="Alt 1-9" Foreground="{StaticResource Text2}"/></Border>
+        <Grid Grid.Row="2" Margin="16,8,8,4">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="{Binding ScopeTitle}" Style="{StaticResource BodyStrong}"/>
+                <TextBlock x:Name="count" Style="{StaticResource Caption}" Margin="8,1,0,0" VerticalAlignment="Center"/>
+                <Border x:Name="pausedBadge" Background="{DynamicResource ControlFill}" BorderBrush="{DynamicResource ControlStroke}" BorderThickness="1" CornerRadius="4"
+                        Padding="6,1,6,2" Margin="10,0,0,0" VerticalAlignment="Center" Visibility="Collapsed">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE769;" Style="{StaticResource Icon}" FontSize="10" Margin="0,1,5,0"/>
+                        <TextBlock Text="{c:T Paused}" Style="{StaticResource Caption}" Foreground="{DynamicResource TextPrimary}"/>
                     </StackPanel>
-                    <Border x:Name="pausedBadge" HorizontalAlignment="Right" VerticalAlignment="Center" Background="{StaticResource Accent}" Padding="6,2" Visibility="Collapsed">
-                        <TextBlock Text="{c:T Paused}" FontFamily="{StaticResource MonoFont}" FontSize="9.5" FontWeight="Medium" Foreground="{StaticResource AccentInk}"/>
-                    </Border>
-                </Grid>
-            </Border>
-
-            <!-- toast -->
-            <Border x:Name="toast" Grid.Row="2" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,14" Background="{StaticResource Text}" Padding="12,6" Opacity="0" IsHitTestVisible="False">
-                <TextBlock x:Name="toastText" FontFamily="{StaticResource MonoFont}" FontSize="11" Foreground="{StaticResource Bg0}"/>
-            </Border>
+                </Border>
+            </StackPanel>
+            <Button Style="{StaticResource IconButton}" Content="&#xE8A7;" HorizontalAlignment="Right" FontSize="14" ToolTip="{c:T OpenLibrary}" Click="OpenLibrary_Click"/>
         </Grid>
-    </Border>
+
+        <ListBox x:Name="list" Grid.Row="3" Style="{StaticResource BareList}" ItemsSource="{Binding Rows}" ItemTemplateSelector="{StaticResource Rows}"
+                 PreviewMouseLeftButtonUp="List_MouseUp" Padding="0,2,0,10"/>
+
+        <StackPanel Grid.Row="3" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="40,0,40,60"
+                    Visibility="{Binding IsEmpty, Converter={StaticResource Vis}}" IsHitTestVisible="False">
+            <TextBlock Text="&#xE77F;" Style="{StaticResource Icon}" FontSize="40" Foreground="{DynamicResource TextTertiary}"/>
+            <TextBlock Text="{Binding EmptyTitle}" Style="{StaticResource BodyStrong}" HorizontalAlignment="Center" Margin="0,16,0,4"/>
+            <TextBlock Text="{Binding EmptyBody}" Style="{StaticResource Caption}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
+        </StackPanel>
+
+        <Border x:Name="toast" Grid.Row="3" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,16" Background="{DynamicResource FlyoutFill}"
+                BorderBrush="{DynamicResource FlyoutStroke}" BorderThickness="1" CornerRadius="4" Padding="12,6,12,7" Opacity="0" IsHitTestVisible="False">
+            <Border.Effect><DropShadowEffect BlurRadius="12" ShadowDepth="3" Direction="270" Opacity="0.22"/></Border.Effect>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xE73E;" Style="{StaticResource Icon}" FontSize="12" Foreground="{DynamicResource AccentText}" Margin="0,1,8,0"/>
+                <TextBlock x:Name="toastText" Style="{StaticResource Body}" FontSize="13"/>
+            </StackPanel>
+        </Border>
+    </Grid>
 </Window>

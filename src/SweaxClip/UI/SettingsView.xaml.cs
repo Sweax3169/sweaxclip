@@ -34,9 +34,9 @@ public partial class SettingsView : UserControl
         privacy.IsChecked = s.RespectPrivateFlags;
         backups.IsChecked = s.DailyBackups;
         ignored.Text = string.Join(Environment.NewLine, s.IgnoredApps);
-        (s.Language switch { "en" => langEn, "tr" => langTr, _ => langAuto }).IsChecked = true;
+        langBox.SelectedIndex = s.Language switch { "en" => 1, "tr" => 2, _ => 0 };
         var hk = Hotkey.Parse(s.Hotkey);
-        (hk.Ctrl && hk.Shift ? hkCtrlShiftV : hk.Ctrl && hk.Alt ? hkCtrlAltV : hkWinV).IsChecked = true;
+        hotkeyBox.SelectedIndex = hk.Ctrl && hk.Shift ? 1 : hk.Ctrl && hk.Alt ? 2 : 0;
         dataPath.Text = Paths.Data;
         version.Text = Loc.Format("SetVersion", typeof(App).Assembly.GetName().Version?.ToString(3) ?? "1.0.0");
         using (var p = Process.GetCurrentProcess()) memory.Text = $"{Loc.T("SetMemory")}: {Bytes.Format(p.WorkingSet64)}";
@@ -48,7 +48,7 @@ public partial class SettingsView : UserControl
     {
         long size = await Task.Run(Backup.FolderSize);
         var counts = await Task.Run(_app.Store.Counts);
-        dataStats.Text = $"{Loc.Format("ClipsStored", counts[Scope.All].ToString("N0", Loc.Culture))}  ·  {Loc.Format("OnDisk", Bytes.Format(size))}";
+        dataStats.Text = $"{Loc.Format("ClipsStored", counts[Scope.All].ToString("N0", Loc.Culture))} · {Loc.Format("OnDisk", Bytes.Format(size))}";
     }
 
     void Toggle_Click(object sender, RoutedEventArgs e)
@@ -72,18 +72,18 @@ public partial class SettingsView : UserControl
         s.Save();
     }
 
-    void Hotkey_Checked(object sender, RoutedEventArgs e)
+    void Hotkey_Changed(object sender, SelectionChangedEventArgs e)
     {
-        if (_loading) return;
-        _app.Settings.Hotkey = sender == hkCtrlShiftV ? "Ctrl+Shift+V" : sender == hkCtrlAltV ? "Ctrl+Alt+V" : "Win+V";
+        if (_loading || hotkeyBox.SelectedItem is not ComboBoxItem { Tag: string hk }) return;
+        _app.Settings.Hotkey = hk;
         _app.Settings.Save();
         _app.ApplyHotkey();
     }
 
-    void Lang_Checked(object sender, RoutedEventArgs e)
+    void Lang_Changed(object sender, SelectionChangedEventArgs e)
     {
-        if (_loading) return;
-        _app.Settings.Language = sender == langEn ? "en" : sender == langTr ? "tr" : "auto";
+        if (_loading || langBox.SelectedItem is not ComboBoxItem { Tag: string lang }) return;
+        _app.Settings.Language = lang;
         _app.Settings.Save();
         _owner.Toast(Loc.T("SetLanguageNote"));
     }
@@ -137,11 +137,5 @@ public partial class SettingsView : UserControl
         finally { exportBtn.IsEnabled = true; }
     }
 
-    void Back_Click(object sender, RoutedEventArgs e) => _owner.CloseSettings();
-
-    void Link_Navigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
-    {
-        App.Shell(e.Uri.AbsoluteUri);
-        e.Handled = true;
-    }
+    void Source_Click(object sender, RoutedEventArgs e) => App.Shell("https://github.com/Sweax3169/sweaxclip");
 }

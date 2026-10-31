@@ -3,242 +3,253 @@
                     xmlns:c="clr-namespace:SweaxClip.Core"
                     xmlns:ui="clr-namespace:SweaxClip.UI">
 
-    <ui:BodySelector x:Key="Body"/>
+    <ui:BodySelector x:Key="BodySel"/>
     <ui:BoolToVis x:Key="Vis"/>
     <ui:BoolToVis x:Key="NotVis" Invert="True"/>
     <ui:UpperConverter x:Key="Upper"/>
 
-    <!-- ── bodies, one per kind ──────────────────────────────────────────────── -->
+    <!-- ── content bodies, one per kind ────────────────────────────────────── -->
     <DataTemplate x:Key="Body.Text" DataType="{x:Type c:ClipItem}">
-        <TextBlock Text="{Binding Preview}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="57" LineHeight="19" LineStackingStrategy="BlockLineHeight"
-                   FontFamily="{StaticResource UiFont}" FontSize="13" Foreground="{StaticResource Text}"/>
+        <TextBlock Text="{Binding Preview}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="60" LineHeight="20" LineStackingStrategy="BlockLineHeight"
+                   FontSize="14" Foreground="{DynamicResource TextPrimary}"/>
     </DataTemplate>
 
     <DataTemplate x:Key="Body.Link" DataType="{x:Type c:ClipItem}">
-        <StackPanel>
-            <TextBlock Text="{Binding LinkHost}" FontFamily="{StaticResource UiFont}" FontSize="13.5" FontWeight="SemiBold" Foreground="{StaticResource Text}" TextTrimming="CharacterEllipsis"/>
-            <TextBlock Text="{Binding LinkRest}" FontFamily="{StaticResource MonoFont}" FontSize="11" Foreground="{StaticResource Text3}" TextTrimming="CharacterEllipsis" Margin="0,3,0,0"
-                       Visibility="{Binding LinkRest, Converter={StaticResource Vis}}"/>
-        </StackPanel>
+        <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
+            <Border Width="32" Height="32" CornerRadius="4" Background="{DynamicResource ControlFill}" BorderBrush="{DynamicResource ControlStroke}" BorderThickness="1" VerticalAlignment="Top">
+                <TextBlock Text="&#xE71B;" Style="{StaticResource Icon}" FontSize="15" Foreground="{DynamicResource AccentText}"/>
+            </Border>
+            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                <TextBlock Text="{Binding LinkHost}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Text="{Binding LinkRest}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"
+                           Visibility="{Binding LinkRest, Converter={StaticResource Vis}}"/>
+            </StackPanel>
+        </Grid>
     </DataTemplate>
 
     <DataTemplate x:Key="Body.Code" DataType="{x:Type c:ClipItem}">
-        <Border Background="{StaticResource Bg0}" BorderBrush="{StaticResource Line2}" BorderThickness="1,0,0,0" Padding="10,7,8,7">
-            <TextBlock Text="{Binding Preview}" FontFamily="{StaticResource MonoFont}" FontSize="11.5" Foreground="#D8D8CF" MaxHeight="88" LineHeight="17"
-                       Typography.StandardLigatures="False" Typography.ContextualAlternates="False"
+        <Border Background="{DynamicResource CodeFill}" CornerRadius="4" Padding="10,7,10,8">
+            <TextBlock Text="{Binding Preview}" FontFamily="{StaticResource MonoFont}" FontSize="12" Foreground="{DynamicResource TextPrimary}" MaxHeight="90" LineHeight="18"
                        LineStackingStrategy="BlockLineHeight" TextTrimming="CharacterEllipsis"/>
         </Border>
     </DataTemplate>
 
     <DataTemplate x:Key="Body.Color" DataType="{x:Type c:ClipItem}">
-        <StackPanel Orientation="Horizontal">
-            <Border Width="38" Height="38" Background="{Binding Swatch}" BorderBrush="#30FFFFFF" BorderThickness="1"/>
-            <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
-                <TextBlock Text="{Binding Text}" FontFamily="{StaticResource MonoFont}" FontSize="13" Foreground="{StaticResource Text}" FontWeight="Medium"/>
-                <TextBlock Text="{Binding ColorDetail}" Style="{StaticResource Mono}" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+        <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
+            <Border Width="32" Height="32" CornerRadius="4" Background="{Binding Swatch}" BorderBrush="{DynamicResource ControlStroke}" BorderThickness="1"/>
+            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Text}" Style="{StaticResource BodyStrong}" FontFamily="{StaticResource MonoFont}" FontSize="13"/>
+                <TextBlock Text="{Binding ColorDetail}" Style="{StaticResource Caption}" FontFamily="{StaticResource MonoFont}" FontSize="11" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
             </StackPanel>
-        </StackPanel>
+        </Grid>
     </DataTemplate>
 
     <DataTemplate x:Key="Body.Image" DataType="{x:Type c:ClipItem}">
-        <StackPanel HorizontalAlignment="Left">
-            <Border BorderBrush="{StaticResource Line2}" BorderThickness="1" Background="{StaticResource Bg0}" HorizontalAlignment="Left" MinWidth="60" MinHeight="40">
-                <Image ui:ThumbLoader.Width="380" MaxHeight="132" MaxWidth="360" Stretch="Uniform" StretchDirection="DownOnly" RenderOptions.BitmapScalingMode="HighQuality"/>
-            </Border>
-            <TextBlock Style="{StaticResource Mono}" Margin="0,6,0,0">
-                <Run Text="{Binding Dimensions, Mode=OneWay}"/><Run Text="  ·  " Foreground="{StaticResource Text4}"/><Run Text="{Binding SizeText, Mode=OneWay}"/>
+        <StackPanel>
+            <Grid Height="128" ui:Round.Radius="4">
+                <Border Background="{DynamicResource ThumbFill}"/>
+                <Image ui:ThumbLoader.Width="360" Stretch="Uniform" StretchDirection="DownOnly" RenderOptions.BitmapScalingMode="HighQuality"/>
+            </Grid>
+            <TextBlock Style="{StaticResource Caption}" Margin="0,8,0,0">
+                <Run Text="{Binding Dimensions, Mode=OneWay}"/><Run Text="  ·  "/><Run Text="{Binding SizeText, Mode=OneWay}"/>
             </TextBlock>
         </StackPanel>
     </DataTemplate>
 
     <DataTemplate x:Key="Body.Files" DataType="{x:Type c:ClipItem}">
-        <StackPanel Orientation="Horizontal">
-            <Image Source="{Binding FileIcon}" Width="28" Height="28" VerticalAlignment="Top" RenderOptions.BitmapScalingMode="HighQuality"/>
-            <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                <TextBlock Text="{Binding Preview}" FontFamily="{StaticResource UiFont}" FontSize="13" FontWeight="Medium" Foreground="{StaticResource Text}" TextTrimming="CharacterEllipsis" MaxWidth="330"/>
-                <TextBlock Style="{StaticResource Mono}" Margin="0,3,0,0">
-                    <Run Text="{Binding Stats, Mode=OneWay}"/><Run Text="  ·  " Foreground="{StaticResource Text4}"/><Run Text="{Binding SizeText, Mode=OneWay}"/>
+        <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
+            <Image Source="{Binding FileIcon}" Width="32" Height="32" VerticalAlignment="Top" RenderOptions.BitmapScalingMode="HighQuality"/>
+            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Preview}" Style="{StaticResource BodyStrong}" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Style="{StaticResource Caption}" Margin="0,1,0,0">
+                    <Run Text="{Binding Stats, Mode=OneWay}"/><Run Text="  ·  "/><Run Text="{Binding SizeText, Mode=OneWay}"/>
                 </TextBlock>
             </StackPanel>
-        </StackPanel>
+        </Grid>
     </DataTemplate>
 
     <DataTemplate x:Key="Body.FilesVisual" DataType="{x:Type c:ClipItem}">
         <StackPanel>
-            <Border BorderBrush="{StaticResource Line2}" BorderThickness="1" Background="{StaticResource Bg0}" HorizontalAlignment="Left">
-                <Image ui:ThumbLoader.Width="380" MaxHeight="110" MaxWidth="360" Stretch="Uniform" StretchDirection="DownOnly" RenderOptions.BitmapScalingMode="HighQuality"/>
-            </Border>
-            <StackPanel Orientation="Horizontal" Margin="0,7,0,0">
-                <Image Source="{Binding FileIcon}" Width="14" Height="14" Margin="0,0,7,0"/>
-                <TextBlock Text="{Binding Preview}" FontFamily="{StaticResource UiFont}" FontSize="12.5" Foreground="{StaticResource Text}" TextTrimming="CharacterEllipsis" MaxWidth="320"/>
+            <Grid Height="112" ui:Round.Radius="4">
+                <Border Background="{DynamicResource ThumbFill}"/>
+                <Image ui:ThumbLoader.Width="360" Stretch="Uniform" StretchDirection="DownOnly" RenderOptions.BitmapScalingMode="HighQuality"/>
+            </Grid>
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <Image Source="{Binding FileIcon}" Width="16" Height="16" Margin="0,0,8,0"/>
+                <TextBlock Text="{Binding Preview}" Style="{StaticResource Body}" TextTrimming="CharacterEllipsis" MaxWidth="290"/>
             </StackPanel>
         </StackPanel>
     </DataTemplate>
 
-    <!-- ── date header: label, hairline, full date ───────────────────────────── -->
+    <!-- ── day header ──────────────────────────────────────────────────────── -->
     <DataTemplate x:Key="Header" DataType="{x:Type c:HeaderRow}">
-        <Grid Margin="16,18,14,8" Background="Transparent">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-            <TextBlock Text="{Binding Label}" FontFamily="{StaticResource MonoFont}" FontSize="10.5" FontWeight="Medium" Foreground="{StaticResource Accent}"/>
-            <Border Grid.Column="1" Height="1" Background="{StaticResource Line2}" VerticalAlignment="Center" Margin="10,1,10,0"/>
-            <TextBlock Grid.Column="2" Text="{Binding Sub}" Style="{StaticResource Mono}" FontSize="10" Foreground="{StaticResource Text3}"/>
-        </Grid>
+        <TextBlock Text="{Binding Label}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" Margin="16,14,16,8"/>
     </DataTemplate>
 
-    <!-- ── context menu for any clip ─────────────────────────────────────────── -->
+    <!-- ── context menu ────────────────────────────────────────────────────── -->
     <ContextMenu x:Key="ClipMenu" x:Shared="False">
-        <MenuItem Header="{c:T Paste}" Tag="{x:Static c:Glyphs.Paste}" InputGestureText="Enter" Command="{x:Static ui:Cmds.Paste}" CommandParameter="{Binding}"/>
-        <MenuItem Header="{c:T PastePlain}" Tag="{x:Static c:Glyphs.Text}" InputGestureText="Shift+Enter" Command="{x:Static ui:Cmds.PastePlain}" CommandParameter="{Binding}"/>
-        <MenuItem Header="{c:T CopyOnly}" Tag="{x:Static c:Glyphs.Copy}" InputGestureText="Ctrl+C" Command="{x:Static ui:Cmds.Copy}" CommandParameter="{Binding}"/>
+        <MenuItem Header="{c:T Paste}" Tag="&#xE77F;" InputGestureText="Enter" Command="{x:Static ui:Cmds.Paste}" CommandParameter="{Binding}"/>
+        <MenuItem Header="{c:T PastePlain}" Tag="&#xE8D2;" InputGestureText="Shift+Enter" Command="{x:Static ui:Cmds.PastePlain}" CommandParameter="{Binding}"/>
+        <MenuItem Header="{c:T CopyOnly}" Tag="&#xE8C8;" InputGestureText="Ctrl+C" Command="{x:Static ui:Cmds.Copy}" CommandParameter="{Binding}"/>
         <Separator/>
-        <MenuItem Header="{c:T Pin}" Tag="{x:Static c:Glyphs.Pin}" InputGestureText="Ctrl+P" Command="{x:Static ui:Cmds.TogglePin}" CommandParameter="{Binding}"/>
-        <MenuItem Header="{c:T OpenFile}" Tag="{x:Static c:Glyphs.Open}" InputGestureText="Ctrl+O" Command="{x:Static ui:Cmds.Open}" CommandParameter="{Binding}"/>
-        <MenuItem Header="{c:T ShowInFolder}" Tag="{x:Static c:Glyphs.Folder}" Command="{x:Static ui:Cmds.ShowInFolder}" CommandParameter="{Binding}"/>
-        <MenuItem Header="{c:T SaveImage}" Tag="{x:Static c:Glyphs.Save}" Command="{x:Static ui:Cmds.SaveImage}" CommandParameter="{Binding}"/>
+        <MenuItem Header="{c:T Pin}" Tag="&#xE718;" InputGestureText="Ctrl+P" Command="{x:Static ui:Cmds.TogglePin}" CommandParameter="{Binding}"/>
+        <MenuItem Header="{c:T OpenFile}" Tag="&#xE8A7;" InputGestureText="Ctrl+O" Command="{x:Static ui:Cmds.Open}" CommandParameter="{Binding}"/>
+        <MenuItem Header="{c:T ShowInFolder}" Tag="&#xE838;" Command="{x:Static ui:Cmds.ShowInFolder}" CommandParameter="{Binding}"/>
+        <MenuItem Header="{c:T SaveImage}" Tag="&#xE74E;" Command="{x:Static ui:Cmds.SaveImage}" CommandParameter="{Binding}"/>
         <Separator/>
-        <MenuItem Header="{c:T Delete}" Tag="{x:Static c:Glyphs.Trash}" InputGestureText="Del" Command="{x:Static ui:Cmds.Delete}" CommandParameter="{Binding}"/>
+        <MenuItem Header="{c:T Delete}" Tag="&#xE74D;" InputGestureText="Delete" Command="{x:Static ui:Cmds.Delete}" CommandParameter="{Binding}"/>
     </ContextMenu>
 
-    <!-- ── quick panel row ───────────────────────────────────────────────────── -->
+    <!-- ── quick panel card ────────────────────────────────────────────────── -->
     <DataTemplate x:Key="Row.Panel" DataType="{x:Type c:ClipItem}">
-        <Border x:Name="row" Background="Transparent" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Cursor="Hand" ContextMenu="{StaticResource ClipMenu}">
-            <Grid>
-                <Grid Margin="0,11,8,11">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="42"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <StackPanel VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,2,0,0">
-                        <TextBlock x:Name="glyph" Text="{Binding KindGlyph}" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource Text3}"/>
-                        <TextBlock x:Name="num" Text="{Binding IndexLabel}" FontFamily="{StaticResource MonoFont}" FontSize="9.5" HorizontalAlignment="Center" Margin="0,7,0,0" Foreground="{StaticResource Text4}"/>
-                    </StackPanel>
-                    <StackPanel Grid.Column="1">
-                        <ContentPresenter Content="{Binding}" ContentTemplateSelector="{StaticResource Body}"/>
+        <Grid Margin="12,0,12,6">
+            <Border x:Name="card" Background="{DynamicResource CardFill}" BorderBrush="{DynamicResource CardStroke}" BorderThickness="1" CornerRadius="6" ContextMenu="{StaticResource ClipMenu}">
+                <Grid Margin="12,10,6,10">
+                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <ContentPresenter Content="{Binding}" ContentTemplateSelector="{StaticResource BodySel}"/>
                         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                            <Image Source="{Binding AppIcon}" Width="12" Height="12" Margin="0,0,6,0" RenderOptions.BitmapScalingMode="HighQuality"/>
-                            <TextBlock Text="{Binding AppName}" Style="{StaticResource Mono}" MaxWidth="170" TextTrimming="CharacterEllipsis"/>
-                            <TextBlock Text="  /  " Style="{StaticResource Mono}" Foreground="{StaticResource Text4}"/>
-                            <TextBlock Text="{Binding RelTime}" Style="{StaticResource Mono}"/>
-                            <TextBlock Text="{Binding UsesLabel}" Style="{StaticResource Mono}" Foreground="{StaticResource Text4}" Margin="8,0,0,0"
-                                       Visibility="{Binding UsesLabel, Converter={StaticResource Vis}}"/>
-                            <TextBlock x:Name="pin" Text="{x:Static c:Glyphs.Pinned}" Style="{StaticResource Icon}" FontSize="10" Foreground="{StaticResource Accent}" Margin="9,1,0,0" Visibility="Collapsed"/>
+                            <Image Source="{Binding AppIcon}" Width="14" Height="14" Margin="0,0,6,0" RenderOptions.BitmapScalingMode="HighQuality" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding AppName}" Style="{StaticResource Caption}" MaxWidth="170" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text=" · " Style="{StaticResource Caption}"/>
+                            <TextBlock Text="{Binding RelTime}" Style="{StaticResource Caption}"/>
+                            <TextBlock Text="{Binding UsesLabel}" Style="{StaticResource Caption}" Margin="6,0,0,0" Visibility="{Binding UsesLabel, Converter={StaticResource Vis}}"/>
                         </StackPanel>
                     </StackPanel>
-                    <StackPanel x:Name="actions" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top" Margin="4,-5,0,0" Visibility="Hidden">
-                        <Button x:Name="pinBtn" Style="{StaticResource IconButton}" Content="{x:Static c:Glyphs.Pin}" Width="26" Height="26" FontSize="11.5" ToolTip="Ctrl+P"
-                                Command="{x:Static ui:Cmds.TogglePin}" CommandParameter="{Binding}"/>
-                        <Button Style="{StaticResource IconButton}" Content="{x:Static c:Glyphs.Trash}" Width="26" Height="26" FontSize="11.5" ToolTip="Del"
-                                Command="{x:Static ui:Cmds.Delete}" CommandParameter="{Binding}"/>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Top" Margin="4,-4,0,0">
+                        <StackPanel x:Name="actions" Orientation="Horizontal" Visibility="Hidden">
+                            <Button x:Name="pinBtn" Style="{StaticResource IconButton}" Content="&#xE718;" Width="28" Height="28" FontSize="14" ToolTip="{c:T Pin}"
+                                    Command="{x:Static ui:Cmds.TogglePin}" CommandParameter="{Binding}"/>
+                            <Button Style="{StaticResource IconButton}" Content="&#xE74D;" Width="28" Height="28" FontSize="14" ToolTip="{c:T Delete}"
+                                    Command="{x:Static ui:Cmds.Delete}" CommandParameter="{Binding}"/>
+                        </StackPanel>
+                        <TextBlock x:Name="pinMark" Text="&#xE840;" Style="{StaticResource Icon}" FontSize="12" Foreground="{DynamicResource AccentText}" HorizontalAlignment="Right" Margin="0,4,8,0" Visibility="Collapsed"/>
                     </StackPanel>
                 </Grid>
-                <Border x:Name="bar" Width="3" HorizontalAlignment="Left" Background="{StaticResource Accent}" Visibility="Hidden"/>
-            </Grid>
-        </Border>
+            </Border>
+            <Border x:Name="pill" Width="3" Height="18" CornerRadius="1.5" Background="{DynamicResource AccentFill}" HorizontalAlignment="Left" VerticalAlignment="Center" Visibility="Hidden"/>
+            <Border x:Name="badge" CornerRadius="4" Background="{DynamicResource AccentFill}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-4,-4,0,0" Padding="6,1,6,2" Visibility="Collapsed">
+                <TextBlock Text="{Binding IndexLabel}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource OnAccent}"/>
+            </Border>
+        </Grid>
         <DataTemplate.Triggers>
-            <Trigger SourceName="row" Property="IsMouseOver" Value="True">
-                <Setter TargetName="row" Property="Background" Value="{StaticResource Bg1}"/>
+            <Trigger SourceName="card" Property="IsMouseOver" Value="True">
+                <Setter TargetName="card" Property="Background" Value="{DynamicResource CardFillHover}"/>
                 <Setter TargetName="actions" Property="Visibility" Value="Visible"/>
             </Trigger>
             <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                <Setter TargetName="row" Property="Background" Value="{StaticResource Bg2}"/>
-                <Setter TargetName="bar" Property="Visibility" Value="Visible"/>
-                <Setter TargetName="glyph" Property="Foreground" Value="{StaticResource Accent}"/>
-                <Setter TargetName="num" Property="Foreground" Value="{StaticResource Text2}"/>
+                <Setter TargetName="card" Property="Background" Value="{DynamicResource AccentSubtle}"/>
+                <Setter TargetName="card" Property="BorderBrush" Value="{DynamicResource AccentStroke}"/>
+                <Setter TargetName="pill" Property="Visibility" Value="Visible"/>
                 <Setter TargetName="actions" Property="Visibility" Value="Visible"/>
             </DataTrigger>
             <DataTrigger Binding="{Binding Pinned}" Value="True">
-                <Setter TargetName="pin" Property="Visibility" Value="Visible"/>
-                <Setter TargetName="pinBtn" Property="Foreground" Value="{StaticResource Accent}"/>
-                <Setter TargetName="pinBtn" Property="Content" Value="{x:Static c:Glyphs.Pinned}"/>
+                <Setter TargetName="pinMark" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="pinBtn" Property="Content" Value="&#xE77A;"/>
+                <Setter TargetName="pinBtn" Property="ToolTip" Value="{c:T Unpin}"/>
             </DataTrigger>
+            <MultiDataTrigger>
+                <MultiDataTrigger.Conditions>
+                    <Condition Binding="{Binding ShowIndex}" Value="True"/>
+                    <Condition Binding="{Binding IndexLabel, Converter={StaticResource Vis}}" Value="Visible"/>
+                </MultiDataTrigger.Conditions>
+                <Setter TargetName="badge" Property="Visibility" Value="Visible"/>
+            </MultiDataTrigger>
         </DataTemplate.Triggers>
     </DataTemplate>
 
-    <!-- ── library list row: wider, with a metadata column ───────────────────── -->
+    <!-- ── library row: wider, with a metadata column ──────────────────────── -->
     <DataTemplate x:Key="Row.Library" DataType="{x:Type c:ClipItem}">
-        <Border x:Name="row" Background="Transparent" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Cursor="Hand" ContextMenu="{StaticResource ClipMenu}">
-            <Border.InputBindings>
-                <MouseBinding Gesture="LeftClick" Command="{x:Static ui:Cmds.Select}" CommandParameter="{Binding}"/>
-                <MouseBinding Gesture="LeftDoubleClick" Command="{x:Static ui:Cmds.Copy}" CommandParameter="{Binding}"/>
-            </Border.InputBindings>
-            <Grid>
-                <Grid Margin="0,13,12,13">
+        <Grid Margin="24,0,24,6">
+            <Border x:Name="card" Background="{DynamicResource CardFill}" BorderBrush="{DynamicResource CardStroke}" BorderThickness="1" CornerRadius="6" ContextMenu="{StaticResource ClipMenu}">
+                <Border.InputBindings>
+                    <MouseBinding Gesture="LeftClick" Command="{x:Static ui:Cmds.Select}" CommandParameter="{Binding}"/>
+                    <MouseBinding Gesture="LeftDoubleClick" Command="{x:Static ui:Cmds.Copy}" CommandParameter="{Binding}"/>
+                </Border.InputBindings>
+                <Grid Margin="16,12,8,12">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="52"/><ColumnDefinition/><ColumnDefinition Width="190"/><ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="0"/><ColumnDefinition/><ColumnDefinition Width="200"/><ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock x:Name="glyph" Text="{Binding KindGlyph}" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource Text3}" VerticalAlignment="Top" Margin="0,2,0,0"/>
-                    <ContentPresenter Grid.Column="1" Content="{Binding}" ContentTemplateSelector="{StaticResource Body}" Margin="0,0,24,0"/>
+                    <ContentPresenter Grid.Column="1" Content="{Binding}" ContentTemplateSelector="{StaticResource BodySel}" Margin="0,0,24,0"/>
                     <StackPanel Grid.Column="2" VerticalAlignment="Top">
                         <StackPanel Orientation="Horizontal">
-                            <Image Source="{Binding AppIcon}" Width="13" Height="13" Margin="0,0,7,0" RenderOptions.BitmapScalingMode="HighQuality"/>
-                            <TextBlock Text="{Binding AppName}" Style="{StaticResource Mono}" Foreground="{StaticResource Text2}" TextTrimming="CharacterEllipsis" MaxWidth="160"/>
+                            <Image Source="{Binding AppIcon}" Width="16" Height="16" Margin="0,0,8,0" RenderOptions.BitmapScalingMode="HighQuality"/>
+                            <TextBlock Text="{Binding AppName}" Style="{StaticResource Body}" FontSize="13" TextTrimming="CharacterEllipsis" MaxWidth="170"/>
                         </StackPanel>
-                        <TextBlock Style="{StaticResource Mono}" Margin="0,5,0,0">
-                            <Run Text="{Binding RelTime, Mode=OneWay}"/><Run Text="  /  " Foreground="{StaticResource Text4}"/><Run Text="{Binding KindLabel, Mode=OneWay}"/>
+                        <TextBlock Style="{StaticResource Caption}" Margin="24,3,0,0">
+                            <Run Text="{Binding RelTime, Mode=OneWay}"/><Run Text=" · "/><Run Text="{Binding KindLabel, Mode=OneWay}"/>
                         </TextBlock>
                     </StackPanel>
-                    <StackPanel x:Name="actions" Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top" Margin="0,-5,0,0" Visibility="Hidden">
-                        <Button x:Name="pinBtn" Style="{StaticResource IconButton}" Content="{x:Static c:Glyphs.Pin}" Width="28" Height="28" FontSize="12" ToolTip="Ctrl+P"
-                                Command="{x:Static ui:Cmds.TogglePin}" CommandParameter="{Binding}"/>
-                        <Button Style="{StaticResource IconButton}" Content="{x:Static c:Glyphs.Copy}" Width="28" Height="28" FontSize="12" ToolTip="Ctrl+C"
-                                Command="{x:Static ui:Cmds.Copy}" CommandParameter="{Binding}"/>
-                        <Button Style="{StaticResource IconButton}" Content="{x:Static c:Glyphs.Trash}" Width="28" Height="28" FontSize="12" ToolTip="Del"
-                                Command="{x:Static ui:Cmds.Delete}" CommandParameter="{Binding}"/>
-                    </StackPanel>
+                    <Grid Grid.Column="3" VerticalAlignment="Top" Margin="0,-4,0,0">
+                        <StackPanel x:Name="actions" Orientation="Horizontal" Visibility="Hidden">
+                            <Button x:Name="pinBtn" Style="{StaticResource IconButton}" Content="&#xE718;" FontSize="14" ToolTip="{c:T Pin}"
+                                    Command="{x:Static ui:Cmds.TogglePin}" CommandParameter="{Binding}"/>
+                            <Button Style="{StaticResource IconButton}" Content="&#xE8C8;" FontSize="14" ToolTip="{c:T CopyOnly}"
+                                    Command="{x:Static ui:Cmds.Copy}" CommandParameter="{Binding}"/>
+                            <Button Style="{StaticResource IconButton}" Content="&#xE74D;" FontSize="14" ToolTip="{c:T Delete}"
+                                    Command="{x:Static ui:Cmds.Delete}" CommandParameter="{Binding}"/>
+                        </StackPanel>
+                        <TextBlock x:Name="pinMark" Text="&#xE840;" Style="{StaticResource Icon}" FontSize="12" Foreground="{DynamicResource AccentText}" HorizontalAlignment="Right" Margin="0,6,10,0" Visibility="Collapsed"/>
+                    </Grid>
                 </Grid>
-                <Border x:Name="bar" Width="3" HorizontalAlignment="Left" Background="{StaticResource Accent}" Visibility="Hidden"/>
-                <TextBlock x:Name="pin" Text="{x:Static c:Glyphs.Pinned}" Style="{StaticResource Icon}" FontSize="10" Foreground="{StaticResource Accent}"
-                           HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="21,0,0,14" Visibility="Collapsed"/>
-            </Grid>
-        </Border>
+            </Border>
+            <Border x:Name="pill" Width="3" Height="18" CornerRadius="1.5" Background="{DynamicResource AccentFill}" HorizontalAlignment="Left" VerticalAlignment="Center" Visibility="Hidden"/>
+        </Grid>
         <DataTemplate.Triggers>
-            <Trigger SourceName="row" Property="IsMouseOver" Value="True">
-                <Setter TargetName="row" Property="Background" Value="{StaticResource Bg1}"/>
+            <Trigger SourceName="card" Property="IsMouseOver" Value="True">
+                <Setter TargetName="card" Property="Background" Value="{DynamicResource CardFillHover}"/>
                 <Setter TargetName="actions" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="pinMark" Property="Visibility" Value="Collapsed"/>
             </Trigger>
             <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                <Setter TargetName="row" Property="Background" Value="{StaticResource Bg2}"/>
-                <Setter TargetName="bar" Property="Visibility" Value="Visible"/>
-                <Setter TargetName="glyph" Property="Foreground" Value="{StaticResource Accent}"/>
+                <Setter TargetName="card" Property="Background" Value="{DynamicResource AccentSubtle}"/>
+                <Setter TargetName="card" Property="BorderBrush" Value="{DynamicResource AccentStroke}"/>
+                <Setter TargetName="pill" Property="Visibility" Value="Visible"/>
             </DataTrigger>
             <DataTrigger Binding="{Binding Pinned}" Value="True">
-                <Setter TargetName="pin" Property="Visibility" Value="Visible"/>
-                <Setter TargetName="pinBtn" Property="Foreground" Value="{StaticResource Accent}"/>
-                <Setter TargetName="pinBtn" Property="Content" Value="{x:Static c:Glyphs.Pinned}"/>
+                <Setter TargetName="pinMark" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="pinBtn" Property="Content" Value="&#xE77A;"/>
+                <Setter TargetName="pinBtn" Property="ToolTip" Value="{c:T Unpin}"/>
             </DataTrigger>
         </DataTemplate.Triggers>
     </DataTemplate>
 
-    <!-- ── contact-sheet tile ────────────────────────────────────────────────── -->
+    <!-- ── gallery tile ────────────────────────────────────────────────────── -->
     <DataTemplate x:Key="Tile" DataType="{x:Type c:ClipItem}">
-        <Grid Margin="0,0,12,12" Cursor="Hand" ContextMenu="{StaticResource ClipMenu}" Background="Transparent">
+        <Grid Margin="0,0,12,12" ContextMenu="{StaticResource ClipMenu}" Background="Transparent">
             <Grid.InputBindings>
                 <MouseBinding Gesture="LeftClick" Command="{x:Static ui:Cmds.Select}" CommandParameter="{Binding}"/>
                 <MouseBinding Gesture="LeftDoubleClick" Command="{x:Static ui:Cmds.Copy}" CommandParameter="{Binding}"/>
             </Grid.InputBindings>
-            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-            <Border x:Name="frame" Background="{StaticResource Bg1}" BorderBrush="{StaticResource Line2}" BorderThickness="1" Height="156" ClipToBounds="True">
-                <Image ui:ThumbLoader.Width="300" Stretch="UniformToFill" VerticalAlignment="Top" RenderOptions.BitmapScalingMode="HighQuality"/>
+            <Border x:Name="card" Background="{DynamicResource CardFill}" BorderBrush="{DynamicResource CardStroke}" BorderThickness="1" CornerRadius="8">
+                <StackPanel>
+                    <Grid Height="150" Margin="6,6,6,0" ui:Round.Radius="4">
+                <Border Background="{DynamicResource ThumbFill}"/>
+                        <Image ui:ThumbLoader.Width="300" Stretch="UniformToFill" VerticalAlignment="Top" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    </Grid>
+                    <Grid Margin="10,8,10,10">
+                        <TextBlock Text="{Binding RelTime}" Style="{StaticResource Caption}" Foreground="{DynamicResource TextPrimary}"/>
+                        <TextBlock Text="{Binding Dimensions}" Style="{StaticResource Caption}" HorizontalAlignment="Right"/>
+                    </Grid>
+                </StackPanel>
             </Border>
-            <Border x:Name="ring" BorderBrush="{StaticResource Accent}" BorderThickness="2" Height="156" Visibility="Hidden" IsHitTestVisible="False"/>
-            <Border x:Name="badge" Background="{StaticResource Accent}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,8,0" Padding="5,3" Visibility="Collapsed">
-                <TextBlock Text="{x:Static c:Glyphs.Pinned}" Style="{StaticResource Icon}" FontSize="10" Foreground="{StaticResource AccentInk}"/>
+            <Border x:Name="ring" BorderBrush="{DynamicResource AccentFill}" BorderThickness="2" CornerRadius="8" Visibility="Hidden" IsHitTestVisible="False"/>
+            <Border x:Name="badge" Background="{DynamicResource FlyoutFill}" CornerRadius="4" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,12,12,0" Padding="5,4" Visibility="Collapsed">
+                <TextBlock Text="&#xE840;" Style="{StaticResource Icon}" FontSize="12" Foreground="{DynamicResource AccentText}"/>
             </Border>
-            <Grid Grid.Row="1" Margin="1,8,1,0">
-                <TextBlock x:Name="when" Text="{Binding RelTime}" Style="{StaticResource Mono}" Foreground="{StaticResource Text2}"/>
-                <TextBlock Text="{Binding Dimensions}" Style="{StaticResource Mono}" HorizontalAlignment="Right"/>
-            </Grid>
         </Grid>
         <DataTemplate.Triggers>
-            <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                <Setter TargetName="ring" Property="Visibility" Value="Visible"/>
-                <Setter TargetName="when" Property="Foreground" Value="{StaticResource Accent}"/>
-            </DataTrigger>
-            <DataTrigger Binding="{Binding Pinned}" Value="True">
-                <Setter TargetName="badge" Property="Visibility" Value="Visible"/>
-            </DataTrigger>
+            <Trigger SourceName="card" Property="IsMouseOver" Value="True"><Setter TargetName="card" Property="Background" Value="{DynamicResource CardFillHover}"/></Trigger>
+            <DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter TargetName="ring" Property="Visibility" Value="Visible"/></DataTrigger>
+            <DataTrigger Binding="{Binding Pinned}" Value="True"><Setter TargetName="badge" Property="Visibility" Value="Visible"/></DataTrigger>
         </DataTemplate.Triggers>
     </DataTemplate>
 
     <DataTemplate x:Key="GridRow" DataType="{x:Type c:GridRow}">
-        <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource Tile}" Margin="16,0,4,0" Focusable="False">
+        <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource Tile}" Margin="24,0,12,0" Focusable="False">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate><UniformGrid Rows="1" Columns="{Binding Columns}"/></ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>

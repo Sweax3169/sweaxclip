@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using SweaxClip.Core;
@@ -9,14 +11,18 @@ using SweaxClip.Native;
 
 namespace SweaxClip.UI;
 
-/// <summary>The Win+V panel: opens at the caret, everything first, categories one Tab away.</summary>
+/// <summary>
+/// The Win+V panel. Opens next to the text cursor (or above the taskbar when there is none),
+/// slides in like a Windows flyout and pastes into the window the user came from.
+/// </summary>
 public partial class QuickPanel : Window
 {
     readonly App _app;
     readonly ClipListModel _model;
     IntPtr _hwnd, _previous;
-    bool _pasting;
+    bool _pasting, _showing;
     readonly DispatcherTimer _toastTimer = new() { Interval = TimeSpan.FromMilliseconds(1300) };
+    EventHandler? _slide;
 
     public ClipListModel Model => _model;
 
@@ -29,17 +35,20 @@ public partial class QuickPanel : Window
         _model.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(ClipListModel.Selected)) ScrollToSelected();
+            if (e.PropertyName is nameof(ClipListModel.Scope) or nameof(ClipListModel.Total)) UpdateCount();
         };
+        foreach (var s in _model.Scopes) s.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(ScopeInfo.Count)) UpdateCount(); };
         _toastTimer.Tick += (_, _) => { _toastTimer.Stop(); Fade(toast, 0); };
 
         SourceInitialized += (_, _) =>
         {
             _hwnd = new WindowInteropHelper(this).Handle;
-            // keep out of Alt+Tab and the taskbar
             long ex = (long)Win32.GetWindowLongPtr(_hwnd, Win32.GWL_EXSTYLE);
             Win32.SetWindowLongPtr(_hwnd, Win32.GWL_EXSTYLE, (IntPtr)((ex | Win32.WS_EX_TOOLWINDOW) & ~Win32.WS_EX_APPWINDOW));
-            WindowEffects.Apply(_hwnd, small: true);
+            if (HwndSource.FromHwnd(_hwnd) is { CompositionTarget: { } ct }) ct.BackgroundColor = Colors.Transparent;
+            ApplyTheme();
         };
+        ThemeManager.Changed += ApplyTheme;
         Deactivated += (_, _) => { if (!_pasting && IsVisible && !AnyMenuOpen()) HideNow(); };
 
         CommandBindings.Add(new CommandBinding(Cmds.Paste, (_, e) => Paste(e.Parameter as ClipItem, false)));
@@ -51,6 +60,19 @@ public partial class QuickPanel : Window
         CommandBindings.Add(new CommandBinding(Cmds.ShowInFolder, (_, e) => { if (e.Parameter is ClipItem c) { HideNow(); _app.ShowInFolder(c); } }));
         CommandBindings.Add(new CommandBinding(Cmds.SaveImage, (_, e) => { if (e.Parameter is ClipItem c) { HideNow(); _app.SaveImageAs(c); } }));
         CommandBindings.Add(new CommandBinding(Cmds.SetScope, (_, e) => { if (e.Parameter is Scope s) { _model.Scope = s; search.Focus(); } }));
+    }
+
+    void ApplyTheme()
+    {
+        if (_hwnd == IntPtr.Zero) return;
+        ThemeManager.ApplyFrame(_hwnd, Backdrop.Acrylic);
+        root.Background = ThemeManager.SupportsBackdrop ? Brushes.Transparent : (Brush)FindResource("PanelFallback");
+    }
+
+    void UpdateCount()
+    {
+        var info = _model.Scopes.FirstOrDefault(s => s.Scope == _model.Scope);
+        count.Text = info?.CountText ?? "";
     }
 
     static bool AnyMenuOpen() => Keyboard.FocusedElement is MenuItem || Mouse.Captured is ContextMenu;
@@ -65,61 +87,107 @@ public partial class QuickPanel : Window
 
     public async Task ShowAt(IntPtr previous)
     {
-        _previous = previous;
-        if (_hwnd == IntPtr.Zero) new WindowInteropHelper(this).EnsureHandle();
-        pausedBadge.Visibility = _app.Settings.Paused ? Visibility.Visible : Visibility.Collapsed;
+        if (_showing) return;
+        _showing = true;
+        try
+        {
+            _previous = previous;
+            if (_hwnd == IntPtr.Zero) new WindowInteropHelper(this).EnsureHandle();
+            pausedBadge.Visibility = _app.Settings.Paused ? Visibility.Visible : Visibility.Collapsed;
 
-        _model.Search = "";
-        if (_model.Scope != Scope.All) _model.Scope = Scope.All;
-        var reload = _model.Reload(false);
+            // load first, then appear: no flash of last time's list
+            _model.Search = "";
+            if (_model.Scope != Scope.All) _model.Scope = Scope.All;
+            await _model.Reload(false);
+            SetIndexes(false);
+            UpdateCount();
 
-        Position(previous);
-        root.Opacity = 0;
-        Show();
-        Win32.ForceForeground(_hwnd);
-        Activate();
-        search.Focus();
-        Keyboard.Focus(search);
-        await reload;
-        list.ScrollIntoView(_model.Rows.FirstOrDefault());
-        ((Storyboard)Resources["Enter"]).Begin(this);
+            var (x, y, fromY) = Placement(previous);
+            root.Opacity = 0;
+            Win32.SetWindowPos(_hwnd, Win32.HWND_TOPMOST, x, fromY, 0, 0, Win32.SWP_NOSIZE | Win32.SWP_NOACTIVATE);
+            Show();
+            Win32.SetWindowPos(_hwnd, Win32.HWND_TOPMOST, 0, 0, 0, 0, Win32.SWP_NOSIZE | Win32.SWP_NOMOVE | Win32.SWP_SHOWWINDOW);
+            Win32.ForceForeground(_hwnd);
+            Activate();
+            search.Focus();
+            Keyboard.Focus(search);
+            list.ScrollIntoView(_model.Rows.FirstOrDefault());
+            Slide(x, fromY, y);
+        }
+        finally { _showing = false; }
+    }
+
+    /// <summary>Windows flyout motion: ~250 ms decelerate slide, content fading in during the first half.</summary>
+    void Slide(int x, int fromY, int toY)
+    {
+        if (_slide != null) CompositionTarget.Rendering -= _slide;
+        var sw = Stopwatch.StartNew();
+        const double duration = 250;
+        _slide = (_, _) =>
+        {
+            double t = Math.Min(1, sw.Elapsed.TotalMilliseconds / duration);
+            double e = 1 - Math.Pow(1 - t, 4);
+            int y = (int)Math.Round(fromY + (toY - fromY) * e);
+            Win32.SetWindowPos(_hwnd, Win32.HWND_TOPMOST, x, y, 0, 0, Win32.SWP_NOSIZE | Win32.SWP_NOACTIVATE);
+            root.Opacity = Math.Min(1, t * 2.4);
+            if (t >= 1)
+            {
+                CompositionTarget.Rendering -= _slide;
+                _slide = null;
+            }
+        };
+        CompositionTarget.Rendering += _slide;
     }
 
     public void HideNow()
     {
         if (!IsVisible) return;
+        if (_slide != null) { CompositionTarget.Rendering -= _slide; _slide = null; }
+        SetIndexes(false);
         Hide();
         _app.ScheduleTrim();
     }
 
-    void Position(IntPtr previous)
+    /// <summary>
+    /// Where to open: under the text cursor when one can be found (classic caret, or the accessibility
+    /// caret that Chrome, Edge, Office and Electron apps expose), otherwise centred above the taskbar
+    /// on the monitor the mouse is on. Returns the final position and the slide start.
+    /// </summary>
+    (int x, int y, int fromY) Placement(IntPtr previous)
     {
-        Win32.POINT pt;
-        bool caret = false;
-        uint thread = previous != IntPtr.Zero ? Win32.GetWindowThreadProcessId(previous, out _) : 0;
-        var gui = new Win32.GUITHREADINFO { cbSize = System.Runtime.InteropServices.Marshal.SizeOf<Win32.GUITHREADINFO>() };
-        if (thread != 0 && Win32.GetGUIThreadInfo(thread, ref gui) && gui.hwndCaret != IntPtr.Zero && (gui.rcCaret.Bottom > 0 || gui.rcCaret.Left > 0))
-        {
-            pt = new Win32.POINT { X = gui.rcCaret.Left, Y = gui.rcCaret.Bottom };
-            Win32.ClientToScreen(gui.hwndCaret, ref pt);
-            caret = true;
-        }
-        else Win32.GetCursorPos(out pt);
+        var caret = CaretLocator.Find(previous);
+        Win32.GetCursorPos(out var mouse);
+        var anchor = caret is { } c ? new Win32.POINT { X = c.Left, Y = c.Bottom } : mouse;
 
-        IntPtr mon = Win32.MonitorFromPoint(pt, Win32.MONITOR_DEFAULTTONEAREST);
+        IntPtr mon = Win32.MonitorFromPoint(anchor, Win32.MONITOR_DEFAULTTONEAREST);
         var mi = new Win32.MONITORINFO { cbSize = System.Runtime.InteropServices.Marshal.SizeOf<Win32.MONITORINFO>() };
         Win32.GetMonitorInfo(mon, ref mi);
         double scale = 1;
         if (Win32.GetDpiForMonitor(mon, 0, out uint dpi, out _) == 0) scale = dpi / 96.0;
 
-        int w = (int)(Width * scale), h = (int)(Height * scale), gap = (int)(10 * scale);
+        int w = (int)(Width * scale), h = (int)(Height * scale), gap = (int)(8 * scale), slide = (int)(28 * scale);
         var work = mi.rcWork;
-        int x = pt.X - (caret ? 0 : w / 2);
-        int y = pt.Y + gap;
-        if (y + h > work.Bottom) y = (caret ? pt.Y - h - gap - (int)(18 * scale) : pt.Y - h - gap);
+        int x, y, fromY;
+        if (caret is { } r)
+        {
+            x = r.Left - (int)(16 * scale);
+            y = r.Bottom + gap;
+            fromY = y - slide / 2;
+            if (y + h > work.Bottom - gap)
+            {
+                y = r.Top - h - gap;
+                fromY = y + slide / 2;
+            }
+        }
+        else
+        {
+            x = work.Left + (work.Width - w) / 2;
+            y = work.Bottom - h - (int)(12 * scale);
+            fromY = y + slide;
+        }
         x = Math.Clamp(x, work.Left + gap, Math.Max(work.Left + gap, work.Right - w - gap));
         y = Math.Clamp(y, work.Top + gap, Math.Max(work.Top + gap, work.Bottom - h - gap));
-        Win32.SetWindowPos(_hwnd, Win32.HWND_TOPMOST, x, y, 0, 0, Win32.SWP_NOSIZE | Win32.SWP_NOACTIVATE);
+        return (x, y, fromY);
     }
 
     // ── keyboard ─────────────────────────────────────────────────────────────
@@ -133,27 +201,28 @@ public partial class QuickPanel : Window
 
         switch (key)
         {
+            case Key.LeftAlt or Key.RightAlt: SetIndexes(true); e.Handled = true; return;
             case Key.Escape:
                 if (!searchEmpty) _model.Search = "";
                 else HideNow();
                 break;
             case Key.Down: _model.Move(1); break;
             case Key.Up: _model.Move(-1); break;
-            case Key.PageDown: _model.Move(7); break;
-            case Key.PageUp: _model.Move(-7); break;
+            case Key.PageDown: _model.Move(5); break;
+            case Key.PageUp: _model.Move(-5); break;
             case Key.Home when ctrl || searchEmpty: _model.Move(-100_000); break;
             case Key.End when ctrl || searchEmpty: _model.Move(100_000); break;
             case Key.Enter: Paste(_model.Selected, shift); break;
-            case Key.Tab: _model.MoveScope(shift ? -1 : 1); ScrollScope(); break;
-            case Key.Left when searchEmpty || ctrl: _model.MoveScope(-1); ScrollScope(); break;
-            case Key.Right when searchEmpty || ctrl: _model.MoveScope(1); ScrollScope(); break;
+            case Key.Tab: _model.MoveScope(shift ? -1 : 1); break;
+            case Key.Left when searchEmpty || ctrl: _model.MoveScope(-1); break;
+            case Key.Right when searchEmpty || ctrl: _model.MoveScope(1); break;
             case >= Key.D1 and <= Key.D9 when mods == ModifierKeys.Alt:
                 var nth = _model.Items.FirstOrDefault(i => i.Index == key - Key.D0);
                 if (nth != null) Paste(nth, false);
                 break;
             case >= Key.D1 and <= Key.D9 when ctrl:
                 int n = key - Key.D0;
-                if (n <= _model.Scopes.Count) { _model.Scope = _model.Scopes[n - 1].Scope; ScrollScope(); }
+                if (n <= _model.Scopes.Count) _model.Scope = _model.Scopes[n - 1].Scope;
                 break;
             case Key.Delete when searchEmpty || ctrl: Delete(_model.Selected); break;
             case Key.P when ctrl: TogglePin(_model.Selected); break;
@@ -168,14 +237,16 @@ public partial class QuickPanel : Window
         e.Handled = true;
     }
 
-    void ScrollScope()
+    protected override void OnPreviewKeyUp(KeyEventArgs e)
     {
-        Dispatcher.BeginInvoke(() =>
-        {
-            int i = _model.Scopes.ToList().FindIndex(s => s.Active);
-            double target = i * 70 - 120;
-            scopeScroll.ScrollToHorizontalOffset(Math.Max(0, target));
-        }, DispatcherPriority.Loaded);
+        Key key = e.Key == Key.System ? e.SystemKey : e.Key;
+        if (key is Key.LeftAlt or Key.RightAlt) { SetIndexes(false); e.Handled = true; }
+        base.OnPreviewKeyUp(e);
+    }
+
+    void SetIndexes(bool show)
+    {
+        foreach (var c in _model.Items.Take(9)) c.ShowIndex = show;
     }
 
     void ScrollToSelected()
@@ -206,7 +277,7 @@ public partial class QuickPanel : Window
         {
             var full = await Task.Run(() => _app.Store.Get(item.Id)) ?? item;
             if (_app.Settings.PastePlainByDefault) plain = !plain;
-            if (!Paster.SetClipboard(full, plain)) { Toast("Clipboard busy"); return; }
+            if (!Paster.SetClipboard(full, plain)) { Toast(Loc.T("ClipboardBusy")); return; }
             if (_app.Settings.MoveToTopOnPaste) _ = Task.Run(() => _app.Store.TouchId(item.Id));
             HideNow();
             await Paster.PasteInto(_previous);
@@ -231,7 +302,7 @@ public partial class QuickPanel : Window
         if (item == null) return;
         item.Pinned = !item.Pinned;
         _app.Store.SetPinned(item.Id, item.Pinned);
-        Toast(item.Pinned ? Loc.T("Pin") : Loc.T("Unpin"));
+        Toast(item.Pinned ? Loc.T("Pinned") : Loc.T("Unpinned"));
         _ = _model.RefreshCounts();
     }
 
@@ -240,7 +311,7 @@ public partial class QuickPanel : Window
         if (item == null) return;
         _app.Store.Trash(item.Id);
         _model.Drop(item);
-        Toast(Loc.T("Delete"));
+        Toast(Loc.T("MovedToTrash"));
     }
 
     void OpenLibrary_Click(object sender, RoutedEventArgs e)
@@ -259,5 +330,5 @@ public partial class QuickPanel : Window
     }
 
     static void Fade(UIElement el, double to) =>
-        el.BeginAnimation(OpacityProperty, new DoubleAnimation(to, TimeSpan.FromMilliseconds(140)));
+        el.BeginAnimation(OpacityProperty, new DoubleAnimation(to, TimeSpan.FromMilliseconds(150)));
 }

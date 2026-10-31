@@ -102,6 +102,45 @@ public static class Classifier
         @"^(?:sudo\s+)?(npm|npx|pnpm|yarn|git|cd|pip|pip3|python|py|node|dotnet|docker|kubectl|curl|wget|winget|choco|cargo|go|java|javac|gradle|mvn|ssh|scp|ls|dir|mkdir|rm|del|cat|echo|code|gh|flutter|php|composer|ffmpeg|Get-[A-Za-z]+|Set-[A-Za-z]+|New-[A-Za-z]+|Invoke-[A-Za-z]+)\s+\S",
         RegexOptions.Compiled);
 
+    // One line of code: a call — print("hi"), console.log(x);, os.path.join(a, b)
+    static readonly Regex CallLine = new(
+        @"^[A-Za-z_$][\w$]*(?:(?:\.|::|->|\?\.)[A-Za-z_$][\w$]*)*(?:<[\w\s,.<>?]*>)?\(.*\)\s*(?:\.[\w$]+\(.*\)\s*)*;?$", RegexOptions.Compiled);
+
+    // an assignment — x = 5, const a = [1, 2];, game.Workspace.Part.Transparency = 1
+    static readonly Regex AssignLine = new(
+        @"^(?:(?:let|const|var|local|val|auto|int|string|float|double|bool|char|long|dim|my|export)\s+)?[A-Za-z_$][\w$]*(?:(?:\.|::|->)[A-Za-z_$][\w$]*|\[[^\]]*\])*\s*(?:=|\+=|-=|\*=|/=|:=|\?\?=|\|\|=)\s*(?<rhs>\S.*)$", RegexOptions.Compiled);
+
+    // a line that opens with a statement
+    static readonly Regex StatementLine = new(
+        @"^(?:import\s+[\w.]+(?:\s+as\s+\w+)?(?:\s*,\s*[\w.]+(?:\s+as\s+\w+)?)*;?$|import\s+.+\s+from\s+['""].+['""];?$|import\s+['""].+['""];?$|from\s+[\w.]+\s+import\s+[\w*]|using\s+[\w.]+\s*;$|#include\s*[<""]|#define\s+\w|#!/|def\s+\w+\s*\(|async\s+def\s|function\s*\*?\s*\w*\s*\(|class\s+\w+\s*[:({<]|return(?:\s+.+)?;$|(?:public|private|protected|internal)\s+\w.*[;{(=]|static\s+\w+\s+\w+\s*\(|(?:if|for|while|foreach|switch)\s*\(.*\)\s*\{?$|fn\s+\w+\s*\(|func\s+\w+\s*\(|package\s+\w+(?:\.\w+)+;?$|package\s+\w+;$|<\?php|@[A-Za-z][\w.]*\(.*\)$)", RegexOptions.Compiled);
+
+    static readonly Regex SqlLine = new(
+        @"^(?:SELECT\s.+\sFROM\s|INSERT\s+INTO\s|UPDATE\s+\w+\s+SET\s|DELETE\s+FROM\s|CREATE\s+(?:TABLE|INDEX|VIEW)\s|ALTER\s+TABLE\s|DROP\s+TABLE\s)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    static readonly Regex TagLine = new(@"^<([A-Za-z][\w-]*)(?:\s[^<>]*)?>.*</\1>$|^<[A-Za-z][\w-]*(?:\s[^<>]*)?/>$|^<!DOCTYPE\s", RegexOptions.Compiled);
+    static readonly Regex JsonLine = new(@"^\{\s*""[^""]+""\s*:.*\}$|^\[\s*(?:""|\d|\{|\[|true|false|null).*\]$", RegexOptions.Compiled);
+    static readonly Regex CssLine = new(@"^[^{}]{1,120}\{\s*[\w-]+\s*:[^{}]+;?\s*\}$", RegexOptions.Compiled);
+
+    // prose inside an assignment's right-hand side: two words in a row, or a number followed by a word ("50 TL")
+    static readonly Regex ProseRhs = new(@"\p{L}{2,}\s+\p{L}{2,}|\d\s+\p{L}", RegexOptions.Compiled);
+    static readonly Regex Quoted = new(@"""(?:\\.|[^""\\])*""|'(?:\\.|[^'\\])*'|`[^`]*`", RegexOptions.Compiled);
+
+    /// <summary>True when one line, on its own, reads as code rather than prose.</summary>
+    static bool IsCodeLine(string line)
+    {
+        string l = line.Trim();
+        if (l.Length < 3 || l.Length > 600) return false;
+        if (ShellCmd.IsMatch(l) || StatementLine.IsMatch(l) || SqlLine.IsMatch(l) || TagLine.IsMatch(l) || JsonLine.IsMatch(l) || CssLine.IsMatch(l)) return true;
+        if (CallLine.IsMatch(l)) return true;
+        var m = AssignLine.Match(l);
+        if (m.Success)
+        {
+            string rhs = Quoted.Replace(m.Groups["rhs"].Value, "\"\"");
+            return !ProseRhs.IsMatch(rhs) && !rhs.TrimEnd().EndsWith('.') || rhs.TrimEnd().EndsWith(';');
+        }
+        return false;
+    }
+
     public static ClipKind Classify(string text)
     {
         string t = text.Trim();
@@ -126,10 +165,10 @@ public static class Classifier
     static bool LooksLikeCode(string t, bool singleLine)
     {
         if (t.Length > 400_000) return false;
-        if (singleLine) return t.Length < 600 && ShellCmd.IsMatch(t);
+        if (singleLine) return IsCodeLine(t);
 
         var lines = t.Replace("\r\n", "\n").Split('\n');
-        int nonEmpty = 0, codeEnds = 0, indented = 0;
+        int nonEmpty = 0, codeEnds = 0, indented = 0, codeLines = 0;
         foreach (var raw in lines.Take(400))
         {
             string l = raw.TrimEnd();
@@ -138,8 +177,12 @@ public static class Classifier
             char last = l[^1];
             if (last is ';' or '{' or '}' or ')' or ']' or ',' or ':' && !l.EndsWith("..")) codeEnds++;
             if (raw.StartsWith("    ") || raw.StartsWith('\t')) indented++;
+            if (codeLines < 200 && IsCodeLine(l)) codeLines++;
         }
+        if (nonEmpty == 1) return IsCodeLine(t);
         if (nonEmpty < 2) return false;
+        // most lines are code on their own: a short script such as "x = 5 / print(x)"
+        if (codeLines * 2 >= nonEmpty + 1) return true;
         string sample = t.Length > 20_000 ? t[..20_000] : t;
         int kw = Keywords.Matches(sample).Count;
         int ops = Operators.Matches(sample).Count;

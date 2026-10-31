@@ -25,6 +25,13 @@ public static class Demo
     public static async void Run(App app, string[] args)
     {
         string? Arg(string name) { int i = Array.FindIndex(args, a => a.Equals(name, StringComparison.OrdinalIgnoreCase)); return i >= 0 && i + 1 < args.Length ? args[i + 1] : null; }
+        if (Arg("--classify") is { } samples)
+        {
+            var blocks = File.ReadAllText(samples).Replace("\r\n", "\n").Split("\n===\n");
+            File.WriteAllLines(samples + ".out", blocks.Select(b => $"{Classifier.Classify(b),-6} | {b.Replace("\n", " / ")}"));
+            app.Shutdown();
+            return;
+        }
         bool tr = Arg("--lang") == "tr";
         string? theme = Arg("--theme");
         string dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"sweaxclip-demo-{(tr ? "tr" : "en")}-{theme ?? "auto"}");
@@ -246,6 +253,7 @@ public static class Demo
         async Task<BitmapSource> PanelSnap(Scope scope, string search, double scale, Func<ClipItem, bool>? pick = null)
         {
             await Rest(panel, scope, search, pick);
+            if (Environment.GetEnvironmentVariable("SWEAXCLIP_HOVER") == "1") ShowHoverActions(panel);
             return Snap(Root(panel), panel.ActualWidth, panel.ActualHeight, scale, frame: false);
         }
 
@@ -282,6 +290,28 @@ public static class Demo
         await Library("library-colors", Scope.Colors, null);
         await Library("library-settings", Scope.All, null, settings: true);
         lib.Close();
+    }
+
+    /// <summary>Shows the hover actions of every visible row (only for checking how they look).</summary>
+    static void ShowHoverActions(QuickPanel panel)
+    {
+        foreach (var item in panel.Model.Items.Take(8))
+        {
+            if (panel.FindChild<ListBox>()?.ItemContainerGenerator.ContainerFromItem(item) is not ListBoxItem row) continue;
+            if (Named(row, "acts") is UIElement acts) acts.Opacity = 1;
+        }
+        panel.UpdateLayout();
+    }
+
+    static FrameworkElement? Named(DependencyObject root, string name)
+    {
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is FrameworkElement fe && fe.Name == name) return fe;
+            if (Named(child, name) is { } hit) return hit;
+        }
+        return null;
     }
 
     // ── appearance: every palette, and the deck style ──────────────────────

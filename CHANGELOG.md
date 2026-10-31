@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.1 — 2026-10-31
+
+- **One line of code is code.** A single line is now recognised as code when it is a function call (`print("Merhaba Dünya!")`, `console.log(x);`), an assignment (`x = 5`, `local speed = 16`), an import or a declaration (`import os`, `def f():`, `#include <stdio.h>`), an SQL statement, an HTML tag, a JSON object or a CSS rule — not only shell commands. Short scripts where most lines are code count too. Sentences are still text: "Fiyat = 50 TL", "import the files tomorrow" and "Hello (world)" stay where they were.
+- Clips already in your archive are sorted again once with the new rules (plain text → code only; nothing else moves).
+- The pin and delete buttons that appear when you hover a clip now sit on a solid chip with a shadow, so they are clear over pictures and code as well as text.
+
 ## 1.4.0 — 2026-10-31
 
 Appearance settings: two panel styles, a theme switch and seven palettes.

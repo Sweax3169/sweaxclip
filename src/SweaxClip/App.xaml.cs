@@ -39,7 +39,7 @@ public partial class App : Application
         base.OnStartup(e);
         var args = e.Args.Select(a => a.ToLowerInvariant()).ToArray();
 
-        if (args.Contains("--demo") || args.Contains("--shots") || args.Contains("--gif") || args.Contains("--appearance"))
+        if (args.Contains("--demo") || args.Contains("--shots") || args.Contains("--gif") || args.Contains("--appearance") || args.Contains("--classify"))
         {
             Dev.Demo.Run(this, e.Args);
             return;
@@ -160,6 +160,8 @@ public partial class App : Application
         };
         _maintenance.Start();
         Task.Run(() => Backup.DailyIfDue(Store, Settings));
+        // clips saved before the code rules improved get sorted again once (Text → Code only)
+        Task.Run(() => { try { int n = Store.ReclassifyText(2, Classifier.Classify); if (n > 0) Paths.Log($"reclassified {n} clips as code"); } catch (Exception ex) { Paths.Log("reclassify: " + ex.Message); } });
 
         _panel = CreatePanel();
         GCSettings.LatencyMode = GCLatencyMode.Interactive;

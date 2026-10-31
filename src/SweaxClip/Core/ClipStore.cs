@@ -395,6 +395,28 @@ public sealed class ClipStore : IDisposable
 
     void Fire() => Changed?.Invoke();
 
+    /// <summary>
+    /// Re-sorts plain-text clips after the rules for spotting code improve. Only Text -> Code moves; links,
+    /// colours and everything else stay where they are. Runs once per <paramref name="rulesVersion"/>.
+    /// </summary>
+    public int ReclassifyText(int rulesVersion, Func<string, ClipKind> classify)
+    {
+        var moved = new List<long>();
+        lock (_gate)
+        {
+            if (Scalar("SELECT value FROM meta WHERE key='classifier'") is string s && int.TryParse(s, out int done) && done >= rulesVersion) return 0;
+            using (var cmd = Cmd("SELECT id, text FROM clips WHERE kind=@k AND text IS NOT NULL AND length(text) < 20000", ("@k", (int)ClipKind.Text)))
+            using (var r = cmd.ExecuteReader())
+                while (r.Read())
+                    if (classify(r.GetString(1)) == ClipKind.Code) moved.Add(r.GetInt64(0));
+            foreach (var chunk in moved.Chunk(500))
+                Run($"UPDATE clips SET kind=@k WHERE id IN ({string.Join(',', chunk)})", ("@k", (int)ClipKind.Code));
+            Run("INSERT OR REPLACE INTO meta(key,value) VALUES('classifier', @v)", ("@v", rulesVersion.ToString()));
+        }
+        if (moved.Count > 0) Fire();
+        return moved.Count;
+    }
+
     public void Dispose()
     {
         lock (_gate)

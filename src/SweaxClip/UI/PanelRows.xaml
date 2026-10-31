@@ -221,14 +221,20 @@
 
             <ContentPresenter Grid.Column="2" Content="{Binding}" ContentTemplateSelector="{StaticResource PanelBodies}" Margin="12,10,12,10"/>
 
-            <StackPanel x:Name="acts" Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,6,0" Opacity="0">
-                <Button Style="{StaticResource RowAction}" Command="{x:Static ui:Cmds.TogglePin}" CommandParameter="{Binding}" ToolTip="{c:T Pin}">
-                    <Image Source="{StaticResource Obj.Pinned}" Width="15" Height="15"/>
-                </Button>
-                <Button Style="{StaticResource RowAction}" Command="{x:Static ui:Cmds.Delete}" CommandParameter="{Binding}" ToolTip="{c:T Delete}">
-                    <Image Source="{StaticResource Obj.Trash}" Width="15" Height="15"/>
-                </Button>
-            </StackPanel>
+            <!-- hover actions sit on a solid chip, so they read over pictures and code as well as text -->
+            <Border x:Name="acts" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,8,0" Opacity="0"
+                    Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line2}" BorderThickness="1" CornerRadius="10" Padding="2">
+                <Border.Effect><DropShadowEffect BlurRadius="10" ShadowDepth="2" Direction="270" Opacity="0.3" Color="#000000" RenderingBias="Performance"/></Border.Effect>
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{StaticResource RowAction}" Command="{x:Static ui:Cmds.TogglePin}" CommandParameter="{Binding}" ToolTip="{c:T Pin}">
+                        <Image Source="{StaticResource Obj.Pinned}" Width="17" Height="17"/>
+                    </Button>
+                    <Rectangle Width="1" Margin="1,6" Fill="{DynamicResource Line2}"/>
+                    <Button Style="{StaticResource RowAction}" Command="{x:Static ui:Cmds.Delete}" CommandParameter="{Binding}" ToolTip="{c:T Delete}">
+                        <TextBlock Text="&#xE74D;" Style="{StaticResource Icon}" FontSize="15" Foreground="{DynamicResource Ink2}"/>
+                    </Button>
+                </StackPanel>
+            </Border>
         </Grid>
         <DataTemplate.Triggers>
             <DataTrigger Binding="{Binding IsSelected}" Value="True">

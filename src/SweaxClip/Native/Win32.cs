@@ -93,6 +93,8 @@ internal static class Win32
     [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);
     [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
     [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+    [DllImport("user32.dll")] public static extern IntPtr SetFocus(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern uint MapVirtualKey(uint uCode, uint uMapType);
     [DllImport("user32.dll")] public static extern IntPtr GetAncestor(IntPtr hwnd, uint flags);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
     [DllImport("user32.dll")] public static extern int GetWindowTextLength(IntPtr hWnd);
@@ -214,7 +216,28 @@ internal static class Win32
     {
         uint flags = up ? KEYEVENTF_KEYUP : 0;
         if (vk is VK_LWIN or VK_RWIN or VK_RMENU or VK_RCONTROL) flags |= KEYEVENTF_EXTENDEDKEY;
-        return new INPUT { type = INPUT_KEYBOARD, U = new InputUnion { ki = new KEYBDINPUT { wVk = (ushort)vk, dwFlags = flags } } };
+        // with the scan code filled in, the key looks like a real keypress to apps that read it (XAML, some editors)
+        ushort scan = (ushort)MapVirtualKey((uint)vk, 0);
+        return new INPUT { type = INPUT_KEYBOARD, U = new InputUnion { ki = new KEYBDINPUT { wVk = (ushort)vk, wScan = scan, dwFlags = flags } } };
+    }
+
+    /// <summary>The control that has keyboard focus inside <paramref name="window"/>'s thread (Notepad's editor, a browser's page), or zero.</summary>
+    public static IntPtr FocusOf(IntPtr window)
+    {
+        uint thread = window == IntPtr.Zero ? 0 : GetWindowThreadProcessId(window, out _);
+        var gui = new GUITHREADINFO { cbSize = Marshal.SizeOf<GUITHREADINFO>() };
+        return thread != 0 && GetGUIThreadInfo(thread, ref gui) ? gui.hwndFocus : IntPtr.Zero;
+    }
+
+    /// <summary>Puts keyboard focus back on <paramref name="control"/>, which belongs to another thread.</summary>
+    public static void GiveFocus(IntPtr control)
+    {
+        if (control == IntPtr.Zero || !IsWindow(control)) return;
+        uint thread = GetWindowThreadProcessId(control, out _);
+        uint me = GetCurrentThreadId();
+        bool attached = thread != 0 && thread != me && AttachThreadInput(me, thread, true);
+        try { SetFocus(control); }
+        finally { if (attached) AttachThreadInput(me, thread, false); }
     }
 
     public static void Send(params INPUT[] inputs) => SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());

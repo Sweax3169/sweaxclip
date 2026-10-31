@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.1 — 2026-11-01
+
+Pasting works in every text box.
+
+- **Notepad, Word and the rest.** Picking a clip pasted into browsers but not into apps whose text box is a separate control, such as Notepad. The panel takes the keyboard while it is open; when it closed, Ctrl+V reached the app before the app had handed focus back to its text box, and was lost. SweaxClip now remembers which text box had focus when the panel opened, waits until it has focus again (and puts it back itself if the app doesn't), then pastes. Text, images and files alike.
+- Ctrl+V is sent with real keyboard scan codes, as a key press would be, for apps that read them.
+- **Text copied from the screen is kept.** Text read with <kbd>Win</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd> reached the clipboard but not the history, because SweaxClip skips its own clipboard writes (those are clips being pasted back). That one write is now kept, labelled *Text from screen*.
+- Memory is handed back to Windows after a screen grab, instead of holding the frozen monitor pictures until the next clean-up.
+
 ## 1.5.0 — 2026-10-31
 
 Copy text from screen.

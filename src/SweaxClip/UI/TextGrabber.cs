@@ -71,6 +71,8 @@ public static class TextGrabber
         _open = null;
         if (open == null) return;
         foreach (var o in open) o.Close();
+        // the frozen monitor pictures are tens of MB: hand them back once the overlays are gone
+        (Application.Current as App)?.ScheduleTrim();
     }
 
     static async void Picked(BitmapSource crop, Win32.RECT where)
@@ -82,6 +84,7 @@ public static class TextGrabber
 
         if (text.Length > 0)
         {
+            (Application.Current as App)?.KeepNextOwnCopy();
             for (int i = 0; i < 5; i++)
             {
                 try { Clipboard.SetText(text); break; }

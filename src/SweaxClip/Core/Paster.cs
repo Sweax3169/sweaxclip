@@ -61,7 +61,6 @@ public static class Paster
         return false;
     }
 
-    /// <summary>Returns focus to <paramref name="target"/> and sends Ctrl+V once modifiers are released.</summary>
     /// <summary>Reopens Windows Search (Win+S) and pastes into its box — for clips picked while Start or Search was open.</summary>
     public static async Task PasteIntoSearch()
     {
@@ -70,10 +69,16 @@ public static class Paster
         await PasteInto(IntPtr.Zero);
     }
 
-    public static async Task PasteInto(IntPtr target)
+    /// <summary>Returns focus to <paramref name="target"/> (and to <paramref name="focus"/>, the text box inside it
+    /// that had focus when the panel opened), then sends Ctrl+V once modifiers are released.</summary>
+    public static async Task PasteInto(IntPtr target, IntPtr focus = default)
     {
-        if (target != IntPtr.Zero && Win32.IsWindow(target)) Win32.ForceForeground(target);
-        await Task.Delay(45);
+        if (target != IntPtr.Zero && Win32.IsWindow(target))
+        {
+            Win32.ForceForeground(target);
+            await WaitForFocus(target, focus);
+        }
+        else await Task.Delay(45);
 
         var inputs = new List<Win32.INPUT>();
         foreach (int vk in new[] { Win32.VK_LWIN, Win32.VK_RWIN, Win32.VK_LSHIFT, Win32.VK_RSHIFT, Win32.VK_LMENU, Win32.VK_RMENU })
@@ -86,5 +91,36 @@ public static class Paster
         inputs.Add(Win32.Key(Win32.VK_V, true));
         if (!ctrlHeld) inputs.Add(Win32.Key(Win32.VK_LCONTROL, true));
         Win32.Send([.. inputs]);
+    }
+
+    /// <summary>
+    /// The panel took activation, so the target app has to hand focus back to its text box when it is reactivated.
+    /// Browsers keep focus on the top-level window and are ready at once; Notepad, Word, WordPad and most Win32 and
+    /// XAML apps move it to a child control only after they handle the activation, and a Ctrl+V that arrives
+    /// earlier goes to the frame and is lost. Wait for that, and put focus back ourselves if the app does not.
+    /// </summary>
+    static async Task WaitForFocus(IntPtr target, IntPtr focus)
+    {
+        bool child = focus != IntPtr.Zero && focus != target && Win32.IsWindow(focus) && Win32.IsWindowVisible(focus);
+        bool nudged = false;
+        for (int waited = 0; waited < 600; waited += 15)
+        {
+            if (Win32.GetForegroundWindow() == target)
+            {
+                IntPtr now = Win32.FocusOf(target);
+                // without a remembered text box (UWP frames report none), give the app a moment and go
+                if (child ? now == focus : now != IntPtr.Zero || waited >= 150)
+                {
+                    await Task.Delay(30);
+                    return;
+                }
+                if (child && !nudged && waited >= 120)
+                {
+                    Win32.GiveFocus(focus);
+                    nudged = true;
+                }
+            }
+            await Task.Delay(15);
+        }
     }
 }

@@ -163,6 +163,7 @@ public static class Loc
         ["GrabCopied"] = ("Copied", "Kopyalandı"),
         ["GrabWords"] = ("{0} words", "{0} kelime"),
         ["GrabNothing"] = ("No text found there", "Orada yazı bulunamadı"),
+        ["GrabSource"] = ("Text from screen", "Ekrandan metin"),
         ["SetAppearance"] = ("Appearance", "Görünüm"),
         ["SetPanelStyle"] = ("Win + V panel", "Win + V paneli"),
         ["SetPanelStyleNote"] = ("How your clips appear when you press the shortcut.", "Kısayola bastığında kayıtların nasıl görüneceği."),

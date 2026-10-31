@@ -18,7 +18,7 @@ public partial class QuickPanel : Window, IQuickPanel
 {
     readonly App _app;
     readonly ClipListModel _model;
-    IntPtr _hwnd, _previous;
+    IntPtr _hwnd, _previous, _previousFocus;
     bool _pasting, _showing, _shellTarget;
     Point? _caretInPanel;
     readonly DispatcherTimer _toastTimer = new() { Interval = TimeSpan.FromMilliseconds(1300) };
@@ -115,6 +115,7 @@ public partial class QuickPanel : Window, IQuickPanel
                 previous = Win32.GetForegroundWindow();
             }
             _previous = previous;
+            _previousFocus = _shellTarget ? IntPtr.Zero : Win32.FocusOf(previous);
             if (_hwnd == IntPtr.Zero) new WindowInteropHelper(this).EnsureHandle();
             pausedBadge.Visibility = _app.Settings.Paused ? Visibility.Visible : Visibility.Collapsed;
             shadowFx.Opacity = ThemeManager.IsDark ? 0.55 : 0.2;
@@ -352,7 +353,7 @@ public partial class QuickPanel : Window, IQuickPanel
             await Leave();
             HideNow();
             if (_shellTarget) await Paster.PasteIntoSearch();
-            else await Paster.PasteInto(_previous);
+            else await Paster.PasteInto(_previous, _previousFocus);
         }
         finally { _pasting = false; }
     }

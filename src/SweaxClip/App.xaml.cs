@@ -28,6 +28,7 @@ public partial class App : Application
     IQuickPanel? _panel;
     LibraryWindow? _library;
     Window? _menuHost;
+    long _keepOwnCopyUntil;
 
     readonly DispatcherTimer _changed = new(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(180) };
     readonly DispatcherTimer _trim = new(DispatcherPriority.ApplicationIdle) { Interval = TimeSpan.FromSeconds(2) };
@@ -183,9 +184,16 @@ public partial class App : Application
         IntPtr owner = Win32.GetClipboardOwner();
         if (owner != IntPtr.Zero) Win32.GetWindowThreadProcessId(owner, out pid);
         if (pid == 0) Win32.GetWindowThreadProcessId(fg, out pid);
-        if (pid == (uint)Environment.ProcessId) return;
+        bool fromScreen = false;
+        if (pid == (uint)Environment.ProcessId)
+        {
+            // our own writes are clips being pasted back, except the text copied from the screen
+            if (Environment.TickCount64 > _keepOwnCopyUntil) return;
+            _keepOwnCopyUntil = 0;
+            fromScreen = true;
+        }
         clip.AppPath = Win32.GetProcessPath(pid);
-        clip.AppName = AppNames.Friendly(clip.AppPath);
+        clip.AppName = fromScreen ? Loc.T("GrabSource") : AppNames.Friendly(clip.AppPath);
         clip.Title = Win32.GetWindowTitle(fg);
         clip.LikelyScreenshot = _hook != null && Environment.TickCount64 - _hook.LastPrintScreen < 4000;
         _pipeline.Enqueue(clip);
@@ -197,6 +205,9 @@ public partial class App : Application
         if (_panel is { IsVisible: true }) _panel.HideNow();
         TextGrabber.Start();
     }
+
+    /// <summary>The next clipboard change from this process is text read off the screen: keep it in the history.</summary>
+    public void KeepNextOwnCopy() => _keepOwnCopyUntil = Environment.TickCount64 + 2000;
 
     /// <summary>Captures the next shortcut pressed anywhere, for the settings recorder (null: cancelled).</summary>
     public void RecordHotkey(Action<Hotkey?> done)

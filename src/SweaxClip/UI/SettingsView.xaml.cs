@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using SweaxClip.Core;
 
 namespace SweaxClip.UI;
@@ -40,8 +41,57 @@ public partial class SettingsView : UserControl
         dataPath.Text = Paths.Data;
         version.Text = Loc.Format("SetVersion", typeof(App).Assembly.GetName().Version?.ToString(3) ?? "1.0.0");
         using (var p = Process.GetCurrentProcess()) memory.Text = $"{Loc.T("SetMemory")}: {Bytes.Format(p.WorkingSet64)}";
+        styleTimeline.IsChecked = s.PanelStyle != "deck";
+        styleDeck.IsChecked = s.PanelStyle == "deck";
+        themeSystem.IsChecked = s.ThemeMode is not ("light" or "dark");
+        themeLight.IsChecked = s.ThemeMode == "light";
+        themeDark.IsChecked = s.ThemeMode == "dark";
+        LoadPalettes();
         _loading = false;
         _ = UpdateDataStats();
+    }
+
+    // ── appearance ───────────────────────────────────────────────────────────
+
+    sealed record PaletteChoice(string Key, string Name, Brush Desk, Brush Surface, Brush Accent, Brush Paper, Brush Slate, Brush Edge, bool Selected);
+
+    /// <summary>Each palette drawn in the current mode, so the swatches show what you will get.</summary>
+    void LoadPalettes()
+    {
+        bool dark = ThemeManager.IsDark;
+        palettes.ItemsSource = Palettes.All.Select(p =>
+        {
+            var (desk, surface, accent, paper, slate, edge) = Palettes.Preview(p, dark);
+            return new PaletteChoice(p.Key, p.Name, desk, surface, accent, paper, slate, edge, p.Key == _app.Settings.Palette);
+        }).ToList();
+    }
+
+    void Style_Click(object sender, RoutedEventArgs e)
+    {
+        if (_loading || (sender as FrameworkElement)?.Tag is not string style || style == _app.Settings.PanelStyle) return;
+        _app.Settings.PanelStyle = style;
+        _app.Settings.Save();
+        _app.ApplyPanelStyle();
+    }
+
+    void Theme_Click(object sender, RoutedEventArgs e)
+    {
+        if (_loading || (sender as FrameworkElement)?.Tag is not string mode) return;
+        _app.Settings.ThemeMode = mode;
+        _app.Settings.Save();
+        ThemeManager.Mode = mode;
+        ThemeManager.Apply();
+        LoadPalettes();
+    }
+
+    void Palette_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not string key) return;
+        _app.Settings.Palette = key;
+        _app.Settings.Save();
+        ThemeManager.PaletteKey = key;
+        ThemeManager.Apply();
+        LoadPalettes();
     }
 
     async Task UpdateDataStats()

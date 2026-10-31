@@ -36,6 +36,8 @@ public static class Demo
         app.Settings = settings;
         app.Store = new ClipStore(Paths.Db);
         ThemeManager.Forced = theme == "light" ? false : theme == "dark" ? true : null;
+        ThemeManager.PaletteKey = Arg("--palette") ?? "ember";
+        settings.PanelStyle = Arg("--style") ?? "timeline";
         ThemeManager.Apply();
         DemoData.Fill(app.Store, tr);
 
@@ -43,6 +45,7 @@ public static class Demo
         {
             if (Arg("--shots") is { } shots) await Shots(app, shots);
             else if (Arg("--gif") is { } gif) await Gif(app, gif, Arg("--film") ?? "panel");
+            else if (Arg("--appearance") is { } look) await Appearance(app, look);
             else
             {
                 var lib = new LibraryWindow(app);
@@ -279,6 +282,53 @@ public static class Demo
         await Library("library-colors", Scope.Colors, null);
         await Library("library-settings", Scope.All, null, settings: true);
         lib.Close();
+    }
+
+    // ── appearance: every palette, and the deck style ──────────────────────
+
+    /// <summary>Renders palettes-{theme}.png (the timeline in every palette) and panel-deck-{theme}.png.</summary>
+    static async Task Appearance(App app, string outDir)
+    {
+        string t = Dark ? "dark" : "light";
+        var shots = new List<BitmapSource>();
+        double pw = 0, ph = 0;
+        foreach (var palette in Palettes.All)
+        {
+            ThemeManager.PaletteKey = palette.Key;
+            ThemeManager.Apply();
+            var panel = OpenPanel(app);
+            await Rest(panel, Scope.All, "");
+            pw = panel.ActualWidth; ph = panel.ActualHeight;
+            shots.Add(Snap(Root(panel), pw, ph, 1.5, frame: false));
+            panel.Close();
+        }
+        // seven panels side by side on the desktop, slightly overlapping like a fan of swatches
+        double step = pw * 0.62;
+        var view = new Rect(0, 0, step * (shots.Count - 1) + pw + 40, ph + 20);
+        Save(Scene(view, 1.25, c =>
+        {
+            for (int i = 0; i < shots.Count; i++) Put(c, shots[i], new Rect(20 + i * step, 10, pw, ph), false);
+        }), System.IO.Path.Combine(outDir, $"palettes-{t}.png"));
+
+        // the deck style, in the default palette
+        ThemeManager.PaletteKey = "ember";
+        ThemeManager.Apply();
+        var deck = new DeckPanel(app) { ShowActivated = false, Left = -6000, Top = 40, Topmost = false };
+        deck.DeckView.ManualClock = true;
+        deck.Show();
+        deck.UpdateLayout();
+        await deck.Model.Reload(false);
+        deck.Model.Selected = deck.Model.Items[0];
+        deck.lid.Opacity = 1;
+        deck.hints.Opacity = 1;
+        await Settle(700);
+        deck.DeckView.Sync(Deck.Mode.Instant);
+        deck.UpdateLayout();
+        await Settle(200);
+        var img = Snap(Root(deck), deck.ActualWidth, deck.ActualHeight, 2, frame: false);
+        var dv = new Rect(270, 150, deck.ActualWidth + 60, deck.ActualHeight + 30);
+        Save(Scene(dv, 2, c => Put(c, img, new Rect(300, 160, deck.ActualWidth, deck.ActualHeight), false)), System.IO.Path.Combine(outDir, $"panel-deck-{t}.png"));
+        deck.Close();
     }
 
     // ── the Win+V film ──────────────────────────────────────────────────────

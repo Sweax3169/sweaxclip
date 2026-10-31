@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Runtime;
 using System.Windows;
@@ -25,7 +25,7 @@ public partial class App : Application
     TrayIcon? _tray;
     KeyboardHook? _hook;
     ScreenshotWatcher? _watcher;
-    QuickPanel? _panel;
+    IQuickPanel? _panel;
     LibraryWindow? _library;
     Window? _menuHost;
 
@@ -39,7 +39,7 @@ public partial class App : Application
         base.OnStartup(e);
         var args = e.Args.Select(a => a.ToLowerInvariant()).ToArray();
 
-        if (args.Contains("--demo") || args.Contains("--shots") || args.Contains("--gif"))
+        if (args.Contains("--demo") || args.Contains("--shots") || args.Contains("--gif") || args.Contains("--appearance"))
         {
             Dev.Demo.Run(this, e.Args);
             return;
@@ -88,6 +88,8 @@ public partial class App : Application
         }
         Settings = Settings.Load(Paths.Data);
         Loc.Init(Settings.Language);
+        ThemeManager.Mode = Settings.ThemeMode;
+        ThemeManager.PaletteKey = Settings.Palette;
         ThemeManager.Apply();
         Boot();
 
@@ -159,7 +161,7 @@ public partial class App : Application
         _maintenance.Start();
         Task.Run(() => Backup.DailyIfDue(Store, Settings));
 
-        _panel = new QuickPanel(this);
+        _panel = CreatePanel();
         GCSettings.LatencyMode = GCLatencyMode.Interactive;
     }
 
@@ -220,6 +222,17 @@ public partial class App : Application
     }
 
     // ── windows ──────────────────────────────────────────────────────────────
+
+    IQuickPanel CreatePanel() => Settings.PanelStyle == "deck" ? new DeckPanel(this) : new QuickPanel(this);
+
+    /// <summary>Swaps the Win+V panel for the style chosen in Settings.</summary>
+    public void ApplyPanelStyle()
+    {
+        if (_panel == null) return;
+        _panel.HideNow();
+        _panel.Close();
+        _panel = CreatePanel();
+    }
 
     void TogglePanel(IntPtr foreground)
     {

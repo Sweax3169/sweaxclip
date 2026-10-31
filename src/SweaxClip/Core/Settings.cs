@@ -25,6 +25,12 @@ public sealed class Settings
     public double LibraryWidth { get; set; } = 1280;
     public double LibraryHeight { get; set; } = 800;
     public bool LibraryGrid { get; set; } = true;
+    /// <summary>Win+V panel style: "timeline" or "deck".</summary>
+    public string PanelStyle { get; set; } = "timeline";
+    /// <summary>"system", "light" or "dark".</summary>
+    public string ThemeMode { get; set; } = "system";
+    /// <summary>Colour palette key (see UI/Palettes.cs).</summary>
+    public string Palette { get; set; } = "ember";
 
     [JsonIgnore] public string FilePath { get; private set; } = "";
 

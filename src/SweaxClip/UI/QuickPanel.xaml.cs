@@ -11,10 +11,10 @@ using SweaxClip.Native;
 namespace SweaxClip.UI;
 
 /// <summary>
-/// Win+V: the clipboard timeline. It opens where Windows opens its own panel — under the text cursor,
+/// The "Timeline" panel style (default). Win+V: the clipboard timeline. It opens where Windows opens its own panel — under the text cursor,
 /// or above the taskbar — and every movement in it runs on <see cref="Springs"/>.
 /// </summary>
-public partial class QuickPanel : Window
+public partial class QuickPanel : Window, IQuickPanel
 {
     readonly App _app;
     readonly ClipListModel _model;
@@ -141,7 +141,7 @@ public partial class QuickPanel : Window
         finally { _showing = false; }
     }
 
-    static bool IsShellSurface(IntPtr hwnd)
+    internal static bool IsShellSurface(IntPtr hwnd)
     {
         if (hwnd == IntPtr.Zero) return false;
         try

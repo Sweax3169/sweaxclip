@@ -205,6 +205,33 @@ Her kayıt kendi nesnesi olarak çizilir: metin bir kâğıt yaprağında, bağl
 
 <br>
 
+## Sana göre ayarla
+
+**Ayarlar → Görünüm** uygulamanın tamamını yeniden başlatmadan, anında değiştirir.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/shots/tr/palettes-dark.png">
+  <img alt="Yedi paletin hepsinde Win + V paneli: Kor, Grafit, Gece, Adaçayı, Okyanus, Gül ve Mono" src="docs/shots/tr/palettes-light.png">
+</picture>
+<p align="center"><sub>Kor · Grafit · Gece · Adaçayı · Okyanus · Gül · Mono — her birinin açık ve koyu sürümü var</sub></p>
+
+<table>
+<tr>
+<td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/shots/tr/panel-all-dark.png"><img alt="Zaman çizelgesi panel stili" src="docs/shots/tr/panel-all-light.png"></picture></td>
+<td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/shots/tr/panel-deck-dark.png"><img alt="Deste panel stili" src="docs/shots/tr/panel-deck-light.png"></picture></td>
+</tr>
+<tr>
+<td align="center"><sub><b>Zaman çizelgesi</b> (varsayılan) — aynı anda çok kayıt; seçili olan açılır</sub></td>
+<td align="center"><sub><b>Deste</b> — önde bir kart, eski kayıtlar arkasında yalnızca başlıklarıyla dizili</sub></td>
+</tr>
+</table>
+
+- **Panel stili.** Zaman çizelgesi ya da Deste. İkisi de aynı yerde açılır, aynı tuşları kullanır ve aynı yaylarla hareket eder.
+- **Tema.** Windows'u izle ya da hep açık veya koyu kalsın.
+- **Renkler.** Yedi palet. Her biri masayı, yüzeyleri, vurgu rengini ve kartların malzemelerini — kâğıt, klasör, arduvaz — açıkta da koyuda da yeniden renklendirir.
+
+<br>
+
 ## Windows ile karşılaştırma
 
 | | Windows pano geçmişi | SweaxClip |

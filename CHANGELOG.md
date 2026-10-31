@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.0 — 2026-10-31
+
+Appearance settings: two panel styles, a theme switch and seven palettes.
+
+- **Panel style.** Settings → Appearance offers Timeline (the default) or Deck — the spring-animated deck of cards from 1.2, brought back as an option. Both open in the same place, use the same keys and handle Start and Search the same way.
+- **Theme.** Follow Windows, or stay light or dark.
+- **Seven palettes:** Ember, Graphite, Midnight, Sage, Ocean, Rose and Mono, each with a light and a dark version. A palette recolours the desk, surfaces, accent, the rail and the materials of the cards. Changes apply instantly, everywhere.
+- Every colour token is now derived from seven seed colours per palette, so a new palette can never miss a token.
+- README and website: a new appearance section with every palette; the website's working panel can be recoloured with a palette picker.
+
 ## 1.3.0 — 2026-10-31
 
 A new Win + V panel, built for using rather than looking at.

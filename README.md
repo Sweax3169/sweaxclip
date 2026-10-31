@@ -205,6 +205,33 @@ Each clip is drawn as the thing it is: text on a sheet of paper, a link in its s
 
 <br>
 
+## Make it yours
+
+**Settings → Appearance** changes the whole app at once, without a restart.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/shots/en/palettes-dark.png">
+  <img alt="The Win + V panel in all seven palettes: Ember, Graphite, Midnight, Sage, Ocean, Rose and Mono" src="docs/shots/en/palettes-light.png">
+</picture>
+<p align="center"><sub>Ember · Graphite · Midnight · Sage · Ocean · Rose · Mono — each in a light and a dark version</sub></p>
+
+<table>
+<tr>
+<td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/shots/en/panel-all-dark.png"><img alt="The Timeline panel style" src="docs/shots/en/panel-all-light.png"></picture></td>
+<td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/shots/en/panel-deck-dark.png"><img alt="The Deck panel style" src="docs/shots/en/panel-deck-light.png"></picture></td>
+</tr>
+<tr>
+<td align="center"><sub><b>Timeline</b> (default) — many clips at once; the selected one opens up</sub></td>
+<td align="center"><sub><b>Deck</b> — one card in front, older clips stacked behind it with only their headers showing</sub></td>
+</tr>
+</table>
+
+- **Panel style.** Timeline or Deck. Both open in the same place, use the same keys and move on the same springs.
+- **Theme.** Follow Windows, or stay light or dark.
+- **Colours.** Seven palettes. Each one recolours the desk, the surfaces, the accent and the materials of the cards — paper, folders and slate — in both light and dark.
+
+<br>
+
 ## Compared with Windows
 
 | | Windows clipboard history | SweaxClip |

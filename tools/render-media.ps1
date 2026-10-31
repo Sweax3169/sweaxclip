@@ -22,6 +22,8 @@ foreach ($lang in 'en', 'tr') {
         if (-not $SkipShots) {
             $p = Start-Process $Exe -ArgumentList "--shots `"$(Join-Path $root "docs\shots\$lang")`" --lang $lang --theme $theme" -PassThru
             $p.WaitForExit()
+            $p = Start-Process $Exe -ArgumentList "--appearance `"$(Join-Path $root "docs\shots\$lang")`" --lang $lang --theme $theme" -PassThru
+            $p.WaitForExit()
         }
         if (-not $SkipGif) {
             foreach ($film in $Films) {

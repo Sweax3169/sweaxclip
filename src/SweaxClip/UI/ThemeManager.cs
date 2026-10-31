@@ -5,23 +5,26 @@ using SweaxClip.Native;
 namespace SweaxClip.UI;
 
 /// <summary>
-/// Picks the light or dark desk to match the Windows app theme and swaps the token dictionary live.
-/// The palette itself (paper, ink, vermilion) is SweaxClip's own.
+/// Builds the token dictionary from the chosen palette and mode (light, dark, or following Windows)
+/// and swaps it live, so every window recolours at once.
 /// </summary>
 public static class ThemeManager
 {
     public static bool IsDark { get; private set; }
     public static bool? Forced { get; set; }
+    /// <summary>"system", "light" or "dark".</summary>
+    public static string Mode { get; set; } = "system";
+    public static string PaletteKey { get; set; } = "ember";
     public static event Action? Changed;
 
     public static void Apply()
     {
-        IsDark = Forced ?? ReadDark();
+        IsDark = Forced ?? Mode switch { "dark" => true, "light" => false, _ => ReadDark() };
         var app = Application.Current;
         if (app == null) return;
-        var dict = new ResourceDictionary { Source = new Uri($"pack://application:,,,/SweaxClip;component/UI/Themes/{(IsDark ? "Dark" : "Light")}.xaml") };
+        var dict = Palettes.Build(Palettes.Get(PaletteKey), IsDark);
         var md = app.Resources.MergedDictionaries;
-        foreach (var old in md.Where(d => d.Source?.OriginalString.Contains("Themes/", StringComparison.OrdinalIgnoreCase) == true).ToList())
+        foreach (var old in md.Where(d => d.Contains("SweaxTheme") || d.Source?.OriginalString.Contains("Themes/", StringComparison.OrdinalIgnoreCase) == true).ToList())
             md.Remove(old);
         md.Insert(0, dict);
         Changed?.Invoke();

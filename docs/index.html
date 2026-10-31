@@ -143,6 +143,13 @@
   .p-foot kbd { font-size: 10.5px; padding: 0 6px 1px; background: var(--field); }
   .p-foot span { margin-right: 10px; }
   .hint { text-align: right; margin-top: 12px; font-size: 13px; color: var(--ink3); }
+  .swatches { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 14px; font-size: 13px; color: var(--ink3); }
+  .swatches span { margin-right: 4px; }
+  .swatches button { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--bg); box-shadow: 0 0 0 1px var(--line2); cursor: pointer; padding: 0; transition: transform .25s var(--spring), box-shadow .2s; }
+  .swatches button:hover { transform: scale(1.15); }
+  .swatches button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--ink); }
+  .panel { transition: background .4s, border-color .4s; }
+  @media (max-width: 1040px) { .swatches { justify-content: center; } }
 
   /* sections */
   section { padding: 96px 0 0; }
@@ -236,6 +243,7 @@
       <a href="#panel"><span data-l="en">The panel</span><span data-l="tr">Panel</span></a>
       <a href="#search"><span data-l="en">Search</span><span data-l="tr">Arama</span></a>
       <a href="#library"><span data-l="en">Library</span><span data-l="tr">Kütüphane</span></a>
+      <a href="#look"><span data-l="en">Appearance</span><span data-l="tr">Görünüm</span></a>
       <a href="#install"><span data-l="en">Install</span><span data-l="tr">Kurulum</span></a>
       <a href="https://github.com/Sweax3169/sweaxclip">GitHub</a>
     </nav>
@@ -277,6 +285,7 @@
         <div class="p-foot"><kbd>↑↓</kbd><span data-l="en">browse</span><span data-l="tr">gez</span><kbd>↵</kbd><span data-l="en">paste</span><span data-l="tr">yapıştır</span><kbd>Tab</kbd><span data-l="en">category</span><span data-l="tr">kategori</span></div>
       </div>
       <p class="hint"><span data-l="en">This is a working copy — click it and use <kbd>↑</kbd> <kbd>↓</kbd> and <kbd>Tab</kbd>.</span><span data-l="tr">Bu çalışan bir kopya — tıkla, <kbd>↑</kbd> <kbd>↓</kbd> ve <kbd>Tab</kbd> kullan.</span></p>
+      <div class="swatches" id="swatches"><span data-l="en">Try a palette</span><span data-l="tr">Bir palet dene</span></div>
     </div>
   </div>
 
@@ -436,6 +445,29 @@
           <picture data-l="en"><source media="(prefers-color-scheme: dark)" srcset="shots/en/library-settings-dark.png"><img src="shots/en/library-settings-light.png" alt="Settings" loading="lazy" width="2310" height="1515"></picture>
           <picture data-l="tr"><source media="(prefers-color-scheme: dark)" srcset="shots/tr/library-settings-dark.png"><img src="shots/tr/library-settings-light.png" alt="Ayarlar" loading="lazy" width="2310" height="1515"></picture>
           <figcaption><span data-l="en">Settings</span><span data-l="tr">Ayarlar</span></figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section id="look">
+    <div class="wrap">
+      <p class="eyebrow"><span data-l="en">Make it yours</span><span data-l="tr">Sana göre ayarla</span></p>
+      <h2><span data-l="en">Seven palettes, two panel styles</span><span data-l="tr">Yedi palet, iki panel stili</span></h2>
+      <p class="sub"><span data-l="en">Settings → Appearance changes the whole app at once, without a restart: Timeline or Deck; light, dark or following Windows; and seven palettes that recolour everything — surfaces, accent, and the paper, folders and slate of the cards.</span><span data-l="tr">Ayarlar → Görünüm uygulamanın tamamını yeniden başlatmadan değiştirir: Zaman çizelgesi ya da Deste; açık, koyu ya da Windows'u izleyen tema; ve her şeyi yeniden renklendiren yedi palet — yüzeyler, vurgu rengi, kartların kâğıdı, klasörü ve arduvazı.</span></p>
+      <picture data-l="en"><source media="(prefers-color-scheme: dark)" srcset="shots/en/palettes-dark.png"><img class="lead" src="shots/en/palettes-light.png" alt="The panel in all seven palettes" loading="lazy" width="2787" height="850"></picture>
+      <picture data-l="tr"><source media="(prefers-color-scheme: dark)" srcset="shots/tr/palettes-dark.png"><img class="lead" src="shots/tr/palettes-light.png" alt="Yedi paletin hepsinde panel" loading="lazy" width="2787" height="850"></picture>
+      <p class="hint" style="text-align:center"><span data-l="en">Ember · Graphite · Midnight · Sage · Ocean · Rose · Mono</span><span data-l="tr">Kor · Grafit · Gece · Adaçayı · Okyanus · Gül · Mono</span></p>
+      <div class="gallery" style="max-width:900px;margin:40px auto 0">
+        <figure>
+          <picture data-l="en"><source media="(prefers-color-scheme: dark)" srcset="shots/en/panel-all-dark.png"><img src="shots/en/panel-all-light.png" alt="Timeline panel style" loading="lazy" width="1040" height="1380"></picture>
+          <picture data-l="tr"><source media="(prefers-color-scheme: dark)" srcset="shots/tr/panel-all-dark.png"><img src="shots/tr/panel-all-light.png" alt="Zaman çizelgesi panel stili" loading="lazy" width="1040" height="1380"></picture>
+          <figcaption><b data-l="en">Timeline</b><b data-l="tr">Zaman çizelgesi</b> — <span data-l="en">many clips at once</span><span data-l="tr">aynı anda çok kayıt</span></figcaption>
+        </figure>
+        <figure>
+          <picture data-l="en"><source media="(prefers-color-scheme: dark)" srcset="shots/en/panel-deck-dark.png"><img src="shots/en/panel-deck-light.png" alt="Deck panel style" loading="lazy" width="1040" height="1380"></picture>
+          <picture data-l="tr"><source media="(prefers-color-scheme: dark)" srcset="shots/tr/panel-deck-dark.png"><img src="shots/tr/panel-deck-light.png" alt="Deste panel stili" loading="lazy" width="1040" height="1380"></picture>
+          <figcaption><b data-l="en">Deck</b><b data-l="tr">Deste</b> — <span data-l="en">one card in front, the rest behind</span><span data-l="tr">önde bir kart, gerisi arkada</span></figcaption>
         </figure>
       </div>
     </div>
@@ -635,7 +667,56 @@
     if (sel >= shown.length - 1 || sel >= 4) { if (scope !== 'all') setScope('all'); else select(0); } else select(sel + 1);
   }, 2300);
 
+  // palettes: the same seeds as the app (UI/Palettes.cs)
+  var PAL = [
+    ['ember', 'Ember', ['#EEEBE5', '#FFFFFF', '#23201D', '#E4572E'], ['#171615', '#262422', '#F2EFE9', '#FF6A3D']],
+    ['graphite', 'Graphite', ['#E6EAF0', '#FFFFFF', '#1B1F24', '#2F6BEA'], ['#111316', '#1C1F24', '#E9EDF2', '#5B8CFF']],
+    ['midnight', 'Midnight', ['#E9E6F8', '#FFFFFF', '#1F1D33', '#6C55E0'], ['#121120', '#1D1B2E', '#EEEBFA', '#9D8CFF']],
+    ['sage', 'Sage', ['#E5ECE2', '#FFFFFF', '#1D241F', '#2E8B62'], ['#121613', '#1C221E', '#E8EFE9', '#4CC38A']],
+    ['ocean', 'Ocean', ['#E0ECEE', '#FFFFFF', '#16252A', '#0E8FA3'], ['#0E1517', '#172225', '#E5F1F3', '#2BC4D8']],
+    ['rose', 'Rose', ['#F4E6EB', '#FFFFFF', '#2A1E24', '#D6336C'], ['#181215', '#261C21', '#F6ECF0', '#FF6B9A']],
+    ['mono', 'Mono', ['#EFEFEF', '#FFFFFF', '#161616', '#161616'], ['#0F0F0F', '#1C1C1C', '#EDEDED', '#F2F2F2']]
+  ];
+  var darkQ = window.matchMedia('(prefers-color-scheme: dark)'), current = 'ember';
+  var VARS = ['--surface', '--surface2', '--ink', '--ink2', '--ink3', '--accent', '--rail', '--line', '--line2', '--hover', '--field', '--h-text'];
+  function tint(c, pct) { return 'color-mix(in srgb, ' + c + ' ' + pct + '%, transparent)'; }
+  function mix(a, b, pctA) { return 'color-mix(in srgb, ' + a + ' ' + pctA + '%, ' + b + ')'; }
+  function applyPalette(key) {
+    current = key;
+    var p = PAL.find(function (x) { return x[0] === key; }), dark = darkQ.matches, t = dark ? p[3] : p[2], st = panel.style;
+    VARS.forEach(function (v) { st.removeProperty(v); });
+    panel.style.color = '';
+    if (key !== 'ember') {
+      var desk = t[0], surface = t[1], ink = t[2], accent = t[3];
+      st.setProperty('--surface', dark ? mix(desk, surface, 50) : surface);
+      st.setProperty('--surface2', dark ? desk : mix(surface, desk, 55));
+      st.setProperty('--ink', ink);
+      st.setProperty('--ink2', tint(ink, 70));
+      st.setProperty('--ink3', tint(ink, 44));
+      st.setProperty('--rail', tint(ink, 13));
+      st.setProperty('--line', tint(ink, 9));
+      st.setProperty('--line2', tint(ink, 16));
+      st.setProperty('--hover', tint(ink, 5));
+      st.setProperty('--field', tint(ink, 6));
+      st.setProperty('--accent', accent);
+      st.setProperty('--h-text', accent);
+      panel.style.color = ink;
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('#swatches button'), function (b) { b.setAttribute('aria-pressed', String(b.dataset.key === key)); });
+    moveIndicator();
+  }
+  var sw = document.getElementById('swatches');
+  PAL.forEach(function (p) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.dataset.key = p[0]; b.title = p[1];
+    b.style.background = 'linear-gradient(135deg, ' + p[3][1] + ' 0 50%, ' + p[3][3] + ' 50% 100%)';
+    b.addEventListener('click', function () { applyPalette(p[0]); });
+    sw.appendChild(b);
+  });
+  if (darkQ.addEventListener) darkQ.addEventListener('change', function () { applyPalette(current); });
+
   render();
+  applyPalette('ember');
   var saved = null;
   try { saved = localStorage.getItem('sweaxclip-lang'); } catch (e) {}
   setLang(saved || (/^tr\b/i.test(navigator.language || '') ? 'tr' : 'en'));

@@ -3,236 +3,247 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="clr-namespace:SweaxClip.Core">
     <UserControl.Resources>
-        <Style x:Key="SettingsCard" TargetType="Border" BasedOn="{StaticResource Card}">
-            <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="Padding" Value="16,12,16,12"/>
-            <Setter Property="MinHeight" Value="68"/>
-            <Setter Property="Margin" Value="0,0,0,4"/>
+        <!-- each group is an index divider: a manila tab sticking out of a sheet -->
+        <Style x:Key="Folder" TargetType="HeaderedContentControl">
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Margin" Value="0,0,0,30"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="HeaderedContentControl">
+                        <Grid>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/></Grid.RowDefinitions>
+                            <Border Background="{DynamicResource Manila}" CornerRadius="10,16,0,0" HorizontalAlignment="Left" Padding="18,7,26,6">
+                                <ContentPresenter ContentSource="Header" TextElement.Foreground="{DynamicResource ManilaInk}" TextElement.FontSize="13" TextElement.FontWeight="SemiBold"/>
+                            </Border>
+                            <Border Grid.Row="1" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Manila}" BorderThickness="0,3,0,0"
+                                    CornerRadius="0,14,14,14" Padding="24,4,22,4" Effect="{StaticResource LiftShadow}">
+                                <ContentPresenter/>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
-        <Style x:Key="CardIcon" TargetType="TextBlock" BasedOn="{StaticResource Icon}">
-            <Setter Property="FontSize" Value="20"/>
-            <Setter Property="HorizontalAlignment" Value="Left"/>
+        <Style x:Key="Row" TargetType="Border">
+            <Setter Property="BorderBrush" Value="{DynamicResource Line}"/>
+            <Setter Property="BorderThickness" Value="0,1,0,0"/>
+            <Setter Property="MinHeight" Value="66"/>
+            <Setter Property="Padding" Value="0,12"/>
         </Style>
-        <Style x:Key="CardText" TargetType="StackPanel">
-            <Setter Property="Grid.Column" Value="1"/>
+        <Style x:Key="RowText" TargetType="StackPanel">
             <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Margin" Value="0,0,24,0"/>
+            <Setter Property="Margin" Value="0,0,28,0"/>
         </Style>
-        <Style x:Key="CardDesc" TargetType="TextBlock" BasedOn="{StaticResource Caption}">
+        <Style x:Key="Label" TargetType="TextBlock" BasedOn="{StaticResource Body}">
+            <Setter Property="FontSize" Value="14.5"/>
+            <Setter Property="Foreground" Value="{DynamicResource Ink}"/>
+        </Style>
+        <Style x:Key="Note" TargetType="TextBlock" BasedOn="{StaticResource Caption}">
             <Setter Property="TextWrapping" Value="Wrap"/>
-            <Setter Property="Margin" Value="0,2,0,0"/>
+            <Setter Property="Margin" Value="0,3,0,0"/>
         </Style>
-        <Style x:Key="GroupHeader" TargetType="TextBlock" BasedOn="{StaticResource BodyStrong}">
-            <Setter Property="Margin" Value="2,26,0,8"/>
-        </Style>
-        <Style x:Key="CardGrid" TargetType="Grid">
+        <Style x:Key="Inline" TargetType="Button" BasedOn="{StaticResource SoftButton}">
+            <Setter Property="Background" Value="{DynamicResource Surface2}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="13,6,13,7"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
-        <StackPanel Margin="36,26,36,40" MaxWidth="1000">
-            <TextBlock Text="{c:T Settings}" Style="{StaticResource Title}" Margin="0,0,0,4"/>
+        <StackPanel Margin="40,30,40,40" MaxWidth="860" HorizontalAlignment="Left">
+            <TextBlock Text="{c:T Settings}" Style="{StaticResource Title}" FontSize="28" Margin="0,0,0,24"/>
 
-            <!-- General -->
-            <TextBlock Text="{c:T SetGeneral}" Style="{StaticResource GroupHeader}"/>
-            <Border Style="{StaticResource SettingsCard}">
-                <Grid Style="{StaticResource CardGrid}">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <TextBlock Text="&#xE765;" Style="{StaticResource CardIcon}"/>
-                    <StackPanel Style="{StaticResource CardText}">
-                        <TextBlock Text="{c:T SetHotkey}" Style="{StaticResource Body}"/>
-                        <TextBlock Text="{c:T SetHotkeyNote}" Style="{StaticResource CardDesc}"/>
-                    </StackPanel>
-                    <ComboBox x:Name="hotkeyBox" Grid.Column="2" Width="200" SelectionChanged="Hotkey_Changed">
-                        <ComboBoxItem Content="Win + V" Tag="Win+V"/>
-                        <ComboBoxItem Content="Ctrl + Shift + V" Tag="Ctrl+Shift+V"/>
-                        <ComboBoxItem Content="Ctrl + Alt + V" Tag="Ctrl+Alt+V"/>
-                    </ComboBox>
-                </Grid>
-            </Border>
-            <Border Style="{StaticResource SettingsCard}">
-                <Grid Style="{StaticResource CardGrid}">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <TextBlock Text="&#xE7E8;" Style="{StaticResource CardIcon}"/>
-                    <StackPanel Style="{StaticResource CardText}">
-                        <TextBlock Text="{c:T SetStartup}" Style="{StaticResource Body}"/>
-                        <TextBlock Text="{c:T SetStartupNote}" Style="{StaticResource CardDesc}"/>
-                    </StackPanel>
-                    <CheckBox x:Name="startup" Grid.Column="2" Style="{StaticResource ToggleSwitch}" Click="Toggle_Click"/>
-                </Grid>
-            </Border>
-            <Border Style="{StaticResource SettingsCard}">
-                <Grid Style="{StaticResource CardGrid}">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <TextBlock Text="&#xE8D2;" Style="{StaticResource CardIcon}"/>
-                    <StackPanel Style="{StaticResource CardText}">
-                        <TextBlock Text="{c:T SetPastePlain}" Style="{StaticResource Body}"/>
-                        <TextBlock Text="{c:T SetPastePlainNote}" Style="{StaticResource CardDesc}"/>
-                    </StackPanel>
-                    <CheckBox x:Name="plain" Grid.Column="2" Style="{StaticResource ToggleSwitch}" Click="Toggle_Click"/>
-                </Grid>
-            </Border>
-            <Border Style="{StaticResource SettingsCard}">
-                <Grid Style="{StaticResource CardGrid}">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <TextBlock Text="&#xE74A;" Style="{StaticResource CardIcon}"/>
-                    <StackPanel Style="{StaticResource CardText}">
-                        <TextBlock Text="{c:T SetMoveToTop}" Style="{StaticResource Body}"/>
-                    </StackPanel>
-                    <CheckBox x:Name="toTop" Grid.Column="2" Style="{StaticResource ToggleSwitch}" Click="Toggle_Click"/>
-                </Grid>
-            </Border>
-            <Border Style="{StaticResource SettingsCard}">
-                <Grid Style="{StaticResource CardGrid}">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <TextBlock Text="&#xF2B7;" Style="{StaticResource CardIcon}"/>
-                    <StackPanel Style="{StaticResource CardText}">
-                        <TextBlock Text="{c:T SetLanguage}" Style="{StaticResource Body}"/>
-                        <TextBlock Text="{c:T SetLanguageNote}" Style="{StaticResource CardDesc}"/>
-                    </StackPanel>
-                    <ComboBox x:Name="langBox" Grid.Column="2" Width="200" SelectionChanged="Lang_Changed">
-                        <ComboBoxItem Content="{c:T SetLanguageAuto}" Tag="auto"/>
-                        <ComboBoxItem Content="English" Tag="en"/>
-                        <ComboBoxItem Content="Türkçe" Tag="tr"/>
-                    </ComboBox>
-                </Grid>
-            </Border>
+            <HeaderedContentControl Header="{c:T SetGeneral}" Style="{StaticResource Folder}">
+                <StackPanel>
+                    <Border Style="{StaticResource Row}" BorderThickness="0">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Style="{StaticResource RowText}">
+                                <TextBlock Text="{c:T SetHotkey}" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{c:T SetHotkeyNote}" Style="{StaticResource Note}"/>
+                            </StackPanel>
+                            <ComboBox x:Name="hotkeyBox" Grid.Column="1" Width="200" VerticalAlignment="Center" SelectionChanged="Hotkey_Changed">
+                                <ComboBoxItem Content="Win + V" Tag="Win+V"/>
+                                <ComboBoxItem Content="Ctrl + Shift + V" Tag="Ctrl+Shift+V"/>
+                                <ComboBoxItem Content="Ctrl + Alt + V" Tag="Ctrl+Alt+V"/>
+                            </ComboBox>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Style="{StaticResource RowText}">
+                                <TextBlock Text="{c:T SetStartup}" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{c:T SetStartupNote}" Style="{StaticResource Note}"/>
+                            </StackPanel>
+                            <CheckBox x:Name="startup" Grid.Column="1" Style="{StaticResource Switch}" VerticalAlignment="Center" Click="Toggle_Click"/>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Style="{StaticResource RowText}">
+                                <TextBlock Text="{c:T SetPastePlain}" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{c:T SetPastePlainNote}" Style="{StaticResource Note}"/>
+                            </StackPanel>
+                            <CheckBox x:Name="plain" Grid.Column="1" Style="{StaticResource Switch}" VerticalAlignment="Center" Click="Toggle_Click"/>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Style="{StaticResource RowText}">
+                                <TextBlock Text="{c:T SetMoveToTop}" Style="{StaticResource Label}"/>
+                            </StackPanel>
+                            <CheckBox x:Name="toTop" Grid.Column="1" Style="{StaticResource Switch}" VerticalAlignment="Center" Click="Toggle_Click"/>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Style="{StaticResource RowText}">
+                                <TextBlock Text="{c:T SetLanguage}" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{c:T SetLanguageNote}" Style="{StaticResource Note}"/>
+                            </StackPanel>
+                            <ComboBox x:Name="langBox" Grid.Column="1" Width="200" VerticalAlignment="Center" SelectionChanged="Lang_Changed">
+                                <ComboBoxItem Content="{c:T SetLanguageAuto}" Tag="auto"/>
+                                <ComboBoxItem Content="English" Tag="en"/>
+                                <ComboBoxItem Content="Türkçe" Tag="tr"/>
+                            </ComboBox>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </HeaderedContentControl>
 
-            <!-- Capture -->
-            <TextBlock Text="{c:T SetCapture}" Style="{StaticResource GroupHeader}"/>
-            <Border Style="{StaticResource SettingsCard}">
-                <Grid Style="{StaticResource CardGrid}">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <TextBlock Text="&#xE8D2;" Style="{StaticResource CardIcon}"/>
-                    <StackPanel Style="{StaticResource CardText}"><TextBlock Text="{c:T SetCaptureText}" Style="{StaticResource Body}"/></StackPanel>
-                    <CheckBox x:Name="capText" Grid.Column="2" Style="{StaticResource ToggleSwitch}" Click="Toggle_Click"/>
-                </Grid>
-            </Border>
-            <Border Style="{StaticResource SettingsCard}">
-                <Grid Style="{StaticResource CardGrid}">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <TextBlock Text="&#xEB9F;" Style="{StaticResource CardIcon}"/>
-                    <StackPanel Style="{StaticResource CardText}"><TextBlock Text="{c:T SetCaptureImages}" Style="{StaticResource Body}"/></StackPanel>
-                    <CheckBox x:Name="capImages" Grid.Column="2" Style="{StaticResource ToggleSwitch}" Click="Toggle_Click"/>
-                </Grid>
-            </Border>
-            <Border Style="{StaticResource SettingsCard}">
-                <Grid Style="{StaticResource CardGrid}">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <TextBlock Text="&#xE8B7;" Style="{StaticResource CardIcon}"/>
-                    <StackPanel Style="{StaticResource CardText}"><TextBlock Text="{c:T SetCaptureFiles}" Style="{StaticResource Body}"/></StackPanel>
-                    <CheckBox x:Name="capFiles" Grid.Column="2" Style="{StaticResource ToggleSwitch}" Click="Toggle_Click"/>
-                </Grid>
-            </Border>
-            <Border Style="{StaticResource SettingsCard}">
-                <Grid Style="{StaticResource CardGrid}">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <TextBlock Text="&#xF7ED;" Style="{StaticResource CardIcon}"/>
-                    <StackPanel Style="{StaticResource CardText}">
-                        <TextBlock Text="{c:T SetWatchShots}" Style="{StaticResource Body}"/>
-                        <TextBlock Text="{c:T SetWatchShotsNote}" Style="{StaticResource CardDesc}"/>
-                        <TextBlock x:Name="importStatus" Style="{StaticResource CardDesc}" Foreground="{DynamicResource AccentText}"/>
-                    </StackPanel>
-                    <Button x:Name="importBtn" Grid.Column="2" Style="{StaticResource StandardButton}" Content="{c:T SetImportShots}" Margin="0,0,20,0" Click="Import_Click"/>
-                    <CheckBox x:Name="watch" Grid.Column="3" Style="{StaticResource ToggleSwitch}" Click="Toggle_Click"/>
-                </Grid>
-            </Border>
-            <Border Style="{StaticResource SettingsCard}">
-                <Grid Style="{StaticResource CardGrid}">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <TextBlock Text="&#xE8E9;" Style="{StaticResource CardIcon}"/>
-                    <StackPanel Style="{StaticResource CardText}">
-                        <TextBlock Text="{c:T SetOcr}" Style="{StaticResource Body}"/>
-                        <TextBlock Text="{c:T SetOcrNote}" Style="{StaticResource CardDesc}"/>
-                    </StackPanel>
-                    <CheckBox x:Name="ocr" Grid.Column="2" Style="{StaticResource ToggleSwitch}" Click="Toggle_Click"/>
-                </Grid>
-            </Border>
-            <Border Style="{StaticResource SettingsCard}">
-                <Grid Style="{StaticResource CardGrid}">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <TextBlock Text="&#xE72E;" Style="{StaticResource CardIcon}"/>
-                    <StackPanel Style="{StaticResource CardText}">
-                        <TextBlock Text="{c:T SetPrivacy}" Style="{StaticResource Body}"/>
-                        <TextBlock Text="{c:T SetPrivacyNote}" Style="{StaticResource CardDesc}"/>
-                    </StackPanel>
-                    <CheckBox x:Name="privacy" Grid.Column="2" Style="{StaticResource ToggleSwitch}" Click="Toggle_Click"/>
-                </Grid>
-            </Border>
-            <Border Style="{StaticResource SettingsCard}">
-                <Grid>
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <TextBlock Text="&#xE71A;" Style="{StaticResource CardIcon}" VerticalAlignment="Top" Margin="0,2,0,0"/>
-                    <StackPanel Style="{StaticResource CardText}" VerticalAlignment="Top">
-                        <TextBlock Text="{c:T SetIgnoredApps}" Style="{StaticResource Body}"/>
-                        <TextBlock Text="{c:T SetIgnoredAppsNote}" Style="{StaticResource CardDesc}"/>
-                    </StackPanel>
-                    <TextBox x:Name="ignored" Grid.Column="2" Style="{StaticResource FieldBox}" AcceptsReturn="True" Width="260" Height="104" FontSize="13"
-                             VerticalScrollBarVisibility="Auto" LostKeyboardFocus="Ignored_LostFocus"/>
-                </Grid>
-            </Border>
+            <HeaderedContentControl Header="{c:T SetCapture}" Style="{StaticResource Folder}">
+                <StackPanel>
+                    <Border Style="{StaticResource Row}" BorderThickness="0">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Style="{StaticResource RowText}"><TextBlock Text="{c:T SetCaptureText}" Style="{StaticResource Label}"/></StackPanel>
+                            <CheckBox x:Name="capText" Grid.Column="1" Style="{StaticResource Switch}" VerticalAlignment="Center" Click="Toggle_Click"/>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Style="{StaticResource RowText}"><TextBlock Text="{c:T SetCaptureImages}" Style="{StaticResource Label}"/></StackPanel>
+                            <CheckBox x:Name="capImages" Grid.Column="1" Style="{StaticResource Switch}" VerticalAlignment="Center" Click="Toggle_Click"/>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Style="{StaticResource RowText}"><TextBlock Text="{c:T SetCaptureFiles}" Style="{StaticResource Label}"/></StackPanel>
+                            <CheckBox x:Name="capFiles" Grid.Column="1" Style="{StaticResource Switch}" VerticalAlignment="Center" Click="Toggle_Click"/>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Style="{StaticResource RowText}">
+                                <TextBlock Text="{c:T SetWatchShots}" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{c:T SetWatchShotsNote}" Style="{StaticResource Note}"/>
+                                <TextBlock x:Name="importStatus" Style="{StaticResource Note}" Foreground="{DynamicResource Accent}"/>
+                            </StackPanel>
+                            <Button x:Name="importBtn" Grid.Column="1" Style="{StaticResource Inline}" Content="{c:T SetImportShots}" Margin="0,0,18,0" Click="Import_Click"/>
+                            <CheckBox x:Name="watch" Grid.Column="2" Style="{StaticResource Switch}" VerticalAlignment="Center" Click="Toggle_Click"/>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Style="{StaticResource RowText}">
+                                <TextBlock Text="{c:T SetOcr}" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{c:T SetOcrNote}" Style="{StaticResource Note}"/>
+                            </StackPanel>
+                            <CheckBox x:Name="ocr" Grid.Column="1" Style="{StaticResource Switch}" VerticalAlignment="Center" Click="Toggle_Click"/>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Style="{StaticResource RowText}">
+                                <TextBlock Text="{c:T SetPrivacy}" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{c:T SetPrivacyNote}" Style="{StaticResource Note}"/>
+                            </StackPanel>
+                            <CheckBox x:Name="privacy" Grid.Column="1" Style="{StaticResource Switch}" VerticalAlignment="Center" Click="Toggle_Click"/>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Style="{StaticResource RowText}" VerticalAlignment="Top">
+                                <TextBlock Text="{c:T SetIgnoredApps}" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{c:T SetIgnoredAppsNote}" Style="{StaticResource Note}"/>
+                            </StackPanel>
+                            <TextBox x:Name="ignored" Grid.Column="1" Style="{StaticResource FieldBox}" AcceptsReturn="True" Width="260" Height="104" FontSize="13"
+                                     FontFamily="{StaticResource MonoFont}" VerticalScrollBarVisibility="Auto" LostKeyboardFocus="Ignored_LostFocus"/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </HeaderedContentControl>
 
-            <!-- Storage -->
-            <TextBlock Text="{c:T SetStorage}" Style="{StaticResource GroupHeader}"/>
-            <Border Style="{StaticResource SettingsCard}">
-                <Grid Style="{StaticResource CardGrid}">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <TextBlock Text="&#xE8B7;" Style="{StaticResource CardIcon}"/>
-                    <StackPanel Style="{StaticResource CardText}">
-                        <TextBlock Text="{c:T SetDataFolder}" Style="{StaticResource Body}"/>
-                        <TextBlock x:Name="dataPath" Style="{StaticResource CardDesc}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
-                        <TextBlock x:Name="dataStats" Style="{StaticResource CardDesc}"/>
-                    </StackPanel>
-                    <Button Grid.Column="2" Style="{StaticResource StandardButton}" Content="{c:T SetOpenFolder}" Click="OpenFolder_Click"/>
-                </Grid>
-            </Border>
-            <Border Style="{StaticResource SettingsCard}">
-                <Grid Style="{StaticResource CardGrid}">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <TextBlock Text="&#xEA35;" Style="{StaticResource CardIcon}"/>
-                    <StackPanel Style="{StaticResource CardText}">
-                        <TextBlock Text="{c:T SetBackups}" Style="{StaticResource Body}"/>
-                        <TextBlock Text="{c:T SetRetention}" Style="{StaticResource CardDesc}"/>
-                        <TextBlock x:Name="backupStatus" Style="{StaticResource CardDesc}" Foreground="{DynamicResource AccentText}"/>
-                    </StackPanel>
-                    <Button Grid.Column="2" Style="{StaticResource StandardButton}" Content="{c:T SetBackupNow}" Margin="0,0,20,0" Click="BackupNow_Click"/>
-                    <CheckBox x:Name="backups" Grid.Column="3" Style="{StaticResource ToggleSwitch}" Click="Toggle_Click"/>
-                </Grid>
-            </Border>
-            <Border Style="{StaticResource SettingsCard}">
-                <Grid Style="{StaticResource CardGrid}">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <TextBlock Text="&#xEDE1;" Style="{StaticResource CardIcon}"/>
-                    <StackPanel Style="{StaticResource CardText}">
-                        <TextBlock Text="{c:T SetExport}" Style="{StaticResource Body}"/>
-                        <TextBlock Text="{c:T SetExportNote}" Style="{StaticResource CardDesc}"/>
-                    </StackPanel>
-                    <Button x:Name="exportBtn" Grid.Column="2" Style="{StaticResource StandardButton}" Content="{c:T SetExportButton}" Click="Export_Click"/>
-                </Grid>
-            </Border>
+            <HeaderedContentControl Header="{c:T SetStorage}" Style="{StaticResource Folder}">
+                <StackPanel>
+                    <Border Style="{StaticResource Row}" BorderThickness="0">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Style="{StaticResource RowText}">
+                                <TextBlock Text="{c:T SetDataFolder}" Style="{StaticResource Label}"/>
+                                <TextBlock x:Name="dataPath" Style="{StaticResource Note}" FontFamily="{StaticResource MonoFont}" FontSize="12" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock x:Name="dataStats" Style="{StaticResource Note}"/>
+                            </StackPanel>
+                            <Button Grid.Column="1" Style="{StaticResource Inline}" Content="{c:T SetOpenFolder}" Click="OpenFolder_Click"/>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Style="{StaticResource RowText}">
+                                <TextBlock Text="{c:T SetBackups}" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{c:T SetRetention}" Style="{StaticResource Note}"/>
+                                <TextBlock x:Name="backupStatus" Style="{StaticResource Note}" Foreground="{DynamicResource Accent}"/>
+                            </StackPanel>
+                            <Button Grid.Column="1" Style="{StaticResource Inline}" Content="{c:T SetBackupNow}" Margin="0,0,18,0" Click="BackupNow_Click"/>
+                            <CheckBox x:Name="backups" Grid.Column="2" Style="{StaticResource Switch}" VerticalAlignment="Center" Click="Toggle_Click"/>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Style="{StaticResource RowText}">
+                                <TextBlock Text="{c:T SetExport}" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{c:T SetExportNote}" Style="{StaticResource Note}"/>
+                            </StackPanel>
+                            <Button x:Name="exportBtn" Grid.Column="1" Style="{StaticResource Inline}" Content="{c:T SetExportButton}" Click="Export_Click"/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </HeaderedContentControl>
 
-            <!-- About -->
-            <TextBlock Text="{c:T SetAbout}" Style="{StaticResource GroupHeader}"/>
-            <Border Style="{StaticResource SettingsCard}">
-                <Grid Style="{StaticResource CardGrid}">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <Image Source="{StaticResource AppIcon}" Width="24" Height="24" HorizontalAlignment="Left" RenderOptions.BitmapScalingMode="HighQuality"/>
-                    <StackPanel Style="{StaticResource CardText}">
-                        <TextBlock Text="SweaxClip" Style="{StaticResource Body}"/>
-                        <TextBlock Style="{StaticResource CardDesc}">
-                            <Run x:Name="version"/><Run Text=" · © 2026 Sweax Studios · MIT"/>
-                        </TextBlock>
-                        <TextBlock x:Name="memory" Style="{StaticResource CardDesc}"/>
-                    </StackPanel>
-                    <Button Grid.Column="2" Style="{StaticResource StandardButton}" Click="Source_Click">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{c:T SetSource}"/>
-                            <TextBlock Text="&#xE8A7;" Style="{StaticResource Icon}" FontSize="12" Margin="8,1,0,0" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+            <HeaderedContentControl Header="{c:T SetAbout}" Style="{StaticResource Folder}">
+                <Border Style="{StaticResource Row}" BorderThickness="0">
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <Image Source="{StaticResource AppMark}" Width="40" Height="40" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                        <StackPanel Grid.Column="1" Style="{StaticResource RowText}">
+                            <TextBlock Text="SweaxClip" Style="{StaticResource Label}" FontWeight="SemiBold"/>
+                            <TextBlock Style="{StaticResource Note}">
+                                <Run x:Name="version"/><Run Text=" · © 2026 Sweax Studios · MIT"/>
+                            </TextBlock>
+                            <TextBlock x:Name="memory" Style="{StaticResource Note}"/>
                         </StackPanel>
-                    </Button>
-                </Grid>
-            </Border>
+                        <Button Grid.Column="2" Style="{StaticResource Inline}" Click="Source_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{c:T SetSource}"/>
+                                <TextBlock Text="&#xE8A7;" Style="{StaticResource Icon}" FontSize="11" Margin="8,2,0,0" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+            </HeaderedContentControl>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

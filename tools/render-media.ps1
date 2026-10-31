@@ -22,8 +22,8 @@ foreach ($lang in 'en', 'tr') {
             $p = Start-Process $Exe -ArgumentList "--gif `"$frames`" --lang $lang --theme $theme" -PassThru
             $p.WaitForExit()
             $pal = Join-Path $env:TEMP "pal-$lang-$theme.png"
-            ffmpeg -v error -y -framerate 12.5 -i "$frames\f%04d.png" -vf "scale=504:-1:flags=lanczos,palettegen=max_colors=192:stats_mode=full:reserve_transparent=0" $pal
-            ffmpeg -v error -y -framerate 12.5 -i "$frames\f%04d.png" -i $pal -lavfi "scale=504:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=sierra2_4a:diff_mode=rectangle" -gifflags -transdiff -loop 0 (Join-Path $media "quick-panel-$lang-$theme.gif")
+            ffmpeg -v error -y -framerate 25 -i "$frames\f%04d.png" -vf "scale=600:-1:flags=lanczos,palettegen=max_colors=192:stats_mode=full:reserve_transparent=0" $pal
+            ffmpeg -v error -y -framerate 25 -i "$frames\f%04d.png" -i $pal -lavfi "scale=600:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=sierra2_4a:diff_mode=rectangle" -gifflags -transdiff -loop 0 (Join-Path $media "quick-panel-$lang-$theme.gif")
             Remove-Item -Recurse -Force $frames
         }
         "$lang/$theme done"

@@ -29,30 +29,32 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/shots/en/hero-dark.png">
-  <img alt="The SweaxClip library window with the quick panel open on top" src="docs/shots/en/hero-light.png">
+  <img alt="The SweaxClip library, a desk of clip cards, with the Win+V deck dealt open in front of it" src="docs/shots/en/hero-light.png">
 </picture>
 
 ## Why SweaxClip
 
 The clipboard history built into Windows keeps the last 25 items and clears them every time you restart. SweaxClip keeps everything you copy — text, links, code, colours, images, screenshots and files — in a local archive that survives restarts, and opens on the same shortcut.
 
-- **Replaces <kbd>Win</kbd> + <kbd>V</kbd>.** The panel opens under your text cursor — also in Chrome, Edge and other apps that report the cursor to accessibility tools — and pastes into the app you were typing in.
+- **Replaces <kbd>Win</kbd> + <kbd>V</kbd>.** Your history is dealt as a deck of cards exactly where Windows opens its own panel — under your text cursor (also in Chrome, Edge and other apps that report the cursor to accessibility tools), or above the taskbar — and the card you pick is thrown into the app you were typing in.
 - **Unlimited history.** Nothing is removed automatically. Copy the same thing twice and it moves to the top instead of appearing again.
 - **Sorted for you.** Text, links, images, screenshots, files, code and colours each get their own category.
 - **Search inside screenshots.** Images are read with the OCR engine built into Windows, so a word in a screenshot finds the screenshot.
 - **A library for everything else.** Browse by category, view images as a gallery, and see where each item came from and how often you used it.
-- **Feels like part of Windows.** Follows your light or dark theme and accent colour, with Mica and Acrylic materials on Windows 11.
+- **Every clip looks like what it is.** Text is a sheet of paper, a link carries its site's colour, code sits on slate with its syntax coloured, a colour is the colour itself, a screenshot sits in a bezel with crop marks and files arrive in a manila folder. Follows your light or dark theme.
 - **Light on resources.** Around 10–12 MB of memory while it waits in the tray, and no CPU use until you copy something.
 - **Private.** Everything stays on your PC. Copies that password managers mark as private are skipped.
 
-## The quick panel
+## The deck
+
+The newest clip is the card in front; older ones stack behind it, each showing just enough to recognise it. Every card moves on springs — flipping through history, dealing a category, throwing a card at the cursor or dropping it in the bin all share one physical feel.
 
 <table>
 <tr>
 <td width="44%" valign="top">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/media/quick-panel-en-dark.gif">
-  <img alt="Moving through the quick panel, switching categories and searching inside a screenshot" src="docs/media/quick-panel-en-light.gif" width="100%">
+  <img alt="Win+V opens the deck above the text cursor; arrows flip through it, Tab deals each category, Enter throws the link into the text" src="docs/media/quick-panel-en-light.gif" width="100%">
 </picture>
 </td>
 <td valign="top">
@@ -78,39 +80,69 @@ The shortcut can be changed to <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>V</kbd> or 
 </tr>
 </table>
 
-## Screenshots
+<table>
+<tr>
+<td width="33%">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/shots/en/panel-images-dark.png">
+  <img alt="The deck showing images" src="docs/shots/en/panel-images-light.png">
+</picture>
+</td>
+<td width="33%">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/shots/en/panel-code-dark.png">
+  <img alt="The deck showing code snippets on slate" src="docs/shots/en/panel-code-light.png">
+</picture>
+</td>
+<td width="33%">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/shots/en/panel-search-dark.png">
+  <img alt="Searching for a word finds the screenshot it appears in" src="docs/shots/en/panel-search-light.png">
+</picture>
+</td>
+</tr>
+<tr>
+<td align="center"><sub>Images</sub></td>
+<td align="center"><sub>Code</sub></td>
+<td align="center"><sub>A word found inside a screenshot</sub></td>
+</tr>
+</table>
+
+## The library
+
+Everything you ever copied lies on a desk, grouped by day. Click a card to pick it up: it opens full size, with where it came from, how often you used it and the text found in it.
 
 <table>
 <tr>
 <td width="50%">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/shots/en/library-screenshots-dark.png">
-  <img alt="Screenshots shown as a gallery, with recognised text in the details pane" src="docs/shots/en/library-screenshots-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/shots/en/library-lightbox-dark.png">
+  <img alt="A screenshot of an invoice picked up from the desk, with the text recognised in it" src="docs/shots/en/library-lightbox-light.png">
 </picture>
-<p align="center"><sub>Screenshots as a gallery, with the text found in them</sub></p>
+<p align="center"><sub>A screenshot picked up, with the text found in it</sub></p>
 </td>
 <td width="50%">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/shots/en/library-code-dark.png">
-  <img alt="A code snippet with its full preview" src="docs/shots/en/library-code-light.png">
+  <img alt="A code snippet picked up, with syntax colours" src="docs/shots/en/library-code-light.png">
 </picture>
-<p align="center"><sub>Code keeps its formatting</sub></p>
+<p align="center"><sub>Code keeps its formatting and colours</sub></p>
 </td>
 </tr>
 <tr>
+<td width="50%">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/shots/en/library-screenshots-dark.png">
+  <img alt="Every screenshot on the desk, grouped by day" src="docs/shots/en/library-screenshots-light.png">
+</picture>
+<p align="center"><sub>Every screenshot you took, by day</sub></p>
+</td>
 <td width="50%">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/shots/en/library-settings-dark.png">
   <img alt="Settings" src="docs/shots/en/library-settings-light.png">
 </picture>
 <p align="center"><sub>Settings</sub></p>
-</td>
-<td width="50%">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/shots/en/library-colors-dark.png">
-  <img alt="Colours with hex, RGB and HSL values" src="docs/shots/en/library-colors-light.png">
-</picture>
-<p align="center"><sub>Colours with every format</sub></p>
 </td>
 </tr>
 </table>
@@ -128,7 +160,7 @@ If you already have the [.NET 9 Desktop Runtime](https://dotnet.microsoft.com/do
 > [!NOTE]
 > The executable is not code-signed yet, so Windows SmartScreen may show a warning. Choose **More info → Run anyway**. Releases are built from this repository by [GitHub Actions](.github/workflows/build.yml), and each release lists SHA-256 checksums.
 
-**Requirements:** Windows 10 (version 2004) or Windows 11, 64-bit. Mica and Acrylic need Windows 11 22H2 or later; earlier versions use solid backgrounds.
+**Requirements:** Windows 10 (version 2004) or Windows 11, 64-bit.
 
 ## How your history is kept
 

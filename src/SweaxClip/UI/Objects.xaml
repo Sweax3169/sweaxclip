@@ -1,0 +1,179 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Small drawn objects used as category icons: each kind is the object its cards are made of. 24×24. -->
+
+    <SolidColorBrush x:Key="o.Paper" Color="#FFFDF8"/>
+    <SolidColorBrush x:Key="o.PaperEdge" Color="#3323201D"/>
+    <SolidColorBrush x:Key="o.Ink" Color="#9923201D"/>
+    <SolidColorBrush x:Key="o.InkStrong" Color="#23201D"/>
+    <SolidColorBrush x:Key="o.Manila" Color="#EAD7A8"/>
+    <SolidColorBrush x:Key="o.ManilaDeep" Color="#D3BA82"/>
+    <SolidColorBrush x:Key="o.Slate" Color="#1D2027"/>
+    <SolidColorBrush x:Key="o.Vermilion" Color="#E4572E"/>
+    <Pen x:Key="o.Edge" Brush="{StaticResource o.PaperEdge}" Thickness="0.8"/>
+    <Pen x:Key="o.InkPen" Brush="#23201D" Thickness="1.6" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+    <Pen x:Key="o.StampPen" Brush="#E4572E" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+    <Pen x:Key="o.SynPen" Brush="#FF8A65" Thickness="1.7" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+    <Pen x:Key="o.LightPen" Brush="#E6E8EE" Thickness="1.5" StartLineCap="Round" EndLineCap="Round"/>
+    <Pen x:Key="o.NeedlePen" Brush="#6B6258" Thickness="1.5" StartLineCap="Round" EndLineCap="Round"/>
+    <Pen x:Key="o.BinPen" Brush="#8A8276" Thickness="1.2" StartLineCap="Round" EndLineCap="Round"/>
+
+    <DrawingImage x:Key="Obj.Stack">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <DrawingGroup>
+                    <DrawingGroup.Transform><RotateTransform Angle="-14" CenterX="12" CenterY="14"/></DrawingGroup.Transform>
+                    <GeometryDrawing Brush="{StaticResource o.Manila}" Pen="{StaticResource o.Edge}" Geometry="M7,4 H17 A2,2 0 0 1 19,6 V19 A2,2 0 0 1 17,21 H7 A2,2 0 0 1 5,19 V6 A2,2 0 0 1 7,4 Z"/>
+                </DrawingGroup>
+                <DrawingGroup>
+                    <DrawingGroup.Transform><RotateTransform Angle="-5" CenterX="12" CenterY="14"/></DrawingGroup.Transform>
+                    <GeometryDrawing Brush="{StaticResource o.Slate}" Geometry="M7,4 H17 A2,2 0 0 1 19,6 V19 A2,2 0 0 1 17,21 H7 A2,2 0 0 1 5,19 V6 A2,2 0 0 1 7,4 Z"/>
+                </DrawingGroup>
+                <GeometryDrawing Brush="{StaticResource o.Paper}" Pen="{StaticResource o.Edge}" Geometry="M7,5 H17 A2,2 0 0 1 19,7 V20 A2,2 0 0 1 17,22 H7 A2,2 0 0 1 5,20 V7 A2,2 0 0 1 7,5 Z"/>
+                <GeometryDrawing Brush="{StaticResource o.Ink}" Geometry="M8,9 H16 V10.4 H8 Z M8,12.4 H14 V13.8 H8 Z"/>
+                <GeometryDrawing Brush="{StaticResource o.Vermilion}" Geometry="M15.5,18 m-1.9,0 a1.9,1.9 0 1 0 3.8,0 a1.9,1.9 0 1 0 -3.8,0"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Obj.Text">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{StaticResource o.Paper}" Pen="{StaticResource o.Edge}" Geometry="M7,3 H17 A2,2 0 0 1 19,5 V19 A2,2 0 0 1 17,21 H7 A2,2 0 0 1 5,19 V5 A2,2 0 0 1 7,3 Z"/>
+                <GeometryDrawing Brush="{StaticResource o.Ink}" Geometry="M8,7.5 H16 V9 H8 Z M8,10.75 H16 V12.25 H8 Z M8,14 H13.5 V15.5 H8 Z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Obj.Link">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{StaticResource o.Paper}" Pen="{StaticResource o.Edge}" Geometry="M7,3 H17 A2,2 0 0 1 19,5 V19 A2,2 0 0 1 17,21 H7 A2,2 0 0 1 5,19 V5 A2,2 0 0 1 7,3 Z"/>
+                <GeometryDrawing Brush="#3A86C8" Geometry="M7,3 H8.6 V21 H7 A2,2 0 0 1 5,19 V5 A2,2 0 0 1 7,3 Z"/>
+                <GeometryDrawing Pen="{StaticResource o.InkPen}" Geometry="M11.5,14.5 L16,10 M12.6,10 H16 V13.4"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Obj.Image">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{StaticResource o.Paper}" Pen="{StaticResource o.Edge}" Geometry="M5,4 H19 A1.5,1.5 0 0 1 20.5,5.5 V18.5 A1.5,1.5 0 0 1 19,20 H5 A1.5,1.5 0 0 1 3.5,18.5 V5.5 A1.5,1.5 0 0 1 5,4 Z"/>
+                <GeometryDrawing Geometry="M5.5,6 H18.5 V15.5 H5.5 Z">
+                    <GeometryDrawing.Brush>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#8EC1EC" Offset="0"/><GradientStop Color="#F4D6A6" Offset="1"/></LinearGradientBrush>
+                    </GeometryDrawing.Brush>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#FFF4C7" Geometry="M15.5,8.6 m-1.3,0 a1.3,1.3 0 1 0 2.6,0 a1.3,1.3 0 1 0 -2.6,0"/>
+                <GeometryDrawing Brush="#3E6B55" Geometry="M5.5,15.5 L9.5,10.5 L12.5,13.5 L14.5,11.5 L18.5,15.5 Z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Obj.Screenshot">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{StaticResource o.Slate}" Geometry="M5,5 H19 A2,2 0 0 1 21,7 V16 A2,2 0 0 1 19,18 H5 A2,2 0 0 1 3,16 V7 A2,2 0 0 1 5,5 Z"/>
+                <GeometryDrawing Geometry="M4.6,6.6 H19.4 V16.4 H4.6 Z">
+                    <GeometryDrawing.Brush>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#5C8FD0" Offset="0"/><GradientStop Color="#8A6BC8" Offset="1"/></LinearGradientBrush>
+                    </GeometryDrawing.Brush>
+                </GeometryDrawing>
+                <GeometryDrawing Pen="{StaticResource o.StampPen}" Geometry="M2,6.5 V3 H5.5 M18.5,3 H22 V6.5 M22,16.5 V20 H18.5 M5.5,20 H2 V16.5"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Obj.Files">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{StaticResource o.ManilaDeep}" Geometry="M4,6 A1.5,1.5 0 0 1 5.5,4.5 H10 L11.8,6.5 H18.5 A1.5,1.5 0 0 1 20,8 V9 H4 Z"/>
+                <GeometryDrawing Brush="{StaticResource o.Manila}" Pen="{StaticResource o.Edge}" Geometry="M3.5,8.5 H20.5 A1.5,1.5 0 0 1 22,10 V18.5 A1.5,1.5 0 0 1 20.5,20 H3.5 A1.5,1.5 0 0 1 2,18.5 V10 A1.5,1.5 0 0 1 3.5,8.5 Z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Obj.Code">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="{StaticResource o.Slate}" Geometry="M6,3.5 H18 A2.5,2.5 0 0 1 20.5,6 V18 A2.5,2.5 0 0 1 18,20.5 H6 A2.5,2.5 0 0 1 3.5,18 V6 A2.5,2.5 0 0 1 6,3.5 Z"/>
+                <GeometryDrawing Pen="{StaticResource o.SynPen}" Geometry="M9.5,9 L7,12 L9.5,15 M14.5,9 L17,12 L14.5,15"/>
+                <GeometryDrawing Pen="{StaticResource o.LightPen}" Geometry="M12.8,8.5 L11.2,15.5"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Obj.Color">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="#3BA99C" Geometry="M9,14.5 m-5.5,0 a5.5,5.5 0 1 0 11,0 a5.5,5.5 0 1 0 -11,0"/>
+                <GeometryDrawing Brush="#F2B84B" Geometry="M15,14.5 m-5.5,0 a5.5,5.5 0 1 0 11,0 a5.5,5.5 0 1 0 -11,0" Pen="{StaticResource o.Edge}"/>
+                <GeometryDrawing Brush="{StaticResource o.Vermilion}" Geometry="M12,9 m-5.5,0 a5.5,5.5 0 1 0 11,0 a5.5,5.5 0 1 0 -11,0"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Obj.Pinned">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Pen="{StaticResource o.NeedlePen}" Geometry="M12,13 L12,21.5"/>
+                <GeometryDrawing Brush="{StaticResource o.Vermilion}" Geometry="M8,4 H16 L14.5,8.5 L17.5,12.5 H6.5 L9.5,8.5 Z"/>
+                <GeometryDrawing Brush="#FF8A6B" Geometry="M9.5,5 H11 L10.2,8.2 Z"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Obj.Trash">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
+                <GeometryDrawing Brush="#C9C3B8" Pen="{StaticResource o.Edge}" Geometry="M6.5,8 H17.5 L16.4,20 A1.5,1.5 0 0 1 14.9,21.3 H9.1 A1.5,1.5 0 0 1 7.6,20 Z"/>
+                <GeometryDrawing Brush="#A9A296" Geometry="M5,5.5 H19 V7.8 H5 Z M10,3.5 H14 V5.5 H10 Z"/>
+                <GeometryDrawing Pen="{StaticResource o.BinPen}" Geometry="M10,11 V18 M14,11 V18"/>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <!-- brand mark: the Win+V deck itself — manila and slate behind, the paper clip in front (same as assets/brand/icon.svg) -->
+    <DrawingImage x:Key="AppMark">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent" Geometry="M0,0 H64 V64 H0 Z"/>
+                <GeometryDrawing Brush="#EAD7A8" Pen="{StaticResource o.Edge}">
+                    <GeometryDrawing.Geometry><RectangleGeometry Rect="15,10,34,21.5" RadiusX="4.5" RadiusY="4.5"/></GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#1D2027">
+                    <GeometryDrawing.Geometry><RectangleGeometry Rect="11,17.5,42,22.5" RadiusX="5" RadiusY="5"/></GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#52FFFFFF">
+                    <GeometryDrawing.Geometry><RectangleGeometry Rect="15.5,21,15,2.25" RadiusX="1.1" RadiusY="1.1"/></GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#FFFDF8" Pen="{StaticResource o.Edge}">
+                    <GeometryDrawing.Geometry><RectangleGeometry Rect="6,26,52,30" RadiusX="6.5" RadiusY="6.5"/></GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#E4572E" Geometry="M13,33 m-2.25,0 a2.25,2.25 0 1 0 4.5,0 a2.25,2.25 0 1 0 -4.5,0"/>
+                <GeometryDrawing Brush="#4D23201D">
+                    <GeometryDrawing.Geometry><RectangleGeometry Rect="17,31.75,15.5,2.5" RadiusX="1.25" RadiusY="1.25"/></GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#C723201D">
+                    <GeometryDrawing.Geometry>
+                        <GeometryGroup>
+                            <RectangleGeometry Rect="11,39,41,3.5" RadiusX="1.75" RadiusY="1.75"/>
+                            <RectangleGeometry Rect="11,45.5,28,3.5" RadiusX="1.75" RadiusY="1.75"/>
+                        </GeometryGroup>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+</ResourceDictionary>

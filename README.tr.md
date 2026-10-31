@@ -29,30 +29,32 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/shots/tr/hero-dark.png">
-  <img alt="SweaxClip kütüphane penceresi ve üstünde açık hızlı panel" src="docs/shots/tr/hero-light.png">
+  <img alt="SweaxClip kütüphanesi — kayıt kartlarıyla dolu bir masa — ve önünde dağıtılmış Win+V destesi" src="docs/shots/tr/hero-light.png">
 </picture>
 
 ## Neden SweaxClip
 
 Windows'un kendi pano geçmişi son 25 öğeyi tutar ve bilgisayar her yeniden başladığında hepsini siler. SweaxClip kopyaladığın her şeyi — metin, bağlantı, kod, renk, görsel, ekran görüntüsü ve dosya — yeniden başlatmalarda silinmeyen yerel bir arşivde saklar ve aynı kısayolla açılır.
 
-- **<kbd>Win</kbd> + <kbd>V</kbd>'nin yerine geçer.** Panel yazı imlecinin altında açılır — Chrome, Edge ve imleç konumunu erişilebilirlik araçlarına bildiren diğer uygulamalarda da — ve seçtiğin öğeyi yazdığın uygulamaya yapıştırır.
+- **<kbd>Win</kbd> + <kbd>V</kbd>'nin yerine geçer.** Geçmişin, Windows'un kendi panelini açtığı yerde bir kart destesi olarak dağıtılır — yazı imlecinin altında (Chrome, Edge ve imleç konumunu erişilebilirlik araçlarına bildiren diğer uygulamalarda da) ya da görev çubuğunun üstünde — ve seçtiğin kart yazdığın uygulamaya fırlatılır.
 - **Sınırsız geçmiş.** Hiçbir şey kendiliğinden silinmez. Aynı şeyi iki kez kopyalarsan yeni kayıt açılmaz; mevcut kayıt en üste çıkar.
 - **Kendiliğinden ayrılır.** Metin, bağlantı, görsel, ekran görüntüsü, dosya, kod ve renk ayrı kategorilerde durur.
 - **Ekran görüntülerinin içinde arama.** Görseller Windows'un kendi OCR motoruyla okunur; ekran görüntüsünde geçen bir kelimeyi yazınca o görüntü bulunur.
 - **Kalan her şey için kütüphane.** Kategorilere göre gez, görselleri galeri olarak gör, her öğenin nereden geldiğini ve kaç kez kullandığını izle.
-- **Windows'un bir parçası gibi.** Açık/koyu temanı ve vurgu rengini izler; Windows 11'de Mica ve Acrylic kullanır.
+- **Her kayıt neyse öyle görünür.** Metin bir kâğıt yaprağı, bağlantı sitesinin rengini taşır, kod arduvaz üstünde renklendirilmiş durur, renk rengin kendisidir, ekran görüntüsü kırpma işaretli bir çerçevede, dosyalar manila bir klasörde gelir. Açık/koyu temanı izler.
 - **Kaynak yemez.** Tepside beklerken yaklaşık 10–12 MB bellek kullanır; bir şey kopyalayana kadar işlemciye dokunmaz.
 - **Gizli.** Her şey bilgisayarında kalır. Şifre yöneticilerinin gizli işaretlediği kopyalar atlanır.
 
-## Hızlı panel
+## Deste
+
+En yeni kayıt öndeki karttır; eskiler arkasında, tanınacak kadar görünerek dizilir. Her kart yaylarla hareket eder — geçmişte gezinmek, bir kategoriyi dağıtmak, kartı imlece fırlatmak ya da çöpe atmak aynı fiziksel hissi paylaşır.
 
 <table>
 <tr>
 <td width="44%" valign="top">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/media/quick-panel-tr-dark.gif">
-  <img alt="Hızlı panelde gezinme, kategori değiştirme ve ekran görüntüsünün içinde arama" src="docs/media/quick-panel-tr-light.gif" width="100%">
+  <img alt="Win+V desteyi yazı imlecinin üstünde açar; oklar kartları çevirir, Tab her kategoriyi dağıtır, Enter bağlantıyı metne fırlatır" src="docs/media/quick-panel-tr-light.gif" width="100%">
 </picture>
 </td>
 <td valign="top">
@@ -78,39 +80,69 @@ Kısayolu Ayarlar'dan <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>V</kbd> veya <kbd>Ct
 </tr>
 </table>
 
-## Ekran görüntüleri
+<table>
+<tr>
+<td width="33%">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/shots/tr/panel-images-dark.png">
+  <img alt="Görselleri gösteren deste" src="docs/shots/tr/panel-images-light.png">
+</picture>
+</td>
+<td width="33%">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/shots/tr/panel-code-dark.png">
+  <img alt="Arduvaz üstünde kod parçalarını gösteren deste" src="docs/shots/tr/panel-code-light.png">
+</picture>
+</td>
+<td width="33%">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/shots/tr/panel-search-dark.png">
+  <img alt="Bir kelimeyi aramak, geçtiği ekran görüntüsünü bulur" src="docs/shots/tr/panel-search-light.png">
+</picture>
+</td>
+</tr>
+<tr>
+<td align="center"><sub>Görseller</sub></td>
+<td align="center"><sub>Kod</sub></td>
+<td align="center"><sub>Ekran görüntüsünün içinde bulunan kelime</sub></td>
+</tr>
+</table>
+
+## Kütüphane
+
+Kopyaladığın her şey günlere göre bir masada durur. Bir karta tıkla, eline al: tam boyutta açılır; nereden geldiği, kaç kez kullandığın ve içinde bulunan yazı yanında.
 
 <table>
 <tr>
 <td width="50%">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/shots/tr/library-screenshots-dark.png">
-  <img alt="Galeri görünümünde ekran görüntüleri ve ayrıntılarda tanınan metin" src="docs/shots/tr/library-screenshots-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/shots/tr/library-lightbox-dark.png">
+  <img alt="Masadan alınmış bir fatura ekran görüntüsü ve içinde tanınan yazı" src="docs/shots/tr/library-lightbox-light.png">
 </picture>
-<p align="center"><sub>Ekran görüntüleri galeri olarak, içindeki yazıyla birlikte</sub></p>
+<p align="center"><sub>Eline alınmış bir ekran görüntüsü, içindeki yazıyla</sub></p>
 </td>
 <td width="50%">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/shots/tr/library-code-dark.png">
-  <img alt="Tam önizlemesiyle bir kod parçası" src="docs/shots/tr/library-code-light.png">
+  <img alt="Sözdizimi renkleriyle eline alınmış bir kod parçası" src="docs/shots/tr/library-code-light.png">
 </picture>
-<p align="center"><sub>Kod biçimini korur</sub></p>
+<p align="center"><sub>Kod biçimini ve renklerini korur</sub></p>
 </td>
 </tr>
 <tr>
+<td width="50%">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/shots/tr/library-screenshots-dark.png">
+  <img alt="Masada günlere göre bütün ekran görüntüleri" src="docs/shots/tr/library-screenshots-light.png">
+</picture>
+<p align="center"><sub>Aldığın her ekran görüntüsü, günlere göre</sub></p>
+</td>
 <td width="50%">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/shots/tr/library-settings-dark.png">
   <img alt="Ayarlar" src="docs/shots/tr/library-settings-light.png">
 </picture>
 <p align="center"><sub>Ayarlar</sub></p>
-</td>
-<td width="50%">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/shots/tr/library-colors-dark.png">
-  <img alt="Hex, RGB ve HSL değerleriyle renkler" src="docs/shots/tr/library-colors-light.png">
-</picture>
-<p align="center"><sub>Renkler tüm biçimleriyle</sub></p>
 </td>
 </tr>
 </table>
@@ -128,7 +160,7 @@ Bilgisayarında [.NET 9 Desktop Runtime](https://dotnet.microsoft.com/download/d
 > [!NOTE]
 > Uygulama henüz kod imzalı değil, bu yüzden Windows SmartScreen uyarı gösterebilir. **Ek bilgi → Yine de çalıştır**'ı seç. Sürümler bu depodan [GitHub Actions](.github/workflows/build.yml) ile derlenir ve her sürümde SHA-256 özetleri bulunur.
 
-**Gereksinimler:** Windows 10 (2004 sürümü) veya Windows 11, 64 bit. Mica ve Acrylic için Windows 11 22H2 veya sonrası gerekir; daha eski sürümlerde düz zemin kullanılır.
+**Gereksinimler:** Windows 10 (2004 sürümü) veya Windows 11, 64 bit.
 
 ## Geçmişin nasıl saklanır
 

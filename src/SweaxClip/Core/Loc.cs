@@ -80,6 +80,9 @@ public static class Loc
         ["TrashEmpty"] = ("Trash is empty", "Çöp kutusu boş"),
 
         ["HintPaste"] = ("paste", "yapıştır"),
+        ["HintBrowse"] = ("browse", "gez"),
+        ["Details"] = ("Details", "Ayrıntılar"),
+        ["PressSpace"] = ("Click a card to pick it up", "Bir karta tıkla, eline al"),
         ["HintPlain"] = ("plain", "düz metin"),
         ["HintPin"] = ("pin", "sabitle"),
         ["HintDelete"] = ("delete", "sil"),

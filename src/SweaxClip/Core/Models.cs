@@ -125,9 +125,43 @@ public sealed class ClipItem : Observable
         }
     }
 
+    public Brush SiteBrush => UI.SiteColor.For(LinkHost);
+    public string SiteInitial => LinkHost.Length > 0 ? char.ToUpperInvariant(LinkHost[0]).ToString() : "#";
+
     // colors
     public Brush? Swatch => Kind == ClipKind.Color ? ColorParse.TryBrush(Text) : null;
     public string ColorDetail => Kind == ClipKind.Color ? ColorParse.Describe(Text) : "";
+    public string ColorHex => Kind == ClipKind.Color && ColorParse.TryParse(Text) is { } c ? $"#{c.R:X2}{c.G:X2}{c.B:X2}" : "";
+    public string ColorRgb => Kind == ClipKind.Color && ColorParse.TryParse(Text) is { } c ? $"rgb {c.R} {c.G} {c.B}" : "";
+    /// <summary>Black or white ink that reads on top of the swatch.</summary>
+    public Brush SwatchInk => Kind == ClipKind.Color && ColorParse.TryParse(Text) is { } c && UI.SiteColor.IsLight(c) ? InkDark : InkLight;
+    static readonly Brush InkDark = Freeze(new SolidColorBrush(Color.FromArgb(0xE6, 0x1A, 0x17, 0x14)));
+    static readonly Brush InkLight = Freeze(new SolidColorBrush(Color.FromArgb(0xF2, 0xFF, 0xFF, 0xFF)));
+    static Brush Freeze(SolidColorBrush b) { b.Freeze(); return b; }
+
+    // code
+    public string CodeSnippet
+    {
+        get
+        {
+            if (Kind != ClipKind.Code) return "";
+            var lines = (Text ?? "").Replace("\r\n", "\n").Replace("\t", "    ").Split('\n').SkipWhile(string.IsNullOrWhiteSpace).Take(10).ToArray();
+            int indent = lines.Where(l => l.Trim().Length > 0).Select(l => l.Length - l.TrimStart().Length).DefaultIfEmpty(0).Min();
+            return string.Join("\n", lines.Select(l => (l.Length >= indent ? l[indent..] : l.TrimStart()).TrimEnd()));
+        }
+    }
+    public string LineNumbers => Kind == ClipKind.Code ? string.Join("\n", Enumerable.Range(1, Math.Max(1, CodeSnippet.Count(ch => ch == '\n') + 1))) : "";
+
+    public ImageSource? KindIcon => UI.ObjectIcons.For(Kind);
+    public string AppInitial => string.IsNullOrEmpty(App) ? "·" : char.ToUpperInvariant(App![0]).ToString();
+    public string Headline => Kind switch
+    {
+        ClipKind.Link => LinkHost,
+        ClipKind.Color => ColorHex,
+        ClipKind.Image or ClipKind.Screenshot => Dimensions,
+        ClipKind.Files => FileNames.FirstOrDefault() ?? "",
+        _ => Preview.Length > 90 ? Preview[..90] : Preview,
+    };
 
     // images
     public string Dimensions => Width > 0 ? $"{Width} × {Height}" : "";
@@ -174,6 +208,7 @@ public sealed class ScopeInfo : Observable
 {
     public required Scope Scope { get; init; }
     public required string Glyph { get; init; }
+    public ImageSource? Icon => UI.ObjectIcons.For(Scope);
     public string Label => Loc.ScopeName(Scope);
     public string Short => Loc.ScopeShort(Scope);
     int _count; public int Count { get => _count; set { if (Set(ref _count, value)) Raise(nameof(CountText)); } }

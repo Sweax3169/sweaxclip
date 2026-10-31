@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
@@ -27,7 +27,7 @@ public static class DemoData
     public static void Fill(ClipStore store, bool tr)
     {
         string T(string en, string trText) => tr ? trText : en;
-        const double H = 60, D = 1440;
+        const double D = 1440;
         string files = Path.Combine(Paths.Data, "demo-files");
         Directory.CreateDirectory(files);
         string cover = Path.Combine(files, "cover-art-final.png");

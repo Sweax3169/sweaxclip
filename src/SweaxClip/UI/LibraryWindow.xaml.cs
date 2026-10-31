@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -10,13 +10,15 @@ using SweaxClip.Core;
 
 namespace SweaxClip.UI;
 
-/// <summary>The full archive, laid out like a Windows 11 app: navigation, content layer and a details pane.</summary>
+/// <summary>
+/// The library is a desk: every clip lies on it as its card; the shelf on the left sorts them by kind.
+/// Clicking a card picks it up into a lightbox with everything about it.
+/// </summary>
 public partial class LibraryWindow : Window
 {
     readonly App _app;
     readonly ClipListModel _model;
     readonly DispatcherTimer _toastTimer = new() { Interval = TimeSpan.FromMilliseconds(1600) };
-    readonly DispatcherTimer _detailDelay = new(DispatcherPriority.Input) { Interval = TimeSpan.FromMilliseconds(60) };
     readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(30) };
     TaskCompletionSource<bool>? _confirm;
     SettingsView? _settings;
@@ -26,27 +28,26 @@ public partial class LibraryWindow : Window
     public ClipItem? Detail { get => (ClipItem?)GetValue(DetailProperty); set => SetValue(DetailProperty, value); }
 
     public ClipListModel Model => _model;
+    public bool LightboxOpen => lightbox.Visibility == Visibility.Visible;
 
     public LibraryWindow(App app)
     {
         _app = app;
-        _model = new ClipListModel(app.Store, library: true) { AllowGrid = true, GridPreferred = app.Settings.LibraryGrid };
+        _model = new ClipListModel(app.Store, library: true) { AllowGrid = true, GridPreferred = true };
         DataContext = _model;
         InitializeComponent();
         Width = Math.Max(MinWidth, app.Settings.LibraryWidth);
         Height = Math.Max(MinHeight, app.Settings.LibraryHeight);
 
-        _model.PropertyChanged += (_, e) =>
+        _model.PropertyChanged += async (_, e) =>
         {
             switch (e.PropertyName)
             {
                 case nameof(ClipListModel.Selected):
-                    _detailDelay.Stop();
-                    _detailDelay.Start();
                     ScrollToSelected();
+                    if (LightboxOpen) await LoadDetail();
                     break;
                 case nameof(ClipListModel.Scope):
-                case nameof(ClipListModel.UseGrid):
                     UpdateHeader();
                     break;
                 case nameof(ClipListModel.Total):
@@ -57,15 +58,13 @@ public partial class LibraryWindow : Window
         };
         foreach (var s in _model.Scopes) s.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(ScopeInfo.Count)) UpdateHeader(); };
 
-        _detailDelay.Tick += async (_, _) => { _detailDelay.Stop(); await LoadDetail(); };
-        _toastTimer.Tick += (_, _) => { _toastTimer.Stop(); toast.BeginAnimation(OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(180))); };
+        _toastTimer.Tick += (_, _) => { _toastTimer.Stop(); toast.BeginAnimation(OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(200))); };
         _clock.Tick += (_, _) => { _model.RefreshTimes(); UpdateStats(); };
 
         SourceInitialized += (_, _) =>
         {
             _hwnd = new WindowInteropHelper(this).Handle;
-            if (HwndSource.FromHwnd(_hwnd) is { CompositionTarget: { } ct }) ct.BackgroundColor = Colors.Transparent;
-            ApplyTheme();
+            ThemeManager.ApplyFrame(_hwnd);
         };
         ThemeManager.Changed += ApplyTheme;
         StateChanged += (_, _) =>
@@ -91,11 +90,15 @@ public partial class LibraryWindow : Window
                 _app.Settings.LibraryWidth = ActualWidth;
                 _app.Settings.LibraryHeight = ActualHeight;
             }
-            _app.Settings.LibraryGrid = _model.GridPreferred;
             _app.Settings.Save();
         };
 
-        CommandBindings.Add(new CommandBinding(Cmds.Select, (_, e) => { if (e.Parameter is ClipItem c) _model.Selected = c; }));
+        CommandBindings.Add(new CommandBinding(Cmds.Select, async (_, e) =>
+        {
+            if (e.Parameter is not ClipItem c) return;
+            _model.Selected = c;
+            await OpenLightbox();
+        }));
         CommandBindings.Add(new CommandBinding(Cmds.Copy, (_, e) => Copy(e.Parameter as ClipItem, false)));
         CommandBindings.Add(new CommandBinding(Cmds.Paste, (_, e) => Copy(e.Parameter as ClipItem, false)));
         CommandBindings.Add(new CommandBinding(Cmds.PastePlain, (_, e) => Copy(e.Parameter as ClipItem, true)));
@@ -112,15 +115,14 @@ public partial class LibraryWindow : Window
         }));
         CommandBindings.Add(new CommandBinding(Cmds.SetScope, (_, e) =>
         {
-            if (e.Parameter is Scope s) { CloseSettings(); _model.Scope = s; }
+            if (e.Parameter is Scope s) { CloseSettings(); CloseLightbox(); _model.Scope = s; }
         }));
     }
 
     void ApplyTheme()
     {
-        if (_hwnd == IntPtr.Zero) return;
-        ThemeManager.ApplyFrame(_hwnd, Backdrop.Mica);
-        frame.Background = ThemeManager.SupportsBackdrop ? Brushes.Transparent : (Brush)FindResource("WindowFallback");
+        if (_hwnd != IntPtr.Zero) ThemeManager.ApplyFrame(_hwnd);
+        if (LightboxOpen) _ = LoadDetail();
     }
 
     public async Task FocusClip(long? id)
@@ -131,7 +133,11 @@ public partial class LibraryWindow : Window
         _model.Search = "";
         await _model.Reload(false);
         var hit = _model.Items.FirstOrDefault(i => i.Id == v);
-        if (hit != null) _model.Selected = hit;
+        if (hit != null)
+        {
+            _model.Selected = hit;
+            await OpenLightbox();
+        }
     }
 
     public Task Refresh() => _model.Reload(true);
@@ -142,14 +148,8 @@ public partial class LibraryWindow : Window
     {
         var info = _model.Scopes.FirstOrDefault(s => s.Scope == _model.Scope);
         scopeCount.Text = info?.CountText ?? "";
-        bool visual = _model.Scope is Scope.Images or Scope.Screenshots;
-        viewToggle.Visibility = visual ? Visibility.Visible : Visibility.Collapsed;
         emptyTrash.Visibility = _model.Scope == Scope.Trash && (info?.Count ?? 0) > 0 ? Visibility.Visible : Visibility.Collapsed;
-        if (visual)
-        {
-            gridView.IsChecked = _model.GridPreferred;
-            listView.IsChecked = !_model.GridPreferred;
-        }
+        deskHint.Visibility = emptyTrash.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
         UpdateColumns();
     }
 
@@ -166,44 +166,79 @@ public partial class LibraryWindow : Window
         bool paused = _app.Settings.Paused;
         pauseBtn.Content = paused ? Glyphs.Play : Glyphs.Pause;
         pauseBtn.ToolTip = paused ? Loc.T("ResumeCapture") : Loc.T("PauseCapture");
-        pauseBtn.Foreground = paused ? (Brush)FindResource("AccentText") : (Brush)FindResource("TextPrimary");
+        pauseBtn.Foreground = paused ? (Brush)FindResource("Accent") : (Brush)FindResource("Ink2");
     }
 
-    // ── detail ───────────────────────────────────────────────────────────────
+    // ── lightbox ─────────────────────────────────────────────────────────────
+
+    public async Task OpenLightbox()
+    {
+        if (_model.Selected == null) return;
+        await LoadDetail();
+        if (LightboxOpen) return;
+        lightbox.Visibility = Visibility.Visible;
+        deskHint.Opacity = 0;
+        smoke.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(220)));
+        stage.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(160)));
+        var spring = new BackEase { Amplitude = 0.32, EasingMode = EasingMode.EaseOut };
+        stageScale.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0.88, 1, TimeSpan.FromMilliseconds(380)) { EasingFunction = spring });
+        stageScale.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.88, 1, TimeSpan.FromMilliseconds(380)) { EasingFunction = spring });
+        stageMove.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(36, 0, TimeSpan.FromMilliseconds(380)) { EasingFunction = spring });
+    }
+
+    public void CloseLightbox()
+    {
+        if (!LightboxOpen) return;
+        deskHint.Opacity = 1;
+        var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(150));
+        fade.Completed += (_, _) => { if (stage.Opacity < 0.05) lightbox.Visibility = Visibility.Collapsed; };
+        smoke.BeginAnimation(OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(170)));
+        stage.BeginAnimation(OpacityProperty, fade);
+        stageScale.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0.94, TimeSpan.FromMilliseconds(150)));
+        stageScale.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.94, TimeSpan.FromMilliseconds(150)));
+        stageMove.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(18, TimeSpan.FromMilliseconds(150)));
+    }
+
+    void Smoke_Click(object sender, MouseButtonEventArgs e) => CloseLightbox();
+    void CloseLightbox_Click(object sender, RoutedEventArgs e) => CloseLightbox();
 
     async Task LoadDetail()
     {
         var sel = _model.Selected;
-        if (sel == null)
-        {
-            Detail = null;
-            noSel.Visibility = Visibility.Visible;
-            detail.Visibility = Visibility.Collapsed;
-            return;
-        }
+        if (sel == null) { CloseLightbox(); return; }
         var full = sel.IsPartial || sel.IsTextual ? await Task.Run(() => _app.Store.Get(sel.Id)) ?? sel : sel;
         if (!ReferenceEquals(sel, _model.Selected)) return;
-        if (!ReferenceEquals(full, sel)) { full.Pinned = sel.Pinned; full.ThumbImage = sel.ThumbImage; }
-        sel.PropertyChanged -= Sel_Changed;
-        sel.PropertyChanged += Sel_Changed;
+        if (!ReferenceEquals(full, sel)) full.Pinned = sel.Pinned;
         Detail = full;
-        noSel.Visibility = Visibility.Collapsed;
-        detail.Visibility = Visibility.Visible;
 
         foreach (UIElement el in preview.Children) el.Visibility = Visibility.Collapsed;
+        sheetHead.Visibility = Visibility.Visible;
+        Brush bg = (Brush)FindResource("Paper"), head = (Brush)FindResource("PaperInk2");
         switch (full.Kind)
         {
             case ClipKind.Image or ClipKind.Screenshot:
                 pvImage.Visibility = Visibility.Visible;
+                bg = (Brush)FindResource("Slate");
+                head = (Brush)FindResource("SlateInk2");
                 break;
             case ClipKind.Color:
                 pvColor.Visibility = Visibility.Visible;
+                bg = full.Swatch ?? bg;
+                head = full.SwatchInk;
                 break;
             case ClipKind.Link:
                 pvLink.Visibility = Visibility.Visible;
                 break;
+            case ClipKind.Code:
+                pvCode.Visibility = Visibility.Visible;
+                CodeView.SetSource(pvCodeText, full.Text ?? "");
+                bg = (Brush)FindResource("Slate");
+                head = (Brush)FindResource("SlateInk2");
+                break;
             case ClipKind.Files:
                 pvFiles.Visibility = Visibility.Visible;
+                bg = (Brush)FindResource("Manila");
+                head = (Brush)FindResource("ManilaInk2");
                 fileList.ItemsSource = full.Files.Take(500).Select(f =>
                 {
                     bool exists = File.Exists(f) || Directory.Exists(f);
@@ -215,13 +250,11 @@ public partial class LibraryWindow : Window
                 pvText.Visibility = Visibility.Visible;
                 string t = full.Text ?? "";
                 pvText.Text = t.Length > 300_000 ? t[..300_000] + "\n\n…" : t;
-                pvText.FontFamily = (FontFamily)FindResource(full.Kind == ClipKind.Code ? "MonoFont" : "UiFont");
-                pvText.FontSize = full.Kind == ClipKind.Code ? 12.5 : 14;
-                pvText.TextWrapping = full.Kind == ClipKind.Code ? TextWrapping.NoWrap : TextWrapping.Wrap;
-                pvText.HorizontalScrollBarVisibility = full.Kind == ClipKind.Code ? ScrollBarVisibility.Auto : ScrollBarVisibility.Disabled;
                 pvText.ScrollToHome();
                 break;
         }
+        sheet.Background = bg;
+        sheetTitle.Foreground = head;
 
         bool trash = full.Deleted > 0;
         bool openable = full.Kind is ClipKind.Link or ClipKind.Files or ClipKind.Image or ClipKind.Screenshot;
@@ -232,22 +265,8 @@ public partial class LibraryWindow : Window
         pinAction.Visibility = trash ? Visibility.Collapsed : Visibility.Visible;
         restoreAction.Visibility = foreverAction.Visibility = trash ? Visibility.Visible : Visibility.Collapsed;
         ocrBlock.Visibility = full.HasOcr ? Visibility.Visible : Visibility.Collapsed;
-        UpdatePinGlyph(full);
-    }
-
-    void Sel_Changed(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName == nameof(ClipItem.Pinned) && sender is ClipItem c && Detail is { } d && d.Id == c.Id)
-        {
-            d.Pinned = c.Pinned;
-            UpdatePinGlyph(d);
-        }
-    }
-
-    void UpdatePinGlyph(ClipItem c)
-    {
-        pinGlyph.Text = c.Pinned ? Glyphs.Unpin : Glyphs.Pin;
-        pinAction.ToolTip = c.Pinned ? Loc.T("Unpin") : Loc.T("Pin");
+        pinAction.ToolTip = full.Pinned ? Loc.T("Unpin") : Loc.T("Pin");
+        pinAction.Opacity = full.Pinned ? 1 : 0.75;
     }
 
     void PreviewImage_Click(object sender, MouseButtonEventArgs e)
@@ -274,7 +293,7 @@ public partial class LibraryWindow : Window
         var target = _model.Items.FirstOrDefault(i => i.Id == item.Id) ?? item;
         target.Pinned = !target.Pinned;
         _app.Store.SetPinned(target.Id, target.Pinned);
-        if (Detail is { } d && d.Id == target.Id) { d.Pinned = target.Pinned; UpdatePinGlyph(d); }
+        if (Detail is { } d && d.Id == target.Id) { d.Pinned = target.Pinned; pinAction.Opacity = d.Pinned ? 1 : 0.75; }
         Toast(target.Pinned ? Loc.T("Pinned") : Loc.T("Unpinned"));
         if (_model.Scope == Scope.Pinned && !target.Pinned) _model.Drop(target);
         else _ = _model.RefreshCounts();
@@ -287,6 +306,7 @@ public partial class LibraryWindow : Window
         _app.Store.Trash(target.Id);
         _model.Drop(target);
         Toast(Loc.T("MovedToTrash"));
+        if (_model.Items.Count == 0) CloseLightbox();
     }
 
     void Restore(ClipItem? item)
@@ -339,20 +359,14 @@ public partial class LibraryWindow : Window
         _toastTimer.Start();
     }
 
-    // ── view ─────────────────────────────────────────────────────────────────
-
-    void View_Checked(object sender, RoutedEventArgs e)
-    {
-        if (!IsLoaded) return;
-        _model.GridPreferred = gridView.IsChecked == true;
-    }
+    // ── desk layout ──────────────────────────────────────────────────────────
 
     void List_SizeChanged(object sender, SizeChangedEventArgs e) => UpdateColumns();
 
     void UpdateColumns()
     {
-        double w = list.ActualWidth - 36;
-        if (w > 0) _model.Columns = Math.Max(2, (int)(w / 236));
+        double w = list.ActualWidth - 46;
+        if (w > 0) _model.Columns = Math.Max(2, (int)(w / 300));
     }
 
     void List_ScrollChanged(object sender, ScrollChangedEventArgs e)
@@ -370,23 +384,21 @@ public partial class LibraryWindow : Window
     void Settings_Click(object sender, RoutedEventArgs e)
     {
         if (settingsHost.Visibility == Visibility.Visible) { CloseSettings(); return; }
+        CloseLightbox();
         _settings ??= new SettingsView(_app, this);
         _settings.Refresh();
         settingsHost.Content = _settings;
         settingsHost.Visibility = Visibility.Visible;
-        browse.Visibility = Visibility.Collapsed;
-        settingsNav.Background = (Brush)FindResource("SubtleFillHover");
-        settingsPill.Visibility = Visibility.Visible;
+        desk.Visibility = Visibility.Collapsed;
         foreach (var s in _model.Scopes) s.Active = false;
+        settingsHost.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200)));
     }
 
     public void CloseSettings()
     {
         if (settingsHost.Visibility != Visibility.Visible) return;
         settingsHost.Visibility = Visibility.Collapsed;
-        browse.Visibility = Visibility.Visible;
-        settingsNav.ClearValue(BackgroundProperty);
-        settingsPill.Visibility = Visibility.Hidden;
+        desk.Visibility = Visibility.Visible;
         foreach (var s in _model.Scopes) s.Active = s.Scope == _model.Scope;
     }
 
@@ -421,20 +433,25 @@ public partial class LibraryWindow : Window
         bool inSearch = search.IsKeyboardFocused;
         bool typing = Keyboard.FocusedElement is TextBox tb && !ReferenceEquals(tb, search);
         if (typing && e.Key != Key.Escape) return;
-        bool grid = _model.UseGrid;
+        bool searchEmpty = search.Text.Length == 0;
+        int cols = _model.Columns;
 
         switch (e.Key)
         {
             case Key.Escape:
-                if (search.Text.Length > 0) _model.Search = "";
+                if (LightboxOpen) CloseLightbox();
+                else if (!searchEmpty) _model.Search = "";
                 else Close();
                 break;
-            case Key.Down: _model.Move(grid ? _model.Columns : 1); break;
-            case Key.Up: _model.Move(grid ? -_model.Columns : -1); break;
-            case Key.Right when grid && (!inSearch || search.Text.Length == 0): _model.Move(1); break;
-            case Key.Left when grid && (!inSearch || search.Text.Length == 0): _model.Move(-1); break;
-            case Key.PageDown: _model.Move(grid ? _model.Columns * 3 : 10); break;
-            case Key.PageUp: _model.Move(grid ? -_model.Columns * 3 : -10); break;
+            case Key.Space when !inSearch || searchEmpty:
+                if (LightboxOpen) CloseLightbox(); else _ = OpenLightbox();
+                break;
+            case Key.Down: _model.Move(LightboxOpen ? 1 : cols); break;
+            case Key.Up: _model.Move(LightboxOpen ? -1 : -cols); break;
+            case Key.Right when LightboxOpen || !inSearch || searchEmpty: _model.Move(1); break;
+            case Key.Left when LightboxOpen || !inSearch || searchEmpty: _model.Move(-1); break;
+            case Key.PageDown: _model.Move(cols * 3); break;
+            case Key.PageUp: _model.Move(-cols * 3); break;
             case Key.Enter: Copy(_model.Selected, shift); break;
             case Key.Tab when ctrl: _model.MoveScope(shift ? -1 : 1); break;
             case >= Key.D1 and <= Key.D9 when ctrl:
@@ -442,13 +459,13 @@ public partial class LibraryWindow : Window
                 if (n <= _model.Scopes.Count) _model.Scope = _model.Scopes[n - 1].Scope;
                 break;
             case Key.D0 when ctrl: _model.Scope = Scope.Trash; break;
-            case Key.Delete when !inSearch || search.Text.Length == 0 || ctrl:
+            case Key.Delete when !inSearch || searchEmpty || ctrl:
                 if (_model.Scope == Scope.Trash) DeleteForever(_model.Selected); else Delete(_model.Selected);
                 break;
             case Key.P when ctrl: TogglePin(_model.Selected); break;
             case Key.C when ctrl && search.SelectionLength == 0 && pvText.SelectionLength == 0: Copy(_model.Selected, false); break;
             case Key.O when ctrl: if (_model.Selected is { } o) _app.OpenItem(o); break;
-            case Key.F when ctrl: search.Focus(); search.SelectAll(); break;
+            case Key.F when ctrl: CloseLightbox(); search.Focus(); search.SelectAll(); break;
             case Key.OemComma when ctrl: Settings_Click(this, e); break;
             default: return;
         }

@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.2.0 — 2026-10-31
+
+A design of its own. SweaxClip no longer imitates Windows; only the place the panel opens is the same.
+
+- **The deck.** <kbd>Win</kbd> + <kbd>V</kbd> deals your history as a deck of cards where Windows opens its own panel. The newest clip is in front, older ones stack behind showing only their headers. Every card moves on springs: flipping through history, dealing a category, throwing the card at the text cursor when you paste, dropping it in the bin.
+- **Every clip is an object.** Text is paper, a link carries its site's colour, code sits on slate with syntax colours, a colour is the colour itself, images are prints, screenshots sit in a bezel with crop marks, files come in a manila folder.
+- Below the cursor the deck hangs from the search lid; above the cursor or the taskbar it rests on the bottom edge. With only a few cards the lid and hints stay attached to them.
+- **The library is a desk.** Clips lie on it as their cards, grouped by day. Click one to pick it up into a lightbox with its full content, source, history and recognised text.
+- Settings filed as manila dividers.
+- New palette (warm desk, ink, vermilion), new drawn category icons and a new app icon: the deck itself.
+- The panel's count shows the number of matches while searching.
+- Apps without an icon get a stamped initial.
+
 ## 1.1.0 — 2026-10-31
 
 A redesign that makes SweaxClip look and behave like part of Windows 11.

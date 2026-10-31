@@ -1,295 +1,296 @@
-<Window x:Class="SweaxClip.UI.LibraryWindow"
+﻿<Window x:Class="SweaxClip.UI.LibraryWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:c="clr-namespace:SweaxClip.Core"
         xmlns:ui="clr-namespace:SweaxClip.UI"
-        Title="SweaxClip" Width="1240" Height="780" MinWidth="960" MinHeight="580"
-        Background="Transparent" Foreground="{DynamicResource TextPrimary}"
-        FontFamily="{StaticResource UiFont}" UseLayoutRounding="True" SnapsToDevicePixels="True"
-        TextOptions.TextFormattingMode="Display"
+        Title="SweaxClip" Width="1320" Height="840" MinWidth="980" MinHeight="600"
+        Background="{DynamicResource Desk}" Foreground="{DynamicResource Ink}"
+        FontFamily="{StaticResource UiFont}" UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Ideal"
         WindowStartupLocation="CenterScreen" Icon="pack://application:,,,/Assets/sweaxclip.ico">
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="48" ResizeBorderThickness="6" GlassFrameThickness="-1" CornerRadius="0" UseAeroCaptionButtons="False"/>
+        <WindowChrome CaptionHeight="64" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
     </WindowChrome.WindowChrome>
 
     <Window.Resources>
-        <ui:RowSelector x:Key="Rows" ClipKey="Row.Library"/>
+        <ui:RowSelector x:Key="Rows" ClipKey="Tile"/>
         <Style x:Key="MetaKey" TargetType="TextBlock" BasedOn="{StaticResource Caption}">
-            <Setter Property="Margin" Value="0,0,16,10"/>
+            <Setter Property="Margin" Value="0,0,18,9"/>
+            <Setter Property="Foreground" Value="{DynamicResource Ink3}"/>
         </Style>
         <Style x:Key="MetaVal" TargetType="TextBlock" BasedOn="{StaticResource Body}">
-            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="Margin" Value="0,0,0,9"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
-        <Style x:Key="NavButton" TargetType="Button" BasedOn="{StaticResource SubtleButton}">
-            <Setter Property="Height" Value="36"/>
-            <Setter Property="Margin" Value="4,2"/>
-            <Setter Property="Padding" Value="0"/>
-            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-            <Setter Property="Focusable" Value="False"/>
+        <Style x:Key="ActionChip" TargetType="Button" BasedOn="{StaticResource SoftButton}">
+            <Setter Property="Padding" Value="9,7,9,8"/>
+            <Setter Property="Margin" Value="0,0,6,6"/>
         </Style>
     </Window.Resources>
 
     <Grid x:Name="frame">
-        <Grid.RowDefinitions><RowDefinition Height="48"/><RowDefinition/></Grid.RowDefinitions>
+        <Grid.RowDefinitions><RowDefinition Height="64"/><RowDefinition/></Grid.RowDefinitions>
 
-        <!-- ═══ title bar ═══════════════════════════════════════════════════ -->
+        <!-- ═══ top bar ═══════════════════════════════════════════════════════ -->
         <Grid>
-            <Grid.ColumnDefinitions><ColumnDefinition Width="268"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
-                <Image Source="{StaticResource AppIcon}" Width="16" Height="16" RenderOptions.BitmapScalingMode="HighQuality"/>
-                <TextBlock Text="SweaxClip" Style="{StaticResource Caption}" Foreground="{DynamicResource TextPrimary}" Margin="12,0,0,1" VerticalAlignment="Center"/>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="250"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="22,0,0,0">
+                <Image Source="{StaticResource AppMark}" Width="30" Height="30"/>
+                <TextBlock Text="SweaxClip" FontSize="16" FontWeight="SemiBold" Margin="10,0,0,1" VerticalAlignment="Center"/>
             </StackPanel>
-            <TextBox x:Name="search" Grid.Column="1" Style="{StaticResource SearchBox}" Tag="{c:T SearchHint}" Width="440" HorizontalAlignment="Center" Margin="0,0,0,2"
-                     VerticalAlignment="Center" WindowChrome.IsHitTestVisibleInChrome="True" Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"/>
-            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
-                <Button x:Name="pauseBtn" Style="{StaticResource CaptionButton}" FontSize="12" Height="32" Click="Pause_Click"/>
+            <TextBox x:Name="search" Grid.Column="1" Style="{StaticResource SearchField}" Tag="{c:T SearchHint}" MaxWidth="600" Margin="0,0,24,0" VerticalAlignment="Center"
+                     WindowChrome.IsHitTestVisibleInChrome="True" Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"/>
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top" Margin="0,8,8,0">
+                <Button x:Name="pauseBtn" Style="{StaticResource CaptionButton}" FontSize="13" Click="Pause_Click"/>
+                <Button Style="{StaticResource CaptionButton}" FontSize="13" Content="&#xE713;" Click="Settings_Click" ToolTip="{c:T Settings}"/>
+                <Border Width="1" Height="18" Background="{DynamicResource Line2}" Margin="6,0"/>
                 <Button Style="{StaticResource CaptionButton}" Content="&#xE921;" Click="Min_Click"/>
                 <Button x:Name="maxBtn" Style="{StaticResource CaptionButton}" Content="&#xE922;" Click="Max_Click"/>
                 <Button Style="{StaticResource CloseCaptionButton}" Content="&#xE8BB;" Click="Close_Click"/>
             </StackPanel>
         </Grid>
 
-        <!-- ═══ body ════════════════════════════════════════════════════════ -->
+        <!-- ═══ body ══════════════════════════════════════════════════════════ -->
         <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="268"/><ColumnDefinition/></Grid.ColumnDefinitions>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="250"/><ColumnDefinition/></Grid.ColumnDefinitions>
 
-            <!-- navigation -->
-            <Grid Margin="0,4,0,0">
+            <!-- the shelf of categories -->
+            <Grid Margin="14,6,10,14">
                 <Grid.RowDefinitions><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                <ItemsControl ItemsSource="{Binding Scopes}" Focusable="False" Margin="4,0">
+                <ItemsControl ItemsSource="{Binding Scopes}" Focusable="False">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type c:ScopeInfo}">
                             <StackPanel>
-                                <Border x:Name="gap" Height="1" Background="{DynamicResource Divider}" Margin="16,8,16,8" Visibility="Collapsed"/>
-                                <Button x:Name="btn" Style="{StaticResource NavButton}" Command="{x:Static ui:Cmds.SetScope}" CommandParameter="{Binding Scope}">
+                                <Border x:Name="gap" Height="1" Background="{DynamicResource Line}" Margin="14,10" Visibility="Collapsed"/>
+                                <Button x:Name="btn" Style="{StaticResource GhostButton}" Height="46" Padding="10,0" HorizontalContentAlignment="Stretch" Margin="0,1" Focusable="False"
+                                        Command="{x:Static ui:Cmds.SetScope}" CommandParameter="{Binding Scope}">
                                     <Grid>
-                                        <Border x:Name="pill" Width="3" Height="16" CornerRadius="1.5" Background="{DynamicResource AccentFill}" HorizontalAlignment="Left" Visibility="Hidden"/>
-                                        <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" FontSize="16" HorizontalAlignment="Left" Margin="16,0,0,0"/>
-                                        <TextBlock Text="{Binding Label}" Style="{StaticResource Body}" VerticalAlignment="Center" Margin="48,0,0,1"/>
-                                        <TextBlock Text="{Binding CountText}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <Image Source="{Binding Icon}" Width="26" Height="26" RenderTransformOrigin="0.5,0.5">
+                                            <Image.RenderTransform><RotateTransform x:Name="tilt"/></Image.RenderTransform>
+                                        </Image>
+                                        <TextBlock x:Name="lbl" Grid.Column="1" Text="{Binding Label}" FontSize="14" Foreground="{DynamicResource Ink2}" VerticalAlignment="Center" Margin="12,0,0,1"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding CountText}" FontSize="12" Foreground="{DynamicResource Ink3}" VerticalAlignment="Center"/>
                                     </Grid>
                                 </Button>
                             </StackPanel>
                             <DataTemplate.Triggers>
                                 <DataTrigger Binding="{Binding Active}" Value="True">
-                                    <Setter TargetName="btn" Property="Background" Value="{DynamicResource SubtleFillHover}"/>
-                                    <Setter TargetName="pill" Property="Visibility" Value="Visible"/>
+                                    <Setter TargetName="btn" Property="Background" Value="{DynamicResource Surface}"/>
+                                    <Setter TargetName="btn" Property="Effect" Value="{StaticResource LiftShadow}"/>
+                                    <Setter TargetName="lbl" Property="Foreground" Value="{DynamicResource Ink}"/>
+                                    <Setter TargetName="lbl" Property="FontWeight" Value="SemiBold"/>
+                                    <DataTrigger.EnterActions>
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetName="tilt" Storyboard.TargetProperty="Angle" From="-14" To="0" Duration="0:0:0.5"><DoubleAnimation.EasingFunction><ElasticEase Oscillations="2" Springiness="6"/></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </DataTrigger.EnterActions>
                                 </DataTrigger>
-                                <DataTrigger Binding="{Binding Scope}" Value="Pinned">
-                                    <Setter TargetName="gap" Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Scope}" Value="Pinned"><Setter TargetName="gap" Property="Visibility" Value="Visible"/></DataTrigger>
                             </DataTemplate.Triggers>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+                <TextBlock x:Name="storage" Grid.Row="1" Style="{StaticResource Caption}" Foreground="{DynamicResource Ink3}" Margin="14,0,8,0" TextWrapping="Wrap" LineHeight="18"/>
+            </Grid>
 
-                <StackPanel Grid.Row="1" Margin="4,0,4,8">
-                    <TextBlock x:Name="storage" Style="{StaticResource Caption}" Margin="20,0,16,10" TextWrapping="Wrap"/>
-                    <Button x:Name="settingsNav" Style="{StaticResource NavButton}" Click="Settings_Click">
-                        <Grid>
-                            <Border x:Name="settingsPill" Width="3" Height="16" CornerRadius="1.5" Background="{DynamicResource AccentFill}" HorizontalAlignment="Left" Visibility="Hidden"/>
-                            <TextBlock Text="&#xE713;" Style="{StaticResource Icon}" FontSize="16" HorizontalAlignment="Left" Margin="16,0,0,0"/>
-                            <TextBlock Text="{c:T Settings}" Style="{StaticResource Body}" VerticalAlignment="Center" Margin="48,0,0,1"/>
-                        </Grid>
-                    </Button>
+            <!-- the desk -->
+            <Grid x:Name="desk" Grid.Column="1">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/></Grid.RowDefinitions>
+                <Grid Margin="30,10,30,4">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom">
+                        <TextBlock Text="{Binding ScopeTitle}" Style="{StaticResource Title}" FontSize="30"/>
+                        <TextBlock x:Name="scopeCount" FontSize="15" Foreground="{DynamicResource Ink3}" VerticalAlignment="Bottom" Margin="12,0,0,6"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                        <TextBlock x:Name="deskHint" Text="{c:T PressSpace}" Style="{StaticResource Caption}" Foreground="{DynamicResource Ink3}" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                        <Button x:Name="emptyTrash" Style="{StaticResource SoftButton}" Click="EmptyTrash_Click" Visibility="Collapsed">
+                            <StackPanel Orientation="Horizontal">
+                                <Image Source="{StaticResource Obj.Trash}" Width="18" Height="18" Margin="0,0,8,0"/>
+                                <TextBlock Text="{c:T EmptyTrash}"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+                <ListBox x:Name="list" Grid.Row="1" Style="{StaticResource BareList}" ItemsSource="{Binding Rows}" ItemTemplateSelector="{StaticResource Rows}"
+                         Padding="0,0,0,30" SizeChanged="List_SizeChanged" ScrollViewer.ScrollChanged="List_ScrollChanged"/>
+                <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="40,0,40,80"
+                            Visibility="{Binding IsEmpty, Converter={StaticResource Vis}}" IsHitTestVisible="False">
+                    <Image Source="{StaticResource Obj.Stack}" Width="84" Height="84"/>
+                    <TextBlock Text="{Binding EmptyTitle}" Style="{StaticResource Subtitle}" HorizontalAlignment="Center" Margin="0,20,0,6"/>
+                    <TextBlock Text="{Binding EmptyBody}" Style="{StaticResource Body}" Foreground="{DynamicResource Ink2}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
                 </StackPanel>
             </Grid>
 
-            <!-- content layer -->
-            <Border x:Name="layer" Grid.Column="1" Background="{DynamicResource LayerFill}" BorderBrush="{DynamicResource LayerStroke}" BorderThickness="1,1,0,0" CornerRadius="8,0,0,0">
-                <Grid>
-                    <Grid x:Name="browse">
-                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="392"/></Grid.ColumnDefinitions>
+            <ContentControl x:Name="settingsHost" Grid.Column="1" Visibility="Collapsed" Focusable="False"/>
+        </Grid>
 
-                        <Grid x:Name="listArea">
-                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/></Grid.RowDefinitions>
-                            <Grid Margin="24,22,24,14">
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom">
-                                    <TextBlock Text="{Binding ScopeTitle}" Style="{StaticResource Title}"/>
-                                    <TextBlock x:Name="scopeCount" Style="{StaticResource Body}" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Bottom" Margin="12,0,0,5"/>
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
-                                    <Border x:Name="viewToggle" Background="{DynamicResource ControlFill}" BorderBrush="{DynamicResource ControlStroke}" BorderThickness="1" CornerRadius="4" Padding="2" Visibility="Collapsed">
-                                        <StackPanel Orientation="Horizontal">
-                                            <RadioButton x:Name="gridView" Style="{StaticResource Segment}" GroupName="view" Checked="View_Checked" ToolTip="{c:T GridView}">
-                                                <TextBlock Text="&#xF0E2;" Style="{StaticResource Icon}" FontSize="14" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}"/>
-                                            </RadioButton>
-                                            <RadioButton x:Name="listView" Style="{StaticResource Segment}" GroupName="view" Checked="View_Checked" ToolTip="{c:T ListView}">
-                                                <TextBlock Text="&#xE8FD;" Style="{StaticResource Icon}" FontSize="14" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}"/>
-                                            </RadioButton>
-                                        </StackPanel>
-                                    </Border>
-                                    <Button x:Name="emptyTrash" Style="{StaticResource StandardButton}" Click="EmptyTrash_Click" Visibility="Collapsed">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="&#xE74D;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                                            <TextBlock Text="{c:T EmptyTrash}"/>
-                                        </StackPanel>
-                                    </Button>
-                                </StackPanel>
-                            </Grid>
-                            <ListBox x:Name="list" Grid.Row="1" Style="{StaticResource BareList}" ItemsSource="{Binding Rows}" ItemTemplateSelector="{StaticResource Rows}"
-                                     Padding="0,0,0,24" SizeChanged="List_SizeChanged" ScrollViewer.ScrollChanged="List_ScrollChanged"/>
-                            <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="40,0,40,80"
-                                        Visibility="{Binding IsEmpty, Converter={StaticResource Vis}}" IsHitTestVisible="False">
-                                <TextBlock Text="&#xE77F;" Style="{StaticResource Icon}" FontSize="48" Foreground="{DynamicResource TextTertiary}"/>
-                                <TextBlock Text="{Binding EmptyTitle}" Style="{StaticResource Subtitle}" HorizontalAlignment="Center" Margin="0,20,0,6"/>
-                                <TextBlock Text="{Binding EmptyBody}" Style="{StaticResource Body}" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
+        <!-- ═══ lightbox: the card you picked up ═════════════════════════════ -->
+        <Grid x:Name="lightbox" Grid.RowSpan="2" Visibility="Collapsed">
+            <Border x:Name="smoke" Background="{DynamicResource Smoke}" MouseLeftButtonDown="Smoke_Click"/>
+            <Grid x:Name="stage" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="40" RenderTransformOrigin="0.5,0.5"
+                  DataContext="{Binding Detail, RelativeSource={RelativeSource AncestorType=Window}}">
+                <Grid.RenderTransform>
+                    <TransformGroup><ScaleTransform x:Name="stageScale"/><TranslateTransform x:Name="stageMove"/></TransformGroup>
+                </Grid.RenderTransform>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="372"/></Grid.ColumnDefinitions>
+
+                <!-- the object, large -->
+                <Border x:Name="sheet" CornerRadius="18" MinWidth="560" MaxWidth="760" MinHeight="380" MaxHeight="640" Margin="0,0,22,0" Effect="{StaticResource FloatShadow}"
+                        Background="{DynamicResource Paper}" BorderBrush="{DynamicResource PaperLine}" BorderThickness="1">
+                    <Grid x:Name="preview" ui:Round.Radius="17">
+                        <Grid.RowDefinitions><RowDefinition Height="52"/><RowDefinition/></Grid.RowDefinitions>
+                        <Grid x:Name="sheetHead" Margin="22,0,18,0">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource AppGlyph}" Width="20" Height="20" Margin="0,0,10,0"/>
+                                <TextBlock x:Name="sheetTitle" FontSize="13.5" VerticalAlignment="Center">
+                                    <Run Text="{Binding AppName, Mode=OneWay}" FontWeight="SemiBold"/><Run Text="  ·  "/><Run Text="{Binding RelTime, Mode=OneWay}"/>
+                                </TextBlock>
                             </StackPanel>
+                            <Image Source="{Binding KindIcon}" Width="22" Height="22" HorizontalAlignment="Right"/>
                         </Grid>
-
-                        <!-- details pane -->
-                        <Border x:Name="inspector" Grid.Column="1" BorderBrush="{DynamicResource Divider}" BorderThickness="1,0,0,0">
-                            <Grid>
-                                <StackPanel x:Name="noSel" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="40">
-                                    <TextBlock Text="&#xE946;" Style="{StaticResource Icon}" FontSize="32" Foreground="{DynamicResource TextTertiary}"/>
-                                    <TextBlock Text="{c:T NoSelection}" Style="{StaticResource Body}" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,14,0,0"/>
-                                </StackPanel>
-
-                                <Grid x:Name="detail" DataContext="{Binding Detail, RelativeSource={RelativeSource AncestorType=Window}}" Visibility="Collapsed">
-                                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-
-                                    <StackPanel Margin="20,22,20,14">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="{Binding KindGlyph}" Style="{StaticResource Icon}" FontSize="16" Foreground="{DynamicResource AccentText}"/>
-                                            <TextBlock Text="{Binding KindLabel}" Style="{StaticResource BodyStrong}" Margin="10,0,0,1" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                        <WrapPanel Margin="0,14,0,0">
-                                            <Button Style="{StaticResource AccentButton}" Command="{x:Static ui:Cmds.Copy}" CommandParameter="{Binding}" Margin="0,0,6,6">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="&#xE8C8;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,8,0" Foreground="{DynamicResource OnAccent}"/>
-                                                    <TextBlock Text="{c:T CopyShort}"/>
-                                                </StackPanel>
-                                            </Button>
-                                            <Button x:Name="pinAction" Style="{StaticResource StandardButton}" Command="{x:Static ui:Cmds.TogglePin}" CommandParameter="{Binding}" Margin="0,0,6,6" Padding="9,5,9,6">
-                                                <TextBlock x:Name="pinGlyph" Text="&#xE718;" Style="{StaticResource Icon}" FontSize="14"/>
-                                            </Button>
-                                            <Button x:Name="openAction" Style="{StaticResource StandardButton}" Command="{x:Static ui:Cmds.Open}" CommandParameter="{Binding}" Margin="0,0,6,6" Padding="9,5,9,6" ToolTip="{c:T OpenFile}">
-                                                <TextBlock Text="&#xE8A7;" Style="{StaticResource Icon}" FontSize="14"/>
-                                            </Button>
-                                            <Button x:Name="folderAction" Style="{StaticResource StandardButton}" Command="{x:Static ui:Cmds.ShowInFolder}" CommandParameter="{Binding}" Margin="0,0,6,6" Padding="9,5,9,6" ToolTip="{c:T ShowInFolder}">
-                                                <TextBlock Text="&#xE838;" Style="{StaticResource Icon}" FontSize="14"/>
-                                            </Button>
-                                            <Button x:Name="saveAction" Style="{StaticResource StandardButton}" Command="{x:Static ui:Cmds.SaveImage}" CommandParameter="{Binding}" Margin="0,0,6,6" Padding="9,5,9,6" ToolTip="{c:T SaveImage}">
-                                                <TextBlock Text="&#xE74E;" Style="{StaticResource Icon}" FontSize="14"/>
-                                            </Button>
-                                            <Button x:Name="deleteAction" Style="{StaticResource StandardButton}" Command="{x:Static ui:Cmds.Delete}" CommandParameter="{Binding}" Margin="0,0,6,6" Padding="9,5,9,6" ToolTip="{c:T Delete}">
-                                                <TextBlock Text="&#xE74D;" Style="{StaticResource Icon}" FontSize="14"/>
-                                            </Button>
-                                            <Button x:Name="restoreAction" Style="{StaticResource StandardButton}" Command="{x:Static ui:Cmds.Restore}" CommandParameter="{Binding}" Margin="0,0,6,6" Visibility="Collapsed" Content="{c:T Restore}"/>
-                                            <Button x:Name="foreverAction" Style="{StaticResource StandardButton}" Command="{x:Static ui:Cmds.DeleteForever}" CommandParameter="{Binding}" Margin="0,0,6,6" Visibility="Collapsed" Content="{c:T DeleteForever}"/>
-                                        </WrapPanel>
-                                    </StackPanel>
-
-                                    <Border Grid.Row="1" Style="{StaticResource Card}" Margin="20,0,20,12" Padding="0">
-                                        <Grid x:Name="preview">
-                                            <TextBox x:Name="pvText" Style="{StaticResource ReadText}" Margin="16,12,6,12" Visibility="Collapsed"/>
-                                            <Grid x:Name="pvImage" Visibility="Collapsed" Margin="12" Cursor="Hand" MouseLeftButtonUp="PreviewImage_Click">
-                                                <Image x:Name="pvImg" Stretch="Uniform" StretchDirection="DownOnly" RenderOptions.BitmapScalingMode="HighQuality" ui:ThumbLoader.Full="True" ui:ThumbLoader.Width="900"/>
-                                            </Grid>
-                                            <StackPanel x:Name="pvColor" Visibility="Collapsed" Margin="16">
-                                                <Border Height="160" CornerRadius="4" Background="{Binding Swatch}" BorderBrush="{DynamicResource ControlStroke}" BorderThickness="1"/>
-                                                <TextBlock Text="{Binding Text}" Style="{StaticResource Subtitle}" FontFamily="{StaticResource MonoFont}" Margin="0,16,0,4"/>
-                                                <TextBlock Text="{Binding ColorDetail}" Style="{StaticResource Caption}" FontFamily="{StaticResource MonoFont}" TextWrapping="Wrap"/>
+                        <TextBox x:Name="pvText" Grid.Row="1" Style="{StaticResource ReadText}" Margin="24,6,12,22" FontSize="16" Foreground="{DynamicResource PaperInk}" Visibility="Collapsed"/>
+                        <Grid x:Name="pvCode" Grid.Row="1" Margin="18,4,12,18" Visibility="Collapsed">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                                <TextBlock x:Name="pvCodeText" FontFamily="{StaticResource MonoFont}" FontSize="13.5" LineHeight="21" LineStackingStrategy="BlockLineHeight" Margin="0,0,0,10"/>
+                            </ScrollViewer>
+                        </Grid>
+                        <Grid x:Name="pvImage" Grid.Row="0" Grid.RowSpan="2" Visibility="Collapsed" Cursor="Hand" MouseLeftButtonUp="PreviewImage_Click">
+                            <Image ui:ThumbLoader.Full="True" ui:ThumbLoader.Width="1100" Stretch="Uniform" StretchDirection="DownOnly" RenderOptions.BitmapScalingMode="HighQuality" Margin="0,52,0,0"/>
+                        </Grid>
+                        <StackPanel x:Name="pvColor" Grid.Row="1" VerticalAlignment="Bottom" Margin="28,0,28,30" Visibility="Collapsed">
+                            <TextBlock Text="{Binding ColorHex}" FontFamily="{StaticResource MonoFont}" FontSize="56" FontWeight="SemiBold" Foreground="{Binding SwatchInk}"/>
+                            <TextBlock Text="{Binding ColorDetail}" FontFamily="{StaticResource MonoFont}" FontSize="15" Foreground="{Binding SwatchInk}" Opacity="0.8" Margin="4,8,0,0" TextWrapping="Wrap"/>
+                        </StackPanel>
+                        <StackPanel x:Name="pvLink" Grid.Row="1" Margin="30,10,30,30" Visibility="Collapsed">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="64" Height="64" CornerRadius="16" Background="{Binding SiteBrush}">
+                                    <TextBlock Text="{Binding SiteInitial}" FontSize="32" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,3"/>
+                                </Border>
+                                <TextBlock Text="{Binding LinkHost}" FontSize="30" FontWeight="SemiBold" Foreground="{DynamicResource PaperInk}" VerticalAlignment="Center" Margin="18,0,0,3" TextWrapping="Wrap" MaxWidth="560"/>
+                            </StackPanel>
+                            <TextBox Text="{Binding LinkUrl, Mode=OneWay}" Style="{StaticResource ReadText}" FontFamily="{StaticResource MonoFont}" FontSize="14" Foreground="{DynamicResource PaperInk2}" Margin="0,22,0,0"/>
+                        </StackPanel>
+                        <ScrollViewer x:Name="pvFiles" Grid.Row="1" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" Margin="10,0,10,16">
+                            <ItemsControl x:Name="fileList">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="14,7">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                            <Image Source="{Binding Icon}" Width="28" Height="28"/>
+                                            <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Name}" FontSize="14.5" FontWeight="SemiBold" Foreground="{DynamicResource ManilaInk}" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding Detail}" FontSize="12" Foreground="{DynamicResource ManilaInk2}" TextTrimming="CharacterEllipsis"/>
                                             </StackPanel>
-                                            <StackPanel x:Name="pvLink" Visibility="Collapsed" Margin="16,18">
-                                                <TextBlock Text="{Binding LinkHost}" Style="{StaticResource Subtitle}" TextWrapping="Wrap"/>
-                                                <TextBox Text="{Binding LinkUrl, Mode=OneWay}" Style="{StaticResource ReadText}" FontSize="13" Foreground="{DynamicResource TextSecondary}" Margin="0,8,0,0"/>
-                                            </StackPanel>
-                                            <ScrollViewer x:Name="pvFiles" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" Focusable="False">
-                                                <ItemsControl x:Name="fileList" Margin="8,6">
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <Grid Margin="8,6">
-                                                                <Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                                                <Image Source="{Binding Icon}" Width="20" Height="20"/>
-                                                                <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                                                                    <TextBlock Text="{Binding Name}" Style="{StaticResource Body}" FontSize="13" TextTrimming="CharacterEllipsis"/>
-                                                                    <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" FontSize="11" TextTrimming="CharacterEllipsis"/>
-                                                                </StackPanel>
-                                                            </Grid>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                            </ScrollViewer>
                                         </Grid>
-                                    </Border>
-
-                                    <ScrollViewer Grid.Row="2" MaxHeight="300" VerticalScrollBarVisibility="Auto" Focusable="False">
-                                        <StackPanel Margin="20,0,20,16">
-                                            <Border x:Name="ocrBlock" Style="{StaticResource Card}" Padding="14,10,10,12" Margin="0,0,0,12" Visibility="Collapsed">
-                                                <StackPanel>
-                                                    <Grid Margin="0,0,0,6">
-                                                        <TextBlock Text="{c:T Recognised}" Style="{StaticResource BodyStrong}" FontSize="13" VerticalAlignment="Center"/>
-                                                        <Button Style="{StaticResource SubtleButton}" HorizontalAlignment="Right" Padding="8,3" Command="{x:Static ui:Cmds.CopyOcr}" CommandParameter="{Binding}">
-                                                            <TextBlock Text="{c:T CopyOcr}" Style="{StaticResource Caption}" Foreground="{DynamicResource AccentText}"/>
-                                                        </Button>
-                                                    </Grid>
-                                                    <TextBox Text="{Binding Ocr, Mode=OneWay}" Style="{StaticResource ReadText}" FontSize="12" MaxHeight="96" Foreground="{DynamicResource TextSecondary}"/>
-                                                </StackPanel>
-                                            </Border>
-                                            <Border Style="{StaticResource Card}" Padding="14,12,14,2">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                                    <Grid.RowDefinitions>
-                                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-                                                    </Grid.RowDefinitions>
-                                                    <TextBlock Text="{c:T Source}" Style="{StaticResource MetaKey}"/>
-                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,10">
-                                                        <Image Source="{Binding AppIcon}" Width="16" Height="16" Margin="0,0,8,0"/>
-                                                        <TextBlock Text="{Binding AppName}" Style="{StaticResource Body}" FontSize="13"/>
-                                                    </StackPanel>
-                                                    <TextBlock Grid.Row="1" Text="{c:T Window}" Style="{StaticResource MetaKey}"/>
-                                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Title}" Style="{StaticResource MetaVal}" Foreground="{DynamicResource TextSecondary}" MaxHeight="36" TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock Grid.Row="2" Text="{c:T FirstCopied}" Style="{StaticResource MetaKey}"/>
-                                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding CreatedText}" Style="{StaticResource MetaVal}"/>
-                                                    <TextBlock Grid.Row="3" Text="{c:T LastUsed}" Style="{StaticResource MetaKey}"/>
-                                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding UsedText}" Style="{StaticResource MetaVal}"/>
-                                                    <TextBlock Grid.Row="4" Text="{c:T TimesCopied}" Style="{StaticResource MetaKey}"/>
-                                                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Uses}" Style="{StaticResource MetaVal}"/>
-                                                    <TextBlock Grid.Row="5" Text="{c:T Size}" Style="{StaticResource MetaKey}"/>
-                                                    <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding Stats}" Style="{StaticResource MetaVal}"/>
-                                                </Grid>
-                                            </Border>
-                                        </StackPanel>
-                                    </ScrollViewer>
-                                </Grid>
-                            </Grid>
-                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
                     </Grid>
+                </Border>
 
-                    <ContentControl x:Name="settingsHost" Visibility="Collapsed" Focusable="False"/>
-                </Grid>
-            </Border>
+                <!-- what it is, where it came from, what you can do with it -->
+                <Border Grid.Column="1" CornerRadius="18" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="1" Padding="22,20,22,16"
+                        Effect="{StaticResource FloatShadow}" VerticalAlignment="Stretch" MaxHeight="640">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition/></Grid.RowDefinitions>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <Image Source="{Binding KindIcon}" Width="26" Height="26"/>
+                                <TextBlock Text="{Binding KindLabel}" Style="{StaticResource Subtitle}" Margin="10,0,0,1" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding Stats}" Style="{StaticResource Caption}" Margin="36,2,0,0"/>
+                        </StackPanel>
+                        <WrapPanel Grid.Row="1" Margin="0,18,0,8">
+                            <Button Style="{StaticResource StampButton}" Command="{x:Static ui:Cmds.Copy}" CommandParameter="{Binding}" Margin="0,0,8,6" Padding="14,7,15,8">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE8C8;" Style="{StaticResource Icon}" FontSize="14" Foreground="{DynamicResource AccentInk}" Margin="0,1,8,0"/>
+                                    <TextBlock Text="{c:T CopyShort}"/>
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="pinAction" Style="{StaticResource ActionChip}" Command="{x:Static ui:Cmds.TogglePin}" CommandParameter="{Binding}">
+                                <Image Source="{StaticResource Obj.Pinned}" Width="18" Height="18"/>
+                            </Button>
+                            <Button x:Name="openAction" Style="{StaticResource ActionChip}" Command="{x:Static ui:Cmds.Open}" CommandParameter="{Binding}" ToolTip="{c:T OpenFile}">
+                                <TextBlock Text="&#xE8A7;" Style="{StaticResource Icon}" FontSize="14"/>
+                            </Button>
+                            <Button x:Name="folderAction" Style="{StaticResource ActionChip}" Command="{x:Static ui:Cmds.ShowInFolder}" CommandParameter="{Binding}" ToolTip="{c:T ShowInFolder}">
+                                <Image Source="{StaticResource Obj.Files}" Width="18" Height="18"/>
+                            </Button>
+                            <Button x:Name="saveAction" Style="{StaticResource ActionChip}" Command="{x:Static ui:Cmds.SaveImage}" CommandParameter="{Binding}" ToolTip="{c:T SaveImage}">
+                                <TextBlock Text="&#xE74E;" Style="{StaticResource Icon}" FontSize="14"/>
+                            </Button>
+                            <Button x:Name="deleteAction" Style="{StaticResource ActionChip}" Command="{x:Static ui:Cmds.Delete}" CommandParameter="{Binding}" ToolTip="{c:T Delete}">
+                                <Image Source="{StaticResource Obj.Trash}" Width="18" Height="18"/>
+                            </Button>
+                            <Button x:Name="restoreAction" Style="{StaticResource ActionChip}" Command="{x:Static ui:Cmds.Restore}" CommandParameter="{Binding}" Content="{c:T Restore}" Visibility="Collapsed"/>
+                            <Button x:Name="foreverAction" Style="{StaticResource ActionChip}" Command="{x:Static ui:Cmds.DeleteForever}" CommandParameter="{Binding}" Content="{c:T DeleteForever}" Visibility="Collapsed"/>
+                        </WrapPanel>
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <Border Height="1" Background="{DynamicResource Line}" Margin="0,4,0,16"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="{c:T Source}" Style="{StaticResource MetaKey}"/>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,9">
+                                        <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource AppGlyph}" Width="16" Height="16" Margin="0,0,8,0"/>
+                                        <TextBlock Text="{Binding AppName}" Style="{StaticResource Body}" FontSize="13"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Row="1" Text="{c:T Window}" Style="{StaticResource MetaKey}"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Title}" Style="{StaticResource MetaVal}" Foreground="{DynamicResource Ink2}" MaxHeight="36" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Grid.Row="2" Text="{c:T FirstCopied}" Style="{StaticResource MetaKey}"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding CreatedText}" Style="{StaticResource MetaVal}"/>
+                                    <TextBlock Grid.Row="3" Text="{c:T LastUsed}" Style="{StaticResource MetaKey}"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding UsedText}" Style="{StaticResource MetaVal}"/>
+                                    <TextBlock Grid.Row="4" Text="{c:T TimesCopied}" Style="{StaticResource MetaKey}"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Uses}" Style="{StaticResource MetaVal}"/>
+                                </Grid>
+                                <StackPanel x:Name="ocrBlock" Visibility="Collapsed" Margin="0,10,0,0">
+                                    <Grid Margin="0,0,0,6">
+                                        <TextBlock Text="{c:T Recognised}" Style="{StaticResource BodyStrong}" FontSize="13" VerticalAlignment="Center"/>
+                                        <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Right" Padding="8,3" Command="{x:Static ui:Cmds.CopyOcr}" CommandParameter="{Binding}">
+                                            <TextBlock Text="{c:T CopyOcr}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Accent}"/>
+                                        </Button>
+                                    </Grid>
+                                    <Border Background="{DynamicResource Surface2}" CornerRadius="10" Padding="12,10">
+                                        <TextBox Text="{Binding Ocr, Mode=OneWay}" Style="{StaticResource ReadText}" FontSize="12.5" MaxHeight="140" Foreground="{DynamicResource Ink2}"/>
+                                    </Border>
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
+            <Button Style="{StaticResource IconButton}" Content="&#xE8BB;" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,76,22,0"
+                    Click="CloseLightbox_Click" Background="{DynamicResource Surface}"/>
         </Grid>
 
         <!-- toast -->
-        <Border x:Name="toast" Grid.Row="1" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="268,0,0,24" Background="{DynamicResource FlyoutFill}"
-                BorderBrush="{DynamicResource FlyoutStroke}" BorderThickness="1" CornerRadius="4" Padding="14,8,14,9" Opacity="0" IsHitTestVisible="False">
-            <Border.Effect><DropShadowEffect BlurRadius="14" ShadowDepth="4" Direction="270" Opacity="0.22"/></Border.Effect>
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xE73E;" Style="{StaticResource Icon}" FontSize="13" Foreground="{DynamicResource AccentText}" Margin="0,1,10,0"/>
-                <TextBlock x:Name="toastText" Style="{StaticResource Body}"/>
-            </StackPanel>
+        <Border x:Name="toast" Grid.Row="1" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="250,0,0,28" Background="{DynamicResource Ink}" CornerRadius="12"
+                Padding="16,9,16,10" Opacity="0" IsHitTestVisible="False" Effect="{StaticResource FloatShadow}">
+            <TextBlock x:Name="toastText" FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource Desk}"/>
         </Border>
 
-        <!-- content dialog -->
-        <Grid x:Name="confirm" Grid.RowSpan="2" Background="{DynamicResource Smoke}" Visibility="Collapsed">
-            <Border Width="420" VerticalAlignment="Center" HorizontalAlignment="Center" Background="{DynamicResource FlyoutFill}" BorderBrush="{DynamicResource FlyoutStroke}"
-                    BorderThickness="1" CornerRadius="8">
-                <Border.Effect><DropShadowEffect BlurRadius="40" ShadowDepth="12" Direction="270" Opacity="0.3"/></Border.Effect>
+        <!-- confirm -->
+        <Grid x:Name="confirm" Grid.RowSpan="2" Visibility="Collapsed">
+            <Border Background="{DynamicResource Smoke}"/>
+            <Border Width="420" VerticalAlignment="Center" HorizontalAlignment="Center" Background="{DynamicResource Surface}" CornerRadius="18" Padding="26,24,26,22"
+                    Effect="{StaticResource FloatShadow}">
                 <StackPanel>
-                    <StackPanel Margin="24,22,24,24">
-                        <TextBlock x:Name="confirmTitle" Style="{StaticResource Subtitle}" Margin="0,0,0,12"/>
-                        <TextBlock x:Name="confirmText" Style="{StaticResource Body}" TextWrapping="Wrap" LineHeight="20"/>
+                    <Image Source="{StaticResource Obj.Trash}" Width="40" Height="40" HorizontalAlignment="Left"/>
+                    <TextBlock x:Name="confirmTitle" Style="{StaticResource Subtitle}" Margin="0,14,0,8"/>
+                    <TextBlock x:Name="confirmText" Style="{StaticResource Body}" Foreground="{DynamicResource Ink2}" TextWrapping="Wrap" LineHeight="21"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,22,0,0">
+                        <Button Style="{StaticResource SoftButton}" Content="{c:T Cancel}" Click="ConfirmNo_Click" Margin="0,0,10,0"/>
+                        <Button Style="{StaticResource DangerButton}" Content="{c:T DeleteForever}" Click="ConfirmYes_Click"/>
                     </StackPanel>
-                    <Border Background="{DynamicResource CardFillSecondary}" BorderBrush="{DynamicResource Divider}" BorderThickness="0,1,0,0" CornerRadius="0,0,8,8" Padding="24">
-                        <UniformGrid Columns="2">
-                            <Button Style="{StaticResource DangerButton}" Content="{c:T DeleteForever}" Click="ConfirmYes_Click" Margin="0,0,4,0"/>
-                            <Button Style="{StaticResource StandardButton}" Content="{c:T Cancel}" Click="ConfirmNo_Click" Margin="4,0,0,0"/>
-                        </UniformGrid>
-                    </Border>
                 </StackPanel>
             </Border>
         </Grid>

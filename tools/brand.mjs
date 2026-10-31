@@ -1,4 +1,4 @@
-// Renders the SweaxClip mark into PNG sizes and a multi-resolution .ico.
+﻿// Renders the SweaxClip mark into PNG sizes and a multi-resolution .ico.
 // usage: node brand.mjs
 import sharp from "sharp";
 import fs from "node:fs";
@@ -10,7 +10,7 @@ const brand = path.join(root, "assets", "brand");
 const appAssets = path.join(root, "src", "SweaxClip", "Assets");
 const svg = fs.readFileSync(path.join(brand, "icon.svg"));
 
-const png = (size) => sharp(svg, { density: Math.max(72, (72 * size) / 64) * 4 }).resize(size, size).png().toBuffer();
+const png = (size) => sharp(svg, { density: Math.max(72, (72 * size) / 256) * 4 }).resize(size, size).png().toBuffer();
 
 for (const s of [16, 32, 48, 64, 128, 256, 512, 1024]) {
   fs.writeFileSync(path.join(brand, `icon-${s}.png`), await png(s));

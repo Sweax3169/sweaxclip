@@ -77,7 +77,7 @@ public sealed class ClipListModel : Observable
     bool _gridPreferred = true;
     public bool GridPreferred { get => _gridPreferred; set { if (Set(ref _gridPreferred, value)) { Raise(nameof(UseGrid)); Rebuild(); } } }
     public bool AllowGrid { get; init; }
-    public bool UseGrid => AllowGrid && _gridPreferred && _scope is Scope.Images or Scope.Screenshots;
+    public bool UseGrid => AllowGrid && _gridPreferred;
 
     int _columns = 4;
     public int Columns

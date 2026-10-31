@@ -16,7 +16,7 @@ namespace SweaxClip.Dev;
 /// Developer modes that run on a throw-away archive (never the real one):
 ///   --demo [--lang tr] [--theme light|dark]     browse the library with sample data
 ///   --shots DIR [--lang tr] [--theme light|dark] render README screenshots
-///   --gif DIR [--lang tr] [--theme light|dark]   render frames of a scripted Win+V session
+///   --gif DIR [--film panel|search] [--lang tr] [--theme light|dark]   render frames of a scripted session
 /// The quick panel has no window frame, so it is filmed exactly as it is: its cards over the desktop.
 /// The deck runs on a manual clock while filming, so every frame is one fixed step of its springs.
 /// </summary>
@@ -42,7 +42,7 @@ public static class Demo
         try
         {
             if (Arg("--shots") is { } shots) await Shots(app, shots);
-            else if (Arg("--gif") is { } gif) await Gif(app, gif);
+            else if (Arg("--gif") is { } gif) await Gif(app, gif, Arg("--film") ?? "panel");
             else
             {
                 var lib = new LibraryWindow(app);
@@ -171,30 +171,42 @@ public static class Demo
         enc.Save(fs);
     }
 
-    static QuickPanel OpenPanel(App app)
+    static QuickPanel OpenPanel(App app, Point? caret = null, bool hang = false)
     {
+        Springs.ManualClock = true;
         var p = new QuickPanel(app) { ShowActivated = false, Left = -6000, Top = 40, Topmost = false };
-        p.DeckView.ManualClock = true;
         p.Show();
+        p.PlaceForDemo(caret, hang);
         p.UpdateLayout();
         return p;
     }
 
-    /// <summary>Loads a category into the panel and lays its deck out at rest.</summary>
-    static async Task Rest(QuickPanel panel, Scope scope, string search)
+    /// <summary>Steps every spring until the panel is still (at most ~4 s of motion).</summary>
+    static void Still(Window w)
+    {
+        for (int i = 0; i < 240; i++)
+        {
+            bool busy = Springs.Step(1 / 60.0);
+            w.UpdateLayout();
+            if (!busy) break;
+        }
+    }
+
+    /// <summary>Loads a category into the panel and lets it come to rest.</summary>
+    static async Task Rest(QuickPanel panel, Scope scope, string search, Func<ClipItem, bool>? pick = null)
     {
         var pm = panel.Model;
-        pm.Search = search;
         pm.Scope = scope;
+        pm.Search = search;
+        if (panel.FindChild<TextBox>() is { } box) { box.Text = search; box.CaretIndex = search.Length; }
         await pm.Reload(false);
-        if (pm.Items.Count > 0) pm.Selected = pm.Items[0];
-        if (panel.FindChild<TextBox>() is { } box) box.Text = search;
-        panel.lid.Opacity = 1;
-        panel.hints.Opacity = 1;
-        await Settle(600);
-        panel.DeckView.Sync(Deck.Mode.Instant);
-        panel.UpdateLayout();
-        await Settle(150);
+        if (pick != null && pm.Items.FirstOrDefault(pick) is { } hit) pm.Selected = hit;
+        else if (pm.Items.Count > 0) pm.Selected = pm.Items[0];
+        await Settle(650);
+        panel.Enter();
+        Still(panel);
+        await Settle(120);
+        Still(panel);
     }
 
     // ── screenshots ─────────────────────────────────────────────────────────
@@ -228,9 +240,9 @@ public static class Demo
 
         // panel
         var panel = OpenPanel(app);
-        async Task<BitmapSource> PanelSnap(Scope scope, string search, double scale)
+        async Task<BitmapSource> PanelSnap(Scope scope, string search, double scale, Func<ClipItem, bool>? pick = null)
         {
-            await Rest(panel, scope, search);
+            await Rest(panel, scope, search, pick);
             return Snap(Root(panel), panel.ActualWidth, panel.ActualHeight, scale, frame: false);
         }
 
@@ -324,29 +336,33 @@ public static class Demo
     };
 
     /// <summary>Frames of a scripted session (25 fps); stitched into a GIF with ffmpeg.</summary>
-    static async Task Gif(App app, string outDir)
+    static async Task Gif(App app, string outDir, string which)
     {
         Directory.CreateDirectory(outDir);
         bool tr = app.Settings.Language == "tr";
         const double dt = 0.04;
 
         var editor = new Editor(tr);
-        var editorRect = new Rect(300, 480, 640, 330);
+        var editorRect = new Rect(70, 40, 640, 330);
         var caret = editorRect.TopLeft + (Vector)editor.CaretAt;
-        var view = new Rect(270, 0, 700, 840);
+        bool film = which == "panel";
 
-        var panel = OpenPanel(app);
+        // the panel opens under the caret, exactly as QuickPanel.Placement does
+        var probe = OpenPanel(app);
+        double pw = probe.ActualWidth, ph = probe.ActualHeight;
+        probe.Close();
+        double wx = caret.X - 22 - 18, wy = caret.Y + editor.Caret.Height + 6 - 20;
+        var panelRect = film ? new Rect(wx, wy, pw, ph) : new Rect(40, 20, pw, ph);
+        var view = film ? new Rect(40, 10, 700, 860) : new Rect(20, 0, pw + 40, ph + 30);
+        var panel = OpenPanel(app, film ? new Point(caret.X - wx, caret.Y + editor.Caret.Height - wy) : null, hang: film);
         var pm = panel.Model;
-        var deck = panel.DeckView;
-        // same rule as QuickPanel.Placement when the caret is low on the screen: the deck rises from it
-        var panelRect = new Rect(caret.X - 38, Math.Max(-16, caret.Y - panel.ActualHeight + 14), panel.ActualWidth, panel.ActualHeight);
 
         await pm.Reload(false);
         pm.Selected = pm.Items[0];
         await Settle(800);
 
         int n = 0, tick = 0;
-        bool panelShown = false;
+        bool panelShown = !film;
         double keysOpacity = 0;
         string keyText = "⊞ Win  +  V";
         void Frame(int repeat = 1)
@@ -355,18 +371,18 @@ public static class Demo
             {
                 tick++;
                 editor.Caret.Opacity = !panelShown && (tick / 13) % 2 == 0 ? 1 : 0;
-                var ed = editor.Snap();
+                var ed = film ? editor.Snap() : null;
                 var pan = panelShown ? Snap(Root(panel), panelRect.Width, panelRect.Height, 1, frame: false) : null;
                 var img = Scene(view, 1, c =>
                 {
-                    Put(c, ed, editorRect, true);
+                    if (ed != null) Put(c, ed, editorRect, true);
                     if (pan != null) Put(c, pan, panelRect, false);
                     if (keysOpacity > 0)
                     {
                         var k = Keys(keyText);
                         k.Opacity = keysOpacity;
                         Canvas.SetLeft(k, view.Right - 168);
-                        Canvas.SetTop(k, 26);
+                        Canvas.SetTop(k, view.Bottom - 56);
                         c.Children.Add(k);
                     }
                 });
@@ -378,68 +394,81 @@ public static class Demo
             for (int i = 0; i < frames; i++)
             {
                 each?.Invoke(i);
-                deck.StepFrame(dt);
+                Springs.Step(dt);
+                panel.UpdateLayout();
                 Frame();
             }
         }
-        static double EaseBack(double t) { const double s = 1.4; t -= 1; return t * t * ((s + 1) * t + s) + 1; }
 
-        // the user is typing; then presses Win+V
-        Frame(14);
-        for (int i = 1; i <= 4; i++) { keysOpacity = i / 4.0; Frame(); }
-
-        // the lid drops in and the deck is dealt from the caret upward
-        deck.Clear();
-        panelShown = true;
-        panel.lid.Opacity = 0;
-        panel.hints.Opacity = 0;
-        deck.Sync(Deck.Mode.Deal);
-        Run(28, i =>
+        if (film)
         {
-            double t = Math.Min(1, (i + 1) / 9.0);
-            panel.lid.Opacity = Math.Min(1, (i + 1) / 4.0);
-            panel.lidShift.Y = -14 * (1 - EaseBack(t));
-            panel.hints.Opacity = Math.Clamp((i - 5) / 6.0, 0, 1);
-            keysOpacity = Math.Max(0, 1 - i / 6.0);
-        });
-        Frame(8);
+            // typing; then Win+V
+            Frame(12);
+            for (int i = 1; i <= 4; i++) { keysOpacity = i / 4.0; Frame(); }
+            panelShown = true;
+            panel.Enter();
+            Run(26, i => keysOpacity = Math.Max(0, 1 - i / 6.0));
+            Frame(6);
 
-        // ↑ walks back through history, ↓ comes forward
-        foreach (int step in new[] { 1, 1, 1, -1, -1, -1 })
-        {
-            pm.Move(step);
-            Run(step > 0 ? 9 : 7);
+            // ↓ walks back through history: each row opens as it is reached
+            foreach (int step in new[] { 1, 1, 1, -1 })
+            {
+                pm.Move(step);
+                Run(14);
+            }
+            Frame(4);
+
+            // Tab through the categories, ending on links
+            foreach (var s in new[] { Scope.Images, Scope.Screenshots, Scope.Code, Scope.Colors, Scope.Links })
+            {
+                pm.Scope = s;
+                await pm.Reload(false);
+                if (pm.Items.Count > 0) pm.Selected = pm.Items[0];
+                await Settle(380);
+                panel.Stagger();
+                Run(s is Scope.Images or Scope.Screenshots ? 20 : 16);
+            }
+            Frame(6);
+
+            // Enter: the panel folds into the caret and the link lands in the text
+            var link = pm.Selected!;
+            keyText = "Enter";
+            keysOpacity = 1;
+            _ = panel.Leave();
+            Run(5);
+            panelShown = false;
+            editor.Pasted.Text = link.Text;
+            for (int i = 0; i < 40; i++)
+            {
+                keysOpacity = Math.Max(0, 1 - i / 6.0);
+                Frame();
+            }
         }
-        Frame(4);
-
-        // Tab through the categories, ending on links
-        foreach (var s in new[] { Scope.Images, Scope.Screenshots, Scope.Code, Scope.Colors, Scope.Links })
+        else
         {
-            pm.Scope = s;
+            // search: a word typed in finds the screenshot it appears in
+            panel.Enter();
+            Run(24);
+            Frame(10);
+            string word = tr ? "fatura" : "invoice";
+            var box = panel.FindChild<TextBox>();
+            for (int i = 1; i <= word.Length; i++)
+            {
+                pm.Search = word[..i];
+                if (box != null) { box.Text = word[..i]; box.CaretIndex = i; }
+                await pm.Reload(false);
+                if (pm.Items.Count > 0) pm.Selected = pm.Items[0];
+                await Settle(i == word.Length ? 500 : 120);
+                Run(i == word.Length ? 34 : 4);
+            }
+            Frame(30);
+            pm.Search = "";
+            if (box != null) box.Text = "";
             await pm.Reload(false);
-            if (pm.Items.Count > 0) pm.Selected = pm.Items[0];
-            await Settle(350);
-            Run(s is Scope.Images or Scope.Screenshots ? 18 : 15);
-        }
-        Frame(8);
-
-        // Enter: the card is thrown at the caret and lands as text
-        var link = pm.Selected!;
-        keyText = "Enter";
-        keysOpacity = 1;
-        var deckAt = deck.TranslatePoint(new Point(0, 0), panel);
-        deck.Fling(new Point(caret.X - panelRect.X - deckAt.X, caret.Y - panelRect.Y - deckAt.Y));
-        Run(5, i =>
-        {
-            panel.lid.Opacity = Math.Max(0, 1 - (i + 1) / 4.0);
-            panel.hints.Opacity = panel.lid.Opacity;
-        });
-        panelShown = false;
-        editor.Pasted.Text = link.Text;
-        for (int i = 0; i < 40; i++)
-        {
-            keysOpacity = Math.Max(0, 1 - i / 6.0);
-            Frame();
+            pm.Selected = pm.Items[0];
+            await Settle(300);
+            Run(26);
+            Frame(8);
         }
         panel.Close();
     }

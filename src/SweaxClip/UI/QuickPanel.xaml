@@ -3,105 +3,165 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:c="clr-namespace:SweaxClip.Core"
         xmlns:ui="clr-namespace:SweaxClip.UI"
-        Title="SweaxClip" Width="460" Height="630"
+        Title="SweaxClip" Width="464" Height="660"
         WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="True" ShowInTaskbar="False" Topmost="True"
         Background="Transparent" Foreground="{DynamicResource Ink}"
         FontFamily="{StaticResource UiFont}" UseLayoutRounding="True"
         TextOptions.TextFormattingMode="Ideal"
         WindowStartupLocation="Manual" Left="-10000" Top="-10000" ShowActivated="True">
 
-    <Grid x:Name="root" Margin="20,16,20,20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <Window.Resources>
+        <ui:RowSelector x:Key="PanelRowSel" ClipKey="Row.Panel"/>
+        <ui:Affine x:Key="Affine"/>
 
-        <!-- the lid: search and the shelf of object categories -->
-        <Border x:Name="lid" Background="{DynamicResource ChipFill}" CornerRadius="18" BorderBrush="{DynamicResource Line}" BorderThickness="1" Padding="10"
-                Effect="{StaticResource FloatShadow}" RenderTransformOrigin="0.5,0">
-            <Border.RenderTransform><TransformGroup><TranslateTransform x:Name="lidShift"/><TranslateTransform x:Name="lidFollow"/></TransformGroup></Border.RenderTransform>
-            <StackPanel>
-                <TextBox x:Name="search" Style="{StaticResource SearchField}" Background="{DynamicResource Surface2}" Tag="{c:T SearchHintShort}"
-                         Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" MinHeight="42"/>
-                <Grid Margin="2,10,2,0">
-                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <ItemsControl ItemsSource="{Binding Scopes}" Focusable="False">
-                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="{x:Type c:ScopeInfo}">
-                                <Button x:Name="tab" Style="{StaticResource GhostButton}" Width="34" Height="38" Padding="0" Margin="0,0,1,0" Focusable="False" ToolTip="{Binding Label}"
-                                        Command="{x:Static ui:Cmds.SetScope}" CommandParameter="{Binding Scope}">
-                                    <Grid>
-                                        <Image x:Name="icon" Source="{Binding Icon}" Width="22" Height="22" Opacity="0.72" RenderTransformOrigin="0.5,0.5">
-                                            <Image.RenderTransform><ScaleTransform x:Name="pop"/></Image.RenderTransform>
-                                        </Image>
-                                        <Ellipse x:Name="dot" Width="5" Height="5" Fill="{DynamicResource Accent}" VerticalAlignment="Bottom" Margin="0,0,0,-4" Visibility="Hidden"/>
-                                    </Grid>
-                                </Button>
-                                <DataTemplate.Triggers>
-                                    <DataTrigger Binding="{Binding Active}" Value="True">
-                                        <Setter TargetName="icon" Property="Opacity" Value="1"/>
-                                        <Setter TargetName="dot" Property="Visibility" Value="Visible"/>
-                                        <Setter TargetName="tab" Property="Background" Value="{DynamicResource Surface2}"/>
-                                        <DataTrigger.EnterActions>
-                                            <BeginStoryboard>
-                                                <Storyboard>
-                                                    <DoubleAnimation Storyboard.TargetName="pop" Storyboard.TargetProperty="ScaleX" From="0.7" To="1" Duration="0:0:0.35"><DoubleAnimation.EasingFunction><ElasticEase Oscillations="1" Springiness="5"/></DoubleAnimation.EasingFunction></DoubleAnimation>
-                                                    <DoubleAnimation Storyboard.TargetName="pop" Storyboard.TargetProperty="ScaleY" From="0.7" To="1" Duration="0:0:0.35"><DoubleAnimation.EasingFunction><ElasticEase Oscillations="1" Springiness="5"/></DoubleAnimation.EasingFunction></DoubleAnimation>
-                                                </Storyboard>
-                                            </BeginStoryboard>
-                                        </DataTrigger.EnterActions>
-                                    </DataTrigger>
-                                </DataTemplate.Triggers>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,4,0">
-                        <TextBlock Text="{Binding ScopeTitle}" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource Ink}" HorizontalAlignment="Right"/>
-                        <TextBlock x:Name="count" FontSize="11.5" Foreground="{DynamicResource Ink3}" HorizontalAlignment="Right"/>
-                    </StackPanel>
-                </Grid>
-            </StackPanel>
-        </Border>
+        <Style x:Key="PanelSearch" TargetType="TextBox">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource Ink}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource Accent}"/>
+            <Setter Property="SelectionBrush" Value="{DynamicResource Accent}"/>
+            <Setter Property="SelectionOpacity" Value="0.35"/>
+            <Setter Property="FontSize" Value="15.5"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <ScrollViewer x:Name="PART_ContentHost" Focusable="False" VerticalAlignment="Center" Background="Transparent"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
-        <!-- the deck -->
-        <ui:Deck x:Name="deck" Grid.Row="1" Margin="0,14,0,0"/>
+        <Style x:Key="Tab" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Padding" Value="8,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bg" Background="{TemplateBinding Background}" CornerRadius="9" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bg" Property="Background" Value="{DynamicResource RowHover}"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
-        <StackPanel x:Name="empty" Grid.Row="1" VerticalAlignment="Bottom" Margin="0,0,0,6" Visibility="Collapsed" IsHitTestVisible="False">
-            <Border Width="392" Height="232" CornerRadius="14" BorderBrush="{DynamicResource Line2}" BorderThickness="1.5" Background="{DynamicResource ChipFill}">
-                <StackPanel VerticalAlignment="Center">
-                    <Image Source="{StaticResource Obj.Stack}" Width="54" Height="54" Opacity="0.85"/>
-                    <TextBlock Text="{Binding EmptyTitle}" Style="{StaticResource BodyStrong}" HorizontalAlignment="Center" Margin="0,14,0,4"/>
-                    <TextBlock Text="{Binding EmptyBody}" Style="{StaticResource Caption}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="40,0"/>
-                </StackPanel>
+        <Style x:Key="PanelList" TargetType="ListBox" BasedOn="{StaticResource BareList}">
+            <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Standard"/>
+        </Style>
+
+        <Style x:Key="Hint" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="Foreground" Value="{DynamicResource Ink3}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="5,0,13,1"/>
+        </Style>
+        <Style x:Key="Cap" TargetType="Border" BasedOn="{StaticResource Keycap}">
+            <Setter Property="Background" Value="{DynamicResource Field}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelEdge}"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid x:Name="root" Margin="22,20,22,24">
+        <!-- the panel: one surface that glides to the height of what it shows -->
+        <Grid x:Name="host" VerticalAlignment="Bottom" RenderTransformOrigin="0.5,1">
+            <Grid.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform x:Name="hostScale"/>
+                    <TranslateTransform x:Name="hostShift"/>
+                </TransformGroup>
+            </Grid.RenderTransform>
+
+            <Border x:Name="shadow" CornerRadius="16" Background="{DynamicResource PanelFill}">
+                <Border.Effect><DropShadowEffect x:Name="shadowFx" BlurRadius="44" ShadowDepth="14" Direction="270" Color="#0E0804" Opacity="0.5" RenderingBias="Performance"/></Border.Effect>
             </Border>
-        </StackPanel>
+            <Border x:Name="surface" CornerRadius="16" Background="{DynamicResource PanelFill}" BorderBrush="{DynamicResource PanelEdge}" BorderThickness="1">
+                <ui:SmoothHeight x:Name="sizer">
+                    <DockPanel ui:Round.Radius="15">
+                        <!-- search -->
+                        <Grid DockPanel.Dock="Top" Height="54" Margin="18,2,10,0">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock x:Name="glass" Text="&#xE721;" Style="{StaticResource Icon}" FontSize="16" Foreground="{DynamicResource Ink3}" VerticalAlignment="Center" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="placeholder" Grid.Column="1" FontSize="15.5" Foreground="{DynamicResource Ink3}" VerticalAlignment="Center" Margin="14,0,0,1"
+                                       IsHitTestVisible="False" TextTrimming="CharacterEllipsis"/>
+                            <TextBox x:Name="search" Grid.Column="1" Style="{StaticResource PanelSearch}" Margin="12,0,8,0"
+                                     Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"/>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border x:Name="pausedBadge" CornerRadius="7" Background="{DynamicResource Accent}" Padding="8,2,8,3" Margin="0,0,8,0" Visibility="Collapsed" VerticalAlignment="Center">
+                                    <TextBlock Text="{c:T Paused}" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource AccentInk}"/>
+                                </Border>
+                                <TextBlock x:Name="count" FontSize="12" Foreground="{DynamicResource Ink3}" VerticalAlignment="Center" Margin="0,0,8,1"/>
+                                <Button Style="{StaticResource RowAction}" Width="32" Height="32" Click="Library_Click" ToolTip="{c:T OpenLibrary}">
+                                    <Image Source="{StaticResource AppMark}" Width="18" Height="18"/>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
 
-        <!-- hints -->
-        <Border x:Name="hints" Grid.Row="2" HorizontalAlignment="Center" Margin="0,12,0,0" Background="{DynamicResource ChipFill}" CornerRadius="10" Padding="12,6"
-                BorderBrush="{DynamicResource Line}" BorderThickness="1">
-            <Border.RenderTransform><TranslateTransform x:Name="hintsFollow"/></Border.RenderTransform>
-            <StackPanel Orientation="Horizontal" TextElement.FontSize="11.5" TextElement.Foreground="{DynamicResource Ink2}">
-                <Border Style="{StaticResource Keycap}"><TextBlock Text="↑↓" Foreground="{DynamicResource Ink}"/></Border>
-                <TextBlock Text="{c:T HintBrowse}" Margin="6,0,12,0" VerticalAlignment="Center"/>
-                <Border Style="{StaticResource Keycap}"><TextBlock Text="Enter" Foreground="{DynamicResource Ink}"/></Border>
-                <TextBlock Text="{c:T HintPaste}" Margin="6,0,12,0" VerticalAlignment="Center"/>
-                <Border Style="{StaticResource Keycap}"><TextBlock Text="Tab" Foreground="{DynamicResource Ink}"/></Border>
-                <TextBlock Text="{c:T HintTabs}" Margin="6,0,12,0" VerticalAlignment="Center"/>
-                <Border Style="{StaticResource Keycap}"><TextBlock Text="Alt" Foreground="{DynamicResource Ink}"/></Border>
-                <TextBlock Text="1–9" Margin="6,0,0,0" VerticalAlignment="Center"/>
-            </StackPanel>
-        </Border>
+                        <!-- categories: icons, the open one names itself -->
+                        <Grid DockPanel.Dock="Top" Height="40" Margin="10,-4,10,2">
+                            <ItemsControl x:Name="tabs" ItemsSource="{Binding Scopes}" Focusable="False" VerticalAlignment="Center">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type c:ScopeInfo}">
+                                        <Button Style="{StaticResource Tab}" Command="{x:Static ui:Cmds.SetScope}" CommandParameter="{Binding Scope}" ToolTip="{Binding Label}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Image Source="{Binding Icon}" Width="18" Height="18"
+                                                       Opacity="{Binding Amount, ElementName=label, Converter={StaticResource Affine}, ConverterParameter='0.58 0.42'}"/>
+                                                <ui:RevealX x:Name="label" Shown="{Binding Active}">
+                                                    <TextBlock Text="{Binding Short}" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource Ink}" Margin="7,0,2,1"/>
+                                                </ui:RevealX>
+                                            </StackPanel>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Border x:Name="indicator" Width="18" Height="2.5" CornerRadius="1.25" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="0,0,0,1"
+                                    Background="{DynamicResource Accent}">
+                                <Border.RenderTransform><TranslateTransform x:Name="indicatorX"/></Border.RenderTransform>
+                            </Border>
+                        </Grid>
+                        <Rectangle DockPanel.Dock="Top" Height="1" Fill="{DynamicResource PanelEdge}"/>
 
-        <Border x:Name="pausedBadge" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,4,0,0" Background="{DynamicResource Accent}" CornerRadius="8"
-                Padding="10,4" Visibility="Collapsed" IsHitTestVisible="False">
-            <TextBlock Text="{c:T Paused}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource AccentInk}"/>
-        </Border>
+                        <!-- keys -->
+                        <Border x:Name="footer" DockPanel.Dock="Bottom" BorderBrush="{DynamicResource PanelEdge}" BorderThickness="0,1,0,0" Padding="16,9,12,10">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource Cap}"><TextBlock Text="↑↓" FontSize="11" Foreground="{DynamicResource Ink2}"/></Border>
+                                <TextBlock Text="{c:T HintBrowse}" Style="{StaticResource Hint}"/>
+                                <Border Style="{StaticResource Cap}"><TextBlock Text="↵" FontSize="11" Foreground="{DynamicResource Ink2}"/></Border>
+                                <TextBlock Text="{c:T HintPaste}" Style="{StaticResource Hint}"/>
+                                <Border Style="{StaticResource Cap}"><TextBlock Text="⇧↵" FontSize="11" Foreground="{DynamicResource Ink2}"/></Border>
+                                <TextBlock Text="{c:T HintPlain}" Style="{StaticResource Hint}"/>
+                                <Border Style="{StaticResource Cap}"><TextBlock Text="Tab" FontSize="11" Foreground="{DynamicResource Ink2}"/></Border>
+                                <TextBlock Text="{c:T HintTabs}" Style="{StaticResource Hint}" Margin="5,0,0,1"/>
+                            </StackPanel>
+                        </Border>
 
-        <Border x:Name="toast" Grid.Row="1" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,8,0,0" Background="{DynamicResource Ink}" CornerRadius="10"
-                Padding="14,7,14,8" Opacity="0" IsHitTestVisible="False" Effect="{StaticResource LiftShadow}">
-            <TextBlock x:Name="toastText" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource Desk}"/>
-        </Border>
+                        <!-- the timeline -->
+                        <Grid>
+                            <ListBox x:Name="list" Style="{StaticResource PanelList}" ItemsSource="{Binding Rows}" ItemTemplateSelector="{StaticResource PanelRowSel}"
+                                     MaxHeight="462" Padding="2,6,8,6"/>
+                            <StackPanel x:Name="empty" Margin="0,46,0,52" Visibility="Collapsed" IsHitTestVisible="False" HorizontalAlignment="Center">
+                                <Image Source="{StaticResource Obj.Stack}" Width="46" Height="46" Opacity="0.9"/>
+                                <TextBlock Text="{Binding EmptyTitle}" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,16,0,5"/>
+                                <TextBlock Text="{Binding EmptyBody}" FontSize="12.5" Foreground="{DynamicResource Ink3}" HorizontalAlignment="Center" TextAlignment="Center"
+                                           TextWrapping="Wrap" MaxWidth="300"/>
+                            </StackPanel>
+                            <Border x:Name="toast" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,12" Background="{DynamicResource Ink}" CornerRadius="9"
+                                    Padding="12,6,12,7" Opacity="0" IsHitTestVisible="False">
+                                <TextBlock x:Name="toastText" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource Desk}"/>
+                            </Border>
+                        </Grid>
+                    </DockPanel>
+                </ui:SmoothHeight>
+            </Border>
+            <Border CornerRadius="16" BorderBrush="{DynamicResource PanelGlint}" BorderThickness="0,1,0,0" Margin="1" IsHitTestVisible="False"/>
+        </Grid>
     </Grid>
 </Window>

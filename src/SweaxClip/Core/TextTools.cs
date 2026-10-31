@@ -20,6 +20,20 @@ public static class TimeText
         return t.ToString("HH:mm", Loc.Culture);
     }
 
+    /// <summary>Compact form for the panel's time rail: now · 4m · 2h · yest. · Tue · 12 Oct.</summary>
+    public static string Short(long ms)
+    {
+        var t = Local(ms);
+        var span = DateTime.Now - t;
+        int days = (int)(DateTime.Today - t.Date).TotalDays;
+        if (span.TotalSeconds < 45) return Loc.T("NowShort");
+        if (span.TotalMinutes < 60) return Loc.Format("MinShort", (int)Math.Max(1, span.TotalMinutes));
+        if (days == 0) return Loc.Format("HourShort", (int)Math.Max(1, span.TotalHours));
+        if (days == 1) return Loc.T("YesterdayShort");
+        if (days < 7) return t.ToString("ddd", Loc.Culture);
+        return t.ToString(t.Year == DateTime.Today.Year ? "d MMM" : "MMM yyyy", Loc.Culture);
+    }
+
     public static string Absolute(long ms) => ms <= 0 ? "—" : Local(ms).ToString("d MMMM yyyy, HH:mm:ss", Loc.Culture);
 
     public static (string label, string sub) DayHeader(DateTime day)

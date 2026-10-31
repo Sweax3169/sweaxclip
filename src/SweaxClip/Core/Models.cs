@@ -62,7 +62,8 @@ public sealed class ClipItem : Observable
     public ImageSource? AppIcon => IconCache.ForExe(AppPath);
 
     string _relTime = ""; public string RelTime { get => _relTime; private set => Set(ref _relTime, value); }
-    public void RefreshTime() => RelTime = TimeText.Relative(Used);
+    string _relShort = ""; public string RelShort { get => _relShort; private set => Set(ref _relShort, value); }
+    public void RefreshTime() { RelTime = TimeText.Relative(Used); RelShort = TimeText.Short(Used); }
     public string CreatedText => TimeText.Absolute(Created);
     public string UsedText => TimeText.Absolute(Used);
 
@@ -153,6 +154,10 @@ public sealed class ClipItem : Observable
     public string LineNumbers => Kind == ClipKind.Code ? string.Join("\n", Enumerable.Range(1, Math.Max(1, CodeSnippet.Count(ch => ch == '\n') + 1))) : "";
 
     public ImageSource? KindIcon => UI.ObjectIcons.For(Kind);
+    public Brush? Hue => UI.KindHue.For(Kind);
+    public string LinkTitle => Kind == ClipKind.Link && Title is { Length: > 0 } t ? UI.KindHue.PageTitle(t) : "";
+    public string FirstFile => FileNames.FirstOrDefault() ?? "";
+    public string MoreFiles => FileCount > 1 ? $"+{FileCount - 1}" : "";
     public string AppInitial => string.IsNullOrEmpty(App) ? "·" : char.ToUpperInvariant(App![0]).ToString();
     public string Headline => Kind switch
     {
@@ -209,6 +214,7 @@ public sealed class ScopeInfo : Observable
     public required Scope Scope { get; init; }
     public required string Glyph { get; init; }
     public ImageSource? Icon => UI.ObjectIcons.For(Scope);
+    public Brush? Hue => UI.KindHue.For(Scope);
     public string Label => Loc.ScopeName(Scope);
     public string Short => Loc.ScopeShort(Scope);
     int _count; public int Count { get => _count; set { if (Set(ref _count, value)) Raise(nameof(CountText)); } }

@@ -62,6 +62,14 @@ public static class Paster
     }
 
     /// <summary>Returns focus to <paramref name="target"/> and sends Ctrl+V once modifiers are released.</summary>
+    /// <summary>Reopens Windows Search (Win+S) and pastes into its box — for clips picked while Start or Search was open.</summary>
+    public static async Task PasteIntoSearch()
+    {
+        Win32.Send(Win32.Key(Win32.VK_LWIN, false), Win32.Key(Win32.VK_S, false), Win32.Key(Win32.VK_S, true), Win32.Key(Win32.VK_LWIN, true));
+        await Task.Delay(420);
+        await PasteInto(IntPtr.Zero);
+    }
+
     public static async Task PasteInto(IntPtr target)
     {
         if (target != IntPtr.Zero && Win32.IsWindow(target)) Win32.ForceForeground(target);

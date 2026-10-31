@@ -14,7 +14,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\sweaxclip.ico</ApplicationIcon>
 
-    <Version>1.2.0</Version>
+    <Version>1.3.0</Version>
     <Product>SweaxClip</Product>
     <Company>Sweax Studios</Company>
     <Authors>Sweax3169</Authors>

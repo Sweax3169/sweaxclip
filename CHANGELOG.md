@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.3.0 — 2026-10-31
+
+A new Win + V panel, built for using rather than looking at.
+
+- **The timeline.** The panel is now a list you can read at a glance: every clip shows its content, and the time it was copied runs down a rail on the left. Many clips are visible at once instead of one card at a time.
+- **The open clip.** The selected clip opens up on a spring — text unfolds to seven lines, a picture grows into a real preview with the text read from it, code shows eight lines, a link shows its full address and the page it came from, and the source app appears.
+- **Start and Search.** If Start or Windows Search is open when you press the shortcut, SweaxClip closes it (those surfaces are drawn above every app), opens above the taskbar, and pastes your pick into Search.
+- Search marks the matching words in text, links, file names and the text read from images. The panel glides to the height of what it shows.
+- Categories are icons; the open one names itself, and a line in the category's colour follows it. Each kind of clip has its own colour.
+- Hover a clip for pin and delete; deleted rows fold away. Hold Alt to see 1–9 on the rail.
+- One spring engine drives every movement, so the README animations are filmed from the app frame by frame.
+- Dark mode is dark all the way: paper and folder cards in the library use dark materials, and near-black brand colours are lifted so links stay visible.
+- New README, website and artwork.
+
 ## 1.2.0 — 2026-10-31
 
 A design of its own. SweaxClip no longer imitates Windows; only the place the panel opens is the same.

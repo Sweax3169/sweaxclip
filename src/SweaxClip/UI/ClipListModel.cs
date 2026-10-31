@@ -77,6 +77,8 @@ public sealed class ClipListModel : Observable
     bool _gridPreferred = true;
     public bool GridPreferred { get => _gridPreferred; set { if (Set(ref _gridPreferred, value)) { Raise(nameof(UseGrid)); Rebuild(); } } }
     public bool AllowGrid { get; init; }
+    /// <summary>Day separators between clips (the library has them; the panel's time rail makes them redundant).</summary>
+    public bool DayHeaders { get; init; } = true;
     public bool UseGrid => AllowGrid && _gridPreferred;
 
     int _columns = 4;
@@ -145,7 +147,7 @@ public sealed class ClipListModel : Observable
             foreach (var c in more)
             {
                 var day = DayOf(c);
-                if (day != lastDay) { Rows.Add(MakeHeader(day)); lastDay = day; }
+                if (day != lastDay && DayHeaders) { Rows.Add(MakeHeader(day)); lastDay = day; }
                 Rows.Add(c);
             }
         }
@@ -180,7 +182,7 @@ public sealed class ClipListModel : Observable
             foreach (var c in Items)
             {
                 var day = DayOf(c);
-                if (day != last) { rows.Add(MakeHeader(day)); last = day; }
+                if (day != last && DayHeaders) { rows.Add(MakeHeader(day)); last = day; }
                 rows.Add(c);
             }
         }
@@ -240,12 +242,13 @@ public sealed class ClipListModel : Observable
 public sealed class RowSelector : DataTemplateSelector
 {
     public string ClipKey { get; set; } = "Row.Panel";
+    public string HeaderKey { get; set; } = "Header";
     public override DataTemplate? SelectTemplate(object item, DependencyObject container)
     {
         if (container is not FrameworkElement fe) return null;
         string key = item switch
         {
-            HeaderRow => "Header",
+            HeaderRow => HeaderKey,
             GridRow => "GridRow",
             _ => ClipKey,
         };

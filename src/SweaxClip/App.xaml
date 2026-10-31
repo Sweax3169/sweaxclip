@@ -10,6 +10,7 @@
                 <ResourceDictionary Source="UI/Objects.xaml"/>
                 <ResourceDictionary Source="UI/Cards.xaml"/>
                 <ResourceDictionary Source="UI/Templates.xaml"/>
+                <ResourceDictionary Source="UI/PanelRows.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

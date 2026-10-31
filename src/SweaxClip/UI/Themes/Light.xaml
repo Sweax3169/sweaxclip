@@ -74,4 +74,25 @@
     <SolidColorBrush x:Key="SynType" Color="#FF80CBC4"/>
     <SolidColorBrush x:Key="Danger" Color="#FFC8402A"/>
     <SolidColorBrush x:Key="ShadowTint" Color="#FF3A2A1A"/>
+
+    <!-- quick panel: surface, rail and one hue per kind of clip -->
+    <SolidColorBrush x:Key="PanelEdge" Color="#2123201D"/>
+    <SolidColorBrush x:Key="PanelGlint" Color="#FFFFFFFF"/>
+    <SolidColorBrush x:Key="RowHover" Color="#0923201D"/>
+    <SolidColorBrush x:Key="Rail" Color="#1C23201D"/>
+    <SolidColorBrush x:Key="Field" Color="#0723201D"/>
+    <SolidColorBrush x:Key="Hue.Text" Color="#FF6E675F"/>
+    <SolidColorBrush x:Key="Hue.Link" Color="#FF2F6BEA"/>
+    <SolidColorBrush x:Key="Hue.Code" Color="#FF0E8F70"/>
+    <SolidColorBrush x:Key="Hue.Image" Color="#FFC2416D"/>
+    <SolidColorBrush x:Key="Hue.Screenshot" Color="#FF6D4FD8"/>
+    <SolidColorBrush x:Key="Hue.Files" Color="#FF96701E"/>
+    <SolidColorBrush x:Key="Hue.All" Color="#FFE4572E"/>
+    <SolidColorBrush x:Key="Hue.Pinned" Color="#FFE4572E"/>
+    <LinearGradientBrush x:Key="PanelFill" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#FFFFFFFF" Offset="0"/><GradientStop Color="#FFF7F5F1" Offset="1"/>
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="Hue.Color" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#FFE4572E" Offset="0"/><GradientStop Color="#FFD99A1E" Offset="0.35"/><GradientStop Color="#FF0E8F70" Offset="0.7"/><GradientStop Color="#FF2F6BEA" Offset="1"/>
+    </LinearGradientBrush>
 </ResourceDictionary>

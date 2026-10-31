@@ -25,16 +25,23 @@ public static class SiteColor
     public static Brush For(string host)
     {
         if (string.IsNullOrEmpty(host)) host = "?";
+        bool dark = ThemeManager.IsDark;
+        string slot = dark ? host + "|dark" : host;
         lock (Cache)
         {
-            if (Cache.TryGetValue(host, out var b)) return b;
+            if (Cache.TryGetValue(slot, out var b)) return b;
             string key = Known.Keys.FirstOrDefault(k => host.Equals(k, StringComparison.OrdinalIgnoreCase) || host.EndsWith("." + k, StringComparison.OrdinalIgnoreCase)) ?? "";
             Color c = key.Length > 0 ? (Color)ColorConverter.ConvertFromString(Known[key]) : FromHash(host);
+            // near-black brands (GitHub, X, Notion) would vanish on dark paper: lift them towards grey
+            if (dark && 0.2126 * c.R + 0.7152 * c.G + 0.0722 * c.B < 52) c = Mix(c, Color.FromRgb(0xE6, 0xE8, 0xEE), 0.4);
             var brush = new SolidColorBrush(c);
             brush.Freeze();
-            return Cache[host] = brush;
+            return Cache[slot] = brush;
         }
     }
+
+    static Color Mix(Color a, Color b, double t) =>
+        Color.FromRgb((byte)(a.R + (b.R - a.R) * t), (byte)(a.G + (b.G - a.G) * t), (byte)(a.B + (b.B - a.B) * t));
 
     static Color FromHash(string s)
     {
@@ -135,5 +142,53 @@ public sealed class CardSelector : DataTemplateSelector
             _ => "Card." + c.Kind,
         };
         return fe.TryFindResource(key) as DataTemplate ?? fe.TryFindResource("Card.Text") as DataTemplate;
+    }
+}
+
+/// <summary>Picks the panel row body for a clip: text, link, code, colour, a picture, or files.</summary>
+public sealed class PanelBodySelector : DataTemplateSelector
+{
+    public override DataTemplate? SelectTemplate(object item, DependencyObject container)
+    {
+        if (item is not ClipItem c || container is not FrameworkElement fe) return null;
+        string key = c.Kind switch
+        {
+            ClipKind.Image or ClipKind.Screenshot => "Body.Picture",
+            ClipKind.Files when c.Thumb != null => "Body.Picture",
+            _ => "Body." + c.Kind,
+        };
+        return fe.TryFindResource(key) as DataTemplate ?? fe.TryFindResource("Body.Text") as DataTemplate;
+    }
+}
+
+/// <summary>One hue per kind of clip, used sparingly: the rail dot, the open row's tint, the category line.</summary>
+public static class KindHue
+{
+    public static Brush? For(ClipKind k) => Find("Hue." + (k == ClipKind.Color ? "Color" : k.ToString()));
+
+    public static Brush? For(Scope s) => Find(s switch
+    {
+        Scope.Text => "Hue.Text",
+        Scope.Links => "Hue.Link",
+        Scope.Images => "Hue.Image",
+        Scope.Screenshots => "Hue.Screenshot",
+        Scope.Files => "Hue.Files",
+        Scope.Code => "Hue.Code",
+        Scope.Colors => "Hue.Color",
+        Scope.Pinned => "Hue.Pinned",
+        _ => "Hue.All",
+    });
+
+    static Brush? Find(string key) => Application.Current?.TryFindResource(key) as Brush;
+
+    /// <summary>"Releases · Sweax3169/sweaxclip — Google Chrome" → "Releases · Sweax3169/sweaxclip".</summary>
+    public static string PageTitle(string windowTitle)
+    {
+        foreach (var sep in new[] { " — ", " - " })
+        {
+            int i = windowTitle.LastIndexOf(sep, StringComparison.Ordinal);
+            if (i > 0) return windowTitle[..i];
+        }
+        return windowTitle;
     }
 }

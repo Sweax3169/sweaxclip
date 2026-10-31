@@ -346,6 +346,8 @@ If you already have the [.NET 9 Desktop Runtime](https://dotnet.microsoft.com/do
 | `SweaxClip.exe --grab` | Copy text from screen, the same as its shortcut |
 | `SweaxClip.exe --quit` | Exit the running instance |
 
+**Macro keys.** Record a key combination such as <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>F9</kbd> on your keyboard's macro key, then click a shortcut in Settings → General and press the macro key. Keys sent by macro software count too, and F13–F24, Pause and Scroll Lock work on their own.
+
 <br>
 
 ## Building from source

@@ -20,6 +20,8 @@ internal static class Win32
     public const int VK_LSHIFT = 0xA0, VK_RSHIFT = 0xA1, VK_LCONTROL = 0xA2, VK_RCONTROL = 0xA3, VK_LMENU = 0xA4, VK_RMENU = 0xA5;
     public const int VK_V = 0x56, VK_S = 0x53, VK_ESCAPE = 0x1B;
     public const int VK_MASK = 0xE8; // unassigned; used to stop the Start menu from opening
+    /// <summary>Set as dwExtraInfo on every key we send, so our own keyboard hook can tell them apart.</summary>
+    public static readonly IntPtr SweaxMark = new(0x53574158); // "SWAX"
 
     // ── clipboard formats ────────────────────────────────────────────────────
     public const uint CF_TEXT = 1, CF_BITMAP = 2, CF_DIB = 8, CF_UNICODETEXT = 13, CF_HDROP = 15, CF_DIBV5 = 17;
@@ -218,7 +220,7 @@ internal static class Win32
         if (vk is VK_LWIN or VK_RWIN or VK_RMENU or VK_RCONTROL) flags |= KEYEVENTF_EXTENDEDKEY;
         // with the scan code filled in, the key looks like a real keypress to apps that read it (XAML, some editors)
         ushort scan = (ushort)MapVirtualKey((uint)vk, 0);
-        return new INPUT { type = INPUT_KEYBOARD, U = new InputUnion { ki = new KEYBDINPUT { wVk = (ushort)vk, wScan = scan, dwFlags = flags } } };
+        return new INPUT { type = INPUT_KEYBOARD, U = new InputUnion { ki = new KEYBDINPUT { wVk = (ushort)vk, wScan = scan, dwFlags = flags, dwExtraInfo = SweaxMark } } };
     }
 
     /// <summary>The control that has keyboard focus inside <paramref name="window"/>'s thread (Notepad's editor, a browser's page), or zero.</summary>

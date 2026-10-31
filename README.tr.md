@@ -346,6 +346,8 @@ Bilgisayarında [.NET 9 Desktop Runtime](https://dotnet.microsoft.com/download/d
 | `SweaxClip.exe --grab` | Ekrandan metin kopyala, kısayoluyla aynı |
 | `SweaxClip.exe --quit` | Çalışan örneği kapat |
 
+**Makro tuşları.** Klavyendeki makro tuşuna <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>F9</kbd> gibi bir tuş birleşimi kaydet, sonra Ayarlar → Genel'de bir kısayola tıklayıp makro tuşuna bas. Makro yazılımlarının gönderdiği tuşlar da sayılır; F13–F24, Pause ve Scroll Lock tek başına da olur.
+
 <br>
 
 ## Kaynak koddan derleme

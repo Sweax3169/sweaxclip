@@ -206,12 +206,10 @@
                             <StackPanel Style="{StaticResource RowText}">
                                 <TextBlock Text="{c:T SetHotkey}" Style="{StaticResource Label}"/>
                                 <TextBlock Text="{c:T SetHotkeyNote}" Style="{StaticResource Note}"/>
+                                <TextBlock x:Name="hotkeyStatus" Style="{StaticResource Note}" Foreground="{DynamicResource Accent}" Visibility="Collapsed"/>
                             </StackPanel>
-                            <ComboBox x:Name="hotkeyBox" Grid.Column="1" Width="200" VerticalAlignment="Center" SelectionChanged="Hotkey_Changed">
-                                <ComboBoxItem Content="Win + V" Tag="Win+V"/>
-                                <ComboBoxItem Content="Ctrl + Shift + V" Tag="Ctrl+Shift+V"/>
-                                <ComboBoxItem Content="Ctrl + Alt + V" Tag="Ctrl+Alt+V"/>
-                            </ComboBox>
+                            <Button x:Name="hotkeyKey" Grid.Column="1" Style="{StaticResource Inline}" MinWidth="168" Margin="0,0,60,0" Click="HotkeyKey_Click"
+                                    FontFamily="{StaticResource UiFont}"/>
                         </Grid>
                     </Border>
                     <Border Style="{StaticResource Row}">
@@ -226,6 +224,12 @@
                                     FontFamily="{StaticResource UiFont}"/>
                             <CheckBox x:Name="grab" Grid.Column="2" Style="{StaticResource Switch}" VerticalAlignment="Center" Click="Toggle_Click"/>
                         </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Row}">
+                        <StackPanel Style="{StaticResource RowText}">
+                            <TextBlock Text="{c:T SetMacro}" Style="{StaticResource Label}"/>
+                            <TextBlock Text="{c:T SetMacroNote}" Style="{StaticResource Note}"/>
+                        </StackPanel>
                     </Border>
                     <Border Style="{StaticResource Row}">
                         <Grid>

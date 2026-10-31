@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.2 — 2026-11-01
+
+Macro keys.
+
+- **Shortcuts from macro keys.** Keys sent by macro software and keyboard drivers used to be ignored, so a macro key that pressed the shortcut did nothing. They count now; only the keys SweaxClip sends itself (Ctrl+V when pasting, the key that stops Start from opening) are marked and skipped.
+- **The panel shortcut is recorded like the text-from-screen one.** Settings → General → *Shortcut*: click it and press the keys, or press a macro key that sends a combination. It used to be a list of three choices.
+- F13–F24, Pause, Scroll Lock and the launch keys can be a shortcut on their own; other keys still need Win, Ctrl or Alt.
+- A *Macro keys* note in Settings explains how to set one up, with `--toggle` and `--grab` for macro apps that run programs.
+
 ## 1.5.1 — 2026-11-01
 
 Pasting works in every text box.

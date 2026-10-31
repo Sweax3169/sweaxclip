@@ -21,10 +21,10 @@ public partial class SettingsView : UserControl
         // leaving Settings mid-recording must not leave the hook waiting to eat the next shortcut
         Unloaded += (_, _) =>
         {
-            if (!_recording) return;
-            _recording = false;
+            if (_recording == null) return;
+            _recording = null;
             _app.StopRecordingHotkey();
-            grabKey.Content = Hotkey.Parse(_app.Settings.GrabHotkey).ToString();
+            ShowKeys();
         };
     }
 
@@ -44,13 +44,12 @@ public partial class SettingsView : UserControl
         backups.IsChecked = s.DailyBackups;
         ignored.Text = string.Join(Environment.NewLine, s.IgnoredApps);
         langBox.SelectedIndex = s.Language switch { "en" => 1, "tr" => 2, _ => 0 };
-        var hk = Hotkey.Parse(s.Hotkey);
-        hotkeyBox.SelectedIndex = hk.Ctrl && hk.Shift ? 1 : hk.Ctrl && hk.Alt ? 2 : 0;
         dataPath.Text = Paths.Data;
         version.Text = Loc.Format("SetVersion", typeof(App).Assembly.GetName().Version?.ToString(3) ?? "1.0.0");
         using (var p = Process.GetCurrentProcess()) memory.Text = $"{Loc.T("SetMemory")}: {Bytes.Format(p.WorkingSet64)}";
         grab.IsChecked = s.GrabEnabled;
-        grabKey.Content = Hotkey.Parse(s.GrabHotkey).ToString();
+        ShowKeys();
+        hotkeyStatus.Visibility = Visibility.Collapsed;
         grabStatus.Visibility = Visibility.Collapsed;
         styleTimeline.IsChecked = s.PanelStyle != "deck";
         styleDeck.IsChecked = s.PanelStyle == "deck";
@@ -62,42 +61,55 @@ public partial class SettingsView : UserControl
         _ = UpdateDataStats();
     }
 
-    // ── text from screen: the shortcut recorder ─────────────────────────────
+    // ── shortcut recorders: the panel and text from screen ──────────────────
 
-    bool _recording;
+    Button? _recording;
 
-    void GrabKey_Click(object sender, RoutedEventArgs e)
+    void HotkeyKey_Click(object sender, RoutedEventArgs e) => Record(hotkeyKey, hotkeyStatus,
+        h => h == Hotkey.Parse(_app.Settings.GrabHotkey) ? Loc.T("PanelTaken") : null,
+        h => _app.Settings.Hotkey = h.Spec);
+
+    void GrabKey_Click(object sender, RoutedEventArgs e) => Record(grabKey, grabStatus,
+        h => h == Hotkey.Parse(_app.Settings.Hotkey) ? Loc.T("GrabTaken") : null,
+        h => { _app.Settings.GrabHotkey = h.Spec; _app.Settings.GrabEnabled = true; grab.IsChecked = true; });
+
+    /// <summary>Click, then press the keys — a macro key that sends a key combination works too. Esc or a second click cancels.</summary>
+    void Record(Button button, TextBlock status, Func<Hotkey, string?> clash, Action<Hotkey> save)
     {
-        if (_recording)
+        if (_recording != null)
         {
-            _recording = false;
+            var was = _recording;
+            _recording = null;
             _app.StopRecordingHotkey();
-            grabKey.Content = Hotkey.Parse(_app.Settings.GrabHotkey).ToString();
-            return;
+            ShowKeys();
+            if (was == button) return;
         }
-        _recording = true;
-        grabStatus.Visibility = Visibility.Collapsed;
-        grabKey.Content = Loc.T("GrabRecording") + "  · Esc";
+        _recording = button;
+        status.Visibility = Visibility.Collapsed;
+        button.Content = Loc.T("GrabRecording") + "  · Esc";
         _app.RecordHotkey(h =>
         {
-            if (!_recording) return;
-            _recording = false;
-            string? problem = h == null ? null
-                : !(h.Value.Win || h.Value.Ctrl || h.Value.Alt) ? Loc.T("GrabNeedsModifier")
-                : h.Value == Hotkey.Parse(_app.Settings.Hotkey) ? Loc.T("GrabTaken")
-                : null;
-            if (h != null && problem == null)
+            if (_recording != button) return;
+            _recording = null;
+            string? problem = h is not { } hk ? null
+                : !hk.HasModifier && !Hotkey.IsFree(hk.Key) ? Loc.T("GrabNeedsModifier")
+                : clash(hk);
+            if (h is { } ok && problem == null)
             {
-                _app.Settings.GrabHotkey = h.Value.Spec;
-                _app.Settings.GrabEnabled = true;
+                save(ok);
                 _app.Settings.Save();
                 _app.ApplyHotkey();
-                grab.IsChecked = true;
             }
-            grabKey.Content = Hotkey.Parse(_app.Settings.GrabHotkey).ToString();
-            grabStatus.Text = problem ?? "";
-            grabStatus.Visibility = problem == null ? Visibility.Collapsed : Visibility.Visible;
+            ShowKeys();
+            status.Text = problem ?? "";
+            status.Visibility = problem == null ? Visibility.Collapsed : Visibility.Visible;
         });
+    }
+
+    void ShowKeys()
+    {
+        hotkeyKey.Content = Hotkey.Parse(_app.Settings.Hotkey).ToString();
+        grabKey.Content = Hotkey.Parse(_app.Settings.GrabHotkey).ToString();
     }
 
     // ── appearance ───────────────────────────────────────────────────────────
@@ -170,14 +182,6 @@ public partial class SettingsView : UserControl
             case "grab": s.GrabEnabled = on; _app.ApplyHotkey(); break;
         }
         s.Save();
-    }
-
-    void Hotkey_Changed(object sender, SelectionChangedEventArgs e)
-    {
-        if (_loading || hotkeyBox.SelectedItem is not ComboBoxItem { Tag: string hk }) return;
-        _app.Settings.Hotkey = hk;
-        _app.Settings.Save();
-        _app.ApplyHotkey();
     }
 
     void Lang_Changed(object sender, SelectionChangedEventArgs e)

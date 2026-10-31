@@ -18,8 +18,8 @@
     <Product>SweaxClip</Product>
     <Company>Sweax Studios</Company>
     <Authors>Sweax3169</Authors>
-    <Copyright>Â© 2026 Sweax Studios</Copyright>
-    <Description>SweaxClip â€” a clipboard that never forgets.</Description>
+    <Copyright>(c) 2026 Sweax Studios</Copyright>
+    <Description>SweaxClip: a clipboard that never forgets.</Description>
 
     <!-- Lean runtime: workstation GC without the background thread, aggressive memory conservation. -->
     <ServerGarbageCollection>false</ServerGarbageCollection>

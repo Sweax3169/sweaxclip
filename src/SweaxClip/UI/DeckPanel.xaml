@@ -8,7 +8,7 @@
         Background="Transparent" Foreground="{DynamicResource Ink}"
         FontFamily="{StaticResource UiFont}" UseLayoutRounding="True"
         TextOptions.TextFormattingMode="Ideal"
-        WindowStartupLocation="Manual" Left="-10000" Top="-10000" ShowActivated="True">
+        WindowStartupLocation="Manual" Left="-10000" Top="-10000" ShowActivated="False">
 
     <Grid x:Name="root" Margin="20,16,20,20">
         <Grid.RowDefinitions>
@@ -22,7 +22,7 @@
                 Effect="{StaticResource FloatShadow}" RenderTransformOrigin="0.5,0">
             <Border.RenderTransform><TransformGroup><TranslateTransform x:Name="lidShift"/><TranslateTransform x:Name="lidFollow"/></TransformGroup></Border.RenderTransform>
             <StackPanel>
-                <TextBox x:Name="search" Style="{StaticResource SearchField}" Background="{DynamicResource Surface2}" Tag="{c:T SearchHintShort}"
+                <TextBox x:Name="search" Style="{StaticResource SearchField}" IsInactiveSelectionHighlightEnabled="True" Background="{DynamicResource Surface2}" Tag="{c:T SearchHintShort}"
                          Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" MinHeight="42"/>
                 <Grid Margin="2,10,2,0">
                     <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>

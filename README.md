@@ -40,7 +40,7 @@
 
 The clipboard history built into Windows keeps the last 25 items and clears them every time you restart. The address you copied last week, the code snippet from last month and the screenshot of an invoice from the spring are gone.
 
-SweaxClip keeps everything you copy — text, links, code, colours, images, screenshots and files — in an archive on your own disk that survives restarts, updates and years. It opens on the same shortcut, in the same place, and waits in the tray using about 10 MB of memory.
+SweaxClip keeps everything you copy — text, links, code, colours, images, screenshots and files — in an archive on your own disk that survives restarts, updates and years. It opens on the same shortcut, in the same place, in a few hundredths of a second — and it never takes focus from the app you are typing in, so a pick lands exactly at your text cursor.
 
 <table>
 <tr>
@@ -281,8 +281,8 @@ Each clip is drawn as the thing it is: text on a sheet of paper, a link in its s
 - **Search.** An FTS5 index with the trigram tokenizer covers the clip text, the text read from images and the names of copied files. Text is normalised before it is indexed: lower case, accents removed, Turkish letters folded.
 - **OCR.** A background queue reads new images with `Windows.Media.Ocr` and stores the text next to the clip.
 - **The shortcut.** A low-level keyboard hook on its own thread receives <kbd>Win</kbd> + <kbd>V</kbd> before Windows does, so no Windows setting is changed. The text cursor is found with `GetGUIThreadInfo`, then through the accessibility caret (`OBJID_CARET`) for browsers and editors that draw their own.
-- **Pasting.** The clip goes back on the clipboard in all its formats, focus returns to the window you were typing in, and SweaxClip sends <kbd>Ctrl</kbd> + <kbd>V</kbd>.
-- **Resources.** In the tray SweaxClip uses about 8–12 MB of memory and no CPU. When the panel closes, the memory it used is handed back to Windows.
+- **Pasting.** The panel is a window that never takes focus (`WS_EX_NOACTIVATE`): while it is open the keyboard hook hands it the keys it uses, and the app below keeps its text cursor. The clip goes back on the clipboard in all its formats and SweaxClip sends <kbd>Ctrl</kbd> + <kbd>V</kbd> straight into the box you were typing in — no focus to hand back, so web forms, chat boxes and search fields all take it.
+- **Resources.** No CPU while nothing is copied. The panel stays built between uses, so it opens in about 20–40 ms and runs at the screen's refresh rate; after ten minutes away from the PC its memory goes back to Windows (about 10 MB is left). The panel shows UI Automation only its window, because WPF reports every element of a window on every layout pass whenever some program listens — on a PC with the touch keyboard or PowerToys running, that made each frame cost up to hundreds of milliseconds.
 - **Text from screen.** Each monitor is captured with GDI before the dim layer appears. The selection is turned grey, inverted when it is mostly dark, contrast-stretched and scaled so its lines are about 36 pixels tall, then read with `Windows.Media.Ocr`.
 - **Backups.** Every day the database is copied with `VACUUM INTO`; the last seven days and one copy per month are kept.
 

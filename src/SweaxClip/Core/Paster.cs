@@ -69,22 +69,33 @@ public static class Paster
         await PasteInto(IntPtr.Zero);
     }
 
-    /// <summary>Returns focus to <paramref name="target"/> (and to <paramref name="focus"/>, the text box inside it
-    /// that had focus when the panel opened), then sends Ctrl+V once modifiers are released.</summary>
+    /// <summary>
+    /// Pastes into <paramref name="target"/>. The panel never takes focus, so the app is normally still in front with its
+    /// text cursor where it was, and Ctrl+V goes at once. If another window came to the front meanwhile, focus goes back
+    /// to <paramref name="target"/> (and to <paramref name="focus"/>, the text box inside it) first.
+    /// </summary>
     public static async Task PasteInto(IntPtr target, IntPtr focus = default)
     {
         if (target != IntPtr.Zero && Win32.IsWindow(target))
         {
-            Win32.ForceForeground(target);
-            await WaitForFocus(target, focus);
+            if (Win32.GetForegroundWindow() != target)
+            {
+                Win32.ForceForeground(target);
+                await WaitForFocus(target, focus);
+            }
         }
         else await Task.Delay(45);
 
+        // let go of any Win, Shift or Alt still held; the unused key goes first, so a released Alt or Win
+        // can't open the menu bar or Start, which would take the Ctrl+V
         var inputs = new List<Win32.INPUT>();
-        foreach (int vk in new[] { Win32.VK_LWIN, Win32.VK_RWIN, Win32.VK_LSHIFT, Win32.VK_RSHIFT, Win32.VK_LMENU, Win32.VK_RMENU })
-            if (Win32.IsKeyDown(vk)) inputs.Add(Win32.Key(vk, true));
-        if (inputs.Count > 0) inputs.Add(Win32.Key(Win32.VK_MASK, false));
-        if (inputs.Count > 0) inputs.Add(Win32.Key(Win32.VK_MASK, true));
+        var held = new[] { Win32.VK_LWIN, Win32.VK_RWIN, Win32.VK_LSHIFT, Win32.VK_RSHIFT, Win32.VK_LMENU, Win32.VK_RMENU }.Where(Win32.IsKeyDown).ToList();
+        if (held.Count > 0)
+        {
+            inputs.Add(Win32.Key(Win32.VK_MASK, false));
+            inputs.Add(Win32.Key(Win32.VK_MASK, true));
+            foreach (int vk in held) inputs.Add(Win32.Key(vk, true));
+        }
         bool ctrlHeld = Win32.IsKeyDown(Win32.VK_CONTROL);
         if (!ctrlHeld) inputs.Add(Win32.Key(Win32.VK_LCONTROL, false));
         inputs.Add(Win32.Key(Win32.VK_V, false));

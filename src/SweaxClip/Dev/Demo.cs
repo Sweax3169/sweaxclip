@@ -51,7 +51,8 @@ public static class Demo
 
         try
         {
-            if (Arg("--shots") is { } shots) await Shots(app, shots);
+            if (Arg("--bench") is { } bench) await Bench.Run(app, bench, args.Contains("--trim"), args);
+            else if (Arg("--shots") is { } shots) await Shots(app, shots);
             else if (Arg("--gif") is { } gif) await Gif(app, gif, Arg("--film") ?? "panel");
             else if (Arg("--appearance") is { } look) await Appearance(app, look);
             else if (Arg("--grab") is { } grabDir) await GrabShot(app, grabDir);

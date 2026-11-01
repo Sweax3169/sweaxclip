@@ -98,6 +98,8 @@ public static class TextGrabber
 /// <summary>One monitor, frozen: the picture of the screen under a dim layer, and the selection cut out of it.</summary>
 internal sealed class GrabOverlay : Window
 {
+    protected override System.Windows.Automation.Peers.AutomationPeer OnCreateAutomationPeer() => new QuietPeer(this, "SweaxClip");
+
     readonly Win32.RECT _rect;
     readonly BitmapSource _shot;
     readonly Canvas _canvas = new() { IsHitTestVisible = false };

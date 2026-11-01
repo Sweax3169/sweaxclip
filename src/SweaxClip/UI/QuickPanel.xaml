@@ -8,7 +8,7 @@
         Background="Transparent" Foreground="{DynamicResource Ink}"
         FontFamily="{StaticResource UiFont}" UseLayoutRounding="True"
         TextOptions.TextFormattingMode="Ideal"
-        WindowStartupLocation="Manual" Left="-10000" Top="-10000" ShowActivated="True">
+        WindowStartupLocation="Manual" Left="-10000" Top="-10000" ShowActivated="False">
 
     <Window.Resources>
         <ui:RowSelector x:Key="PanelRowSel" ClipKey="Row.Panel"/>
@@ -91,7 +91,7 @@
                             <TextBlock x:Name="glass" Text="&#xE721;" Style="{StaticResource Icon}" FontSize="16" Foreground="{DynamicResource Ink3}" VerticalAlignment="Center" Margin="0,1,0,0"/>
                             <TextBlock x:Name="placeholder" Grid.Column="1" FontSize="15.5" Foreground="{DynamicResource Ink3}" VerticalAlignment="Center" Margin="14,0,0,1"
                                        IsHitTestVisible="False" TextTrimming="CharacterEllipsis"/>
-                            <TextBox x:Name="search" Grid.Column="1" Style="{StaticResource PanelSearch}" Margin="12,0,8,0"
+                            <TextBox x:Name="search" Grid.Column="1" Style="{StaticResource PanelSearch}" Margin="12,0,8,0" IsInactiveSelectionHighlightEnabled="True"
                                      Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"/>
                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                                 <Border x:Name="pausedBadge" CornerRadius="7" Background="{DynamicResource Accent}" Padding="8,2,8,3" Margin="0,0,8,0" Visibility="Collapsed" VerticalAlignment="Center">

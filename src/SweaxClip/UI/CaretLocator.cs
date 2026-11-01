@@ -15,12 +15,13 @@ internal static class CaretLocator
     [DllImport("oleacc.dll")]
     static extern int AccessibleObjectFromWindow(IntPtr hwnd, uint id, ref Guid iid, [MarshalAs(UnmanagedType.Interface)] out object? obj);
 
-    public static Win32.RECT? Find(IntPtr window)
+    /// <summary>Looks the caret up on a pool thread and gives up after <paramref name="timeoutMs"/>:
+    /// MSAA calls go into the other process, and a hung app must never stall the panel.</summary>
+    public static async Task<Win32.RECT?> FindAsync(IntPtr window, int timeoutMs)
     {
         if (window == IntPtr.Zero || !Win32.IsWindow(window)) return null;
-        // MSAA calls go into the other process; never let a hung app stall the panel.
         var task = Task.Run(() => FindCore(window));
-        return task.Wait(150) ? task.Result : null;
+        return await Task.WhenAny(task, Task.Delay(timeoutMs)) == task ? task.Result : null;
     }
 
     static Win32.RECT? FindCore(IntPtr window)

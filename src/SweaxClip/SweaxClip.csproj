@@ -14,7 +14,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\sweaxclip.ico</ApplicationIcon>
 
-    <Version>1.5.3</Version>
+    <Version>1.5.4</Version>
     <Product>SweaxClip</Product>
     <Company>Sweax Studios</Company>
     <Authors>Sweax3169</Authors>
@@ -23,7 +23,7 @@
 
     <!-- Lean runtime: workstation GC without the background thread, aggressive memory conservation. -->
     <ServerGarbageCollection>false</ServerGarbageCollection>
-    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
     <TieredPGO>true</TieredPGO>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>

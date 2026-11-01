@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.5.4 — 2026-11-02
+
+Opens at once, and pastes into every text box.
+
+- **Pastes where you are typing.** The panel no longer takes focus from the app below: its text cursor stays where it was and the clip lands right there. Before, focus had to go back to the app after a pick, and many input fields — web forms, chat boxes, search fields — didn't get it back in time, so nothing was pasted.
+- **Opens at once, moves smoothly.** The panel opens in about 20–40 ms (it could take several seconds) and runs at the screen's refresh rate while you browse. Whenever a program on the PC listened to UI Automation — the touch keyboard, PowerToys, screen tools — every frame of the panel was reported to it element by element; the panel now shows it only its window. Opening a row also laid out all of its text again on every frame, and every Win+V rebuilt every row.
+- **Win+V answers every time.** A slow opening made a second press look like nothing happened. The keyboard hook now reads each key in place without allocating, re-installs itself every 20 seconds (Windows silently drops a hook that ever answers late, and hooks added later by other apps run first) and no longer waits behind full memory collections while you use the PC.
+- While the panel is open, typing goes to its search box (AltGr characters too), Alt+Tab and Alt+F4 still reach Windows, and a click anywhere else closes it.
+- The panel is built once in the background after start, so the first Win+V is as quick as the rest.
+- Memory goes back to Windows after ten minutes away from the PC instead of every time the panel closes, which made the next opening slow.
+
 ## 1.5.3 — 2026-11-01
 
 - When a shortcut recorder gets a single ordinary key, the note now names it and says why it can't stand alone. A macro key with nothing recorded on it sends a plain key (F1 on many gaming keyboards); the note says to record a combination on it first.

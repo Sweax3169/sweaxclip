@@ -19,7 +19,7 @@ public partial class QuickPanel : Window, IQuickPanel
     readonly App _app;
     readonly ClipListModel _model;
     IntPtr _hwnd, _previous, _previousFocus;
-    bool _pasting, _showing, _shellTarget;
+    bool _pasting, _showing, _shellTarget, _warming;
     Point? _caretInPanel;
     readonly DispatcherTimer _toastTimer = new() { Interval = TimeSpan.FromMilliseconds(1300) };
     ClipItem? _lastSelected;
@@ -35,6 +35,10 @@ public partial class QuickPanel : Window, IQuickPanel
     };
 
     public ClipListModel Model => _model;
+    public IntPtr Target => _previous;
+    /// <summary>Bench mode: open here (off-screen) and never take focus.</summary>
+    internal static (int x, int y)? BenchPlace;
+    internal static Action<string>? BenchStep;
 
     public QuickPanel(App app)
     {
@@ -42,6 +46,7 @@ public partial class QuickPanel : Window, IQuickPanel
         _model = new ClipListModel(app.Store, library: false) { DayHeaders = false };
         DataContext = _model;
         InitializeComponent();
+        Caret.Attach(search);
 
         _model.PropertyChanged += (_, e) =>
         {
@@ -66,10 +71,11 @@ public partial class QuickPanel : Window, IQuickPanel
         SourceInitialized += (_, _) =>
         {
             _hwnd = new WindowInteropHelper(this).Handle;
+            // never activated: the app below keeps focus and its text cursor, so a paste lands where the user was typing
             long ex = (long)Win32.GetWindowLongPtr(_hwnd, Win32.GWL_EXSTYLE);
-            Win32.SetWindowLongPtr(_hwnd, Win32.GWL_EXSTYLE, (IntPtr)((ex | Win32.WS_EX_TOOLWINDOW) & ~Win32.WS_EX_APPWINDOW));
+            Win32.SetWindowLongPtr(_hwnd, Win32.GWL_EXSTYLE, (IntPtr)((ex | Win32.WS_EX_TOOLWINDOW | Win32.WS_EX_NOACTIVATE) & ~Win32.WS_EX_APPWINDOW));
         };
-        Deactivated += (_, _) => { if (!_pasting && IsVisible && !AnyMenuOpen()) HideNow(); };
+        IsVisibleChanged += (_, _) => { if (!_warming) _app.CaptureKeys(IsVisible); };
 
         CommandBindings.Add(new CommandBinding(Cmds.Paste, (_, e) => Paste(e.Parameter as ClipItem, false)));
         CommandBindings.Add(new CommandBinding(Cmds.PastePlain, (_, e) => Paste(e.Parameter as ClipItem, true)));
@@ -82,14 +88,14 @@ public partial class QuickPanel : Window, IQuickPanel
         CommandBindings.Add(new CommandBinding(Cmds.SetScope, (_, e) => { if (e.Parameter is Scope s) { _model.Scope = s; search.Focus(); } }));
     }
 
+    protected override System.Windows.Automation.Peers.AutomationPeer OnCreateAutomationPeer() => new QuietPeer(this, "SweaxClip");
+
     void UpdateCount()
     {
         var info = _model.Scopes.FirstOrDefault(s => s.Scope == _model.Scope);
         placeholder.Text = Loc.Format("SearchCount", info?.CountText ?? "0");
         count.Text = _model.Search.Length > 0 ? Loc.Format("Found", _model.Items.Count.ToString("N0", Loc.Culture)) : "";
     }
-
-    static bool AnyMenuOpen() => Keyboard.FocusedElement is MenuItem || Mouse.Captured is ContextMenu;
 
     // ── show / hide ──────────────────────────────────────────────────────────
 
@@ -116,28 +122,32 @@ public partial class QuickPanel : Window, IQuickPanel
             }
             _previous = previous;
             _previousFocus = _shellTarget ? IntPtr.Zero : Win32.FocusOf(previous);
+            // the text cursor is looked up while the list loads; a slow app can't hold the panel up
+            var caret = _shellTarget ? Task.FromResult<Win32.RECT?>(null) : CaretLocator.FindAsync(previous, 150);
             if (_hwnd == IntPtr.Zero) new WindowInteropHelper(this).EnsureHandle();
             pausedBadge.Visibility = _app.Settings.Paused ? Visibility.Visible : Visibility.Collapsed;
             shadowFx.Opacity = ThemeManager.IsDark ? 0.55 : 0.2;
 
-            _model.Search = "";
-            if (_model.Scope != Scope.All) _model.Scope = Scope.All;
+            BenchStep?.Invoke("start");
+            _model.ResetQuietly();
             await _model.Reload(false);
+            BenchStep?.Invoke("reload");
             SetIndexes(false);
             UpdateCount();
 
-            var (x, y) = Placement(_shellTarget ? IntPtr.Zero : previous);
+            var (x, y) = BenchPlace ?? Placement(await caret);
             Win32.SetWindowPos(_hwnd, Win32.HWND_TOPMOST, x, y, 0, 0, Win32.SWP_NOSIZE | Win32.SWP_NOACTIVATE);
             host.Opacity = 0;
+            BenchStep?.Invoke("placed");
             Show();
-            Win32.ForceForeground(_hwnd);
-            Activate();
+            BenchStep?.Invoke("show");
             search.Focus();
-            Keyboard.Focus(search);
             sizer.Snap();
             UpdateLayout();
             list.ScrollIntoView(_model.Selected);
+            BenchStep?.Invoke("layout");
             Enter();
+            BenchStep?.Invoke("enter");
         }
         finally { _showing = false; }
     }
@@ -152,6 +162,25 @@ public partial class QuickPanel : Window, IQuickPanel
             return ShellSurfaces.Contains(p.ProcessName);
         }
         catch { return false; }
+    }
+
+    public async Task Warm()
+    {
+        if (IsVisible || _showing) return;
+        if (_hwnd == IntPtr.Zero) new WindowInteropHelper(this).EnsureHandle();
+        await _model.Reload(false);
+        if (IsVisible || _showing) return;
+        Win32.SetWindowPos(_hwnd, IntPtr.Zero, -32000, -32000, 0, 0, Win32.SWP_NOSIZE | Win32.SWP_NOZORDER | Win32.SWP_NOACTIVATE);
+        host.Opacity = 0;
+        _warming = true;
+        try
+        {
+            Show();
+            sizer.Snap();
+            UpdateLayout();
+            Hide();
+        }
+        finally { _warming = false; }
     }
 
     /// <summary>The opening: the panel grows out of the caret (or the taskbar) and the rows settle in one after another.</summary>
@@ -205,9 +234,8 @@ public partial class QuickPanel : Window, IQuickPanel
     /// Same place Windows opens its clipboard panel: under the text cursor when one can be found,
     /// otherwise centred above the taskbar. Returns the window's top-left in physical pixels.
     /// </summary>
-    (int x, int y) Placement(IntPtr previous)
+    (int x, int y) Placement(Win32.RECT? caret)
     {
-        var caret = previous == IntPtr.Zero ? null : CaretLocator.Find(previous);
         Win32.GetCursorPos(out var mouse);
         var anchor = caret is { } c ? new Win32.POINT { X = c.Left, Y = c.Bottom } : mouse;
 
@@ -279,16 +307,32 @@ public partial class QuickPanel : Window, IQuickPanel
 
     // ── keyboard ─────────────────────────────────────────────────────────────
 
+    public void OnKey(CapturedKey k)
+    {
+        if (!IsVisible) return;
+        var (key, mods) = PanelKeys.Read(k);
+        if (key is Key.LeftAlt or Key.RightAlt) { SetIndexes(k.Down && !k.Ctrl); return; }
+        if (!k.Down) return;
+        if (HandleKey(key, mods)) return;
+        PanelKeys.Edit(search, key, mods, PanelKeys.Text(k, _previous));
+    }
+
     protected override void OnPreviewKeyDown(KeyEventArgs e)
     {
-        var mods = Keyboard.Modifiers;
-        bool ctrl = mods.HasFlag(ModifierKeys.Control), shift = mods.HasFlag(ModifierKeys.Shift);
         Key key = e.Key == Key.System ? e.SystemKey : e.Key;
+        if (key is Key.LeftAlt or Key.RightAlt) { SetIndexes(true); e.Handled = true; return; }
+        if (HandleKey(key, Keyboard.Modifiers)) e.Handled = true;
+        else if (!search.IsKeyboardFocused) search.Focus();
+    }
+
+    /// <summary>The panel's own keys. Returns false for keys that belong to the search box.</summary>
+    bool HandleKey(Key key, ModifierKeys mods)
+    {
+        bool ctrl = mods.HasFlag(ModifierKeys.Control), shift = mods.HasFlag(ModifierKeys.Shift);
         bool searchEmpty = search.Text.Length == 0;
 
         switch (key)
         {
-            case Key.LeftAlt or Key.RightAlt: SetIndexes(true); e.Handled = true; return;
             case Key.Escape:
                 if (!searchEmpty) _model.Search = "";
                 else HideNow();
@@ -317,11 +361,9 @@ public partial class QuickPanel : Window, IQuickPanel
             case Key.O when ctrl: if (_model.Selected is { } o) { HideNow(); _app.OpenItem(o); } break;
             case Key.E when ctrl: OpenLibrary(); break;
             case Key.F when ctrl: search.Focus(); search.SelectAll(); break;
-            default:
-                if (!search.IsKeyboardFocused) search.Focus();
-                return;
+            default: return false;
         }
-        e.Handled = true;
+        return true;
     }
 
     protected override void OnPreviewKeyUp(KeyEventArgs e)
@@ -349,11 +391,21 @@ public partial class QuickPanel : Window, IQuickPanel
             if (_app.Settings.PastePlainByDefault) plain = !plain;
             if (!Paster.SetClipboard(full, plain)) { Toast(Loc.T("ClipboardBusy")); return; }
             if (_app.Settings.MoveToTopOnPaste) _ = Task.Run(() => _app.Store.TouchId(item.Id));
+            // from here on the keyboard is the app's again: whatever the user types next must not be lost to the panel
+            _app.CaptureKeys(false);
 
-            await Leave();
+            if (_shellTarget)
+            {
+                await Leave();
+                HideNow();
+                await Paster.PasteIntoSearch();
+                return;
+            }
+            // the app never lost focus: paste at once while the panel folds back into the caret
+            var leaving = Leave();
+            await Paster.PasteInto(_previous, _previousFocus);
+            await leaving;
             HideNow();
-            if (_shellTarget) await Paster.PasteIntoSearch();
-            else await Paster.PasteInto(_previous, _previousFocus);
         }
         finally { _pasting = false; }
     }

@@ -140,12 +140,14 @@ public static class Springs
 /// <summary>
 /// How far a row is open (0 closed, 1 open). Inherited, so one spring on the row drives every
 /// <see cref="Reveal"/>, <see cref="Grow"/> and tint inside it. <c>Follow</c> binds it to a flag.
+/// Only Reveal and Grow re-measure when it changes: if every element of the row did, each frame of the
+/// opening would lay out all of the row's text again.
 /// </summary>
 public static class Motion
 {
     public static readonly DependencyProperty OpenProperty = DependencyProperty.RegisterAttached(
         "Open", typeof(double), typeof(Motion),
-        new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.Inherits | FrameworkPropertyMetadataOptions.AffectsMeasure));
+        new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.Inherits));
 
     public static double GetOpen(DependencyObject d) => (double)d.GetValue(OpenProperty);
     public static void SetOpen(DependencyObject d, double v) => d.SetValue(OpenProperty, v);

@@ -109,10 +109,14 @@ public sealed class ClipListModel : Observable
         if (v != _version) return;
 
         long? keepId = keepSelection ? _selected?.Id : null;
-        Items.Clear();
-        Items.AddRange(items);
         _hasMore = items.Count == PageSize;
-        Rebuild();
+        if (!UseGrid && !DayHeaders) Sync(items);
+        else
+        {
+            Items.Clear();
+            Items.AddRange(items);
+            Rebuild();
+        }
         Selected = (keepId != null ? Items.FirstOrDefault(i => i.Id == keepId) : null) ?? Items.FirstOrDefault();
 
         IsEmpty = Items.Count == 0;
@@ -187,6 +191,60 @@ public sealed class ClipListModel : Observable
             }
         }
         Rows = rows;
+    }
+
+    /// <summary>
+    /// Brings the list to <paramref name="fresh"/> with the fewest changes: a clip that is still there keeps its object
+    /// and its row, so only new clips get a row built. Rebuilding every row on each Win+V took a full template pass.
+    /// </summary>
+    void Sync(List<ClipItem> fresh)
+    {
+        var known = new Dictionary<long, ClipItem>(Items.Count);
+        foreach (var c in Items) known[c.Id] = c;
+        for (int i = 0; i < fresh.Count; i++)
+        {
+            var f = fresh[i];
+            if (!known.TryGetValue(f.Id, out var have) || have.Hash != f.Hash || have.Kind != f.Kind || have.Thumb != f.Thumb
+                || have.Blob != f.Blob || have.Title != f.Title || have.App != f.App || have.TextLength != f.TextLength) continue;
+            have.Used = f.Used;
+            have.Uses = f.Uses;
+            have.Pinned = f.Pinned;
+            have.Ocr = f.Ocr;
+            fresh[i] = have;
+        }
+        Items.Clear();
+        Items.AddRange(fresh);
+        int idx = 1;
+        foreach (var c in Items) c.Index = idx <= 9 ? idx++ : 0;
+
+        var rows = _rows;
+        if (rows.Any(r => r is not ClipItem)) { Rebuild(); return; }
+        var wanted = new HashSet<ClipItem>(fresh);
+        for (int i = rows.Count - 1; i >= 0; i--)
+            if (!wanted.Contains((ClipItem)rows[i])) rows.RemoveAt(i);
+        for (int i = 0; i < fresh.Count; i++)
+        {
+            if (i < rows.Count && ReferenceEquals(rows[i], fresh[i])) continue;
+            int at = -1;
+            for (int j = i + 1; j < rows.Count; j++) if (ReferenceEquals(rows[j], fresh[i])) { at = j; break; }
+            if (at >= 0) rows.Move(at, i);
+            else rows.Insert(i, fresh[i]);
+        }
+        while (rows.Count > fresh.Count) rows.RemoveAt(rows.Count - 1);
+        Raise(nameof(Rows));
+    }
+
+    /// <summary>Back to every clip with no search, without the reloads that changing scope and search one by one would start.</summary>
+    public void ResetQuietly()
+    {
+        _searchDelay.Stop();
+        if (_search.Length > 0) { _search = ""; Raise(nameof(Search)); }
+        if (_scope == Scope.All) return;
+        _scope = Scope.All;
+        foreach (var s in Scopes) s.Active = s.Scope == Scope.All;
+        Raise(nameof(Scope));
+        Raise(nameof(ScopeTitle));
+        Raise(nameof(UseGrid));
     }
 
     public async Task RefreshCounts()

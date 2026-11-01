@@ -40,7 +40,7 @@
 
 Windows'un kendi pano geçmişi son 25 öğeyi tutar ve bilgisayar her yeniden başladığında hepsini siler. Geçen hafta kopyaladığın adres, geçen ay aldığın kod parçası, baharda ekran görüntüsünü aldığın fatura — hepsi gider.
 
-SweaxClip kopyaladığın her şeyi — metin, bağlantı, kod, renk, görsel, ekran görüntüsü ve dosya — kendi diskindeki bir arşivde saklar; yeniden başlatmalar, güncellemeler ve yıllar geçse de durur. Aynı kısayolla, aynı yerde açılır ve tepside yaklaşık 10 MB bellekle bekler.
+SweaxClip kopyaladığın her şeyi — metin, bağlantı, kod, renk, görsel, ekran görüntüsü ve dosya — kendi diskindeki bir arşivde saklar; yeniden başlatmalar, güncellemeler ve yıllar geçse de durur. Aynı kısayolla, aynı yerde, saniyenin yüzde birkaçında açılır — ve yazdığın uygulamadan odağı hiç almaz; seçtiğin kayıt tam yazı imlecinin olduğu yere düşer.
 
 <table>
 <tr>
@@ -281,8 +281,8 @@ Her kayıt kendi nesnesi olarak çizilir: metin bir kâğıt yaprağında, bağl
 - **Arama.** Trigram ayrıştırıcılı bir FTS5 dizini kayıt metnini, görsellerden okunan yazıyı ve kopyalanan dosyaların adlarını kapsar. Metin dizine girmeden önce küçük harfe çevrilir, aksanları kaldırılır, Türkçe harfler sadeleştirilir.
 - **OCR.** Arka plandaki bir kuyruk yeni görselleri `Windows.Media.Ocr` ile okur ve yazıyı kaydın yanına koyar.
 - **Kısayol.** Kendi iş parçacığında çalışan düşük seviyeli bir klavye kancası <kbd>Win</kbd> + <kbd>V</kbd>'yi Windows'tan önce alır; hiçbir Windows ayarı değişmez. Yazı imleci önce `GetGUIThreadInfo` ile, kendi imlecini çizen tarayıcı ve düzenleyicilerde ise erişilebilirlik imleciyle (`OBJID_CARET`) bulunur.
-- **Yapıştırma.** Kayıt tüm biçimleriyle panoya geri konur, odak yazdığın pencereye döner ve SweaxClip <kbd>Ctrl</kbd> + <kbd>V</kbd> gönderir.
-- **Kaynak kullanımı.** Tepside yaklaşık 8–12 MB bellek, sıfır işlemci. Panel kapanınca kullandığı bellek Windows'a geri verilir.
+- **Yapıştırma.** Panel odak almayan bir penceredir (`WS_EX_NOACTIVATE`): açıkken kullandığı tuşları klavye kancası ona verir, alttaki uygulama yazı imlecini korur. Kayıt tüm biçimleriyle panoya geri konur ve SweaxClip <kbd>Ctrl</kbd> + <kbd>V</kbd>'yi doğrudan yazdığın kutuya gönderir — geri verilecek bir odak olmadığı için web formları, sohbet kutuları ve arama alanları da alır.
+- **Kaynak kullanımı.** Bir şey kopyalanmadıkça işlemci sıfır. Panel kullanımlar arasında hazır bekler; yaklaşık 20–40 ms'de açılır ve ekranın tazeleme hızında akar. Bilgisayardan on dakika uzak kalınca belleği Windows'a geri döner (yaklaşık 10 MB kalır). Panel UI Automation'a yalnızca penceresini gösterir: bir program dinlediği sürece WPF her yerleşim turunda pencerenin bütün öğelerini raporlar; dokunmatik klavye ya da PowerToys açık bir bilgisayarda bu, karelerin yüzlerce milisaniye sürmesine yol açıyordu.
 - **Ekrandan metin.** Koyu katman açılmadan önce her monitör GDI ile yakalanır. Seçim griye çevrilir, çoğu koyuysa ters çevrilir, kontrastı gerilir ve satırları yaklaşık 36 piksel olacak boya getirilir; sonra `Windows.Media.Ocr` ile okunur.
 - **Yedek.** Veritabanı her gün `VACUUM INTO` ile kopyalanır; son yedi gün ve her aydan bir kopya tutulur.
 

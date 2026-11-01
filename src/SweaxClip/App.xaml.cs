@@ -29,9 +29,11 @@ public partial class App : Application
     LibraryWindow? _library;
     Window? _menuHost;
     long _keepOwnCopyUntil;
+    bool _trimPending;
+    Win32.WinEventProc? _onForeground;
 
     readonly DispatcherTimer _changed = new(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(180) };
-    readonly DispatcherTimer _trim = new(DispatcherPriority.ApplicationIdle) { Interval = TimeSpan.FromSeconds(2) };
+    readonly DispatcherTimer _idle = new(DispatcherPriority.ApplicationIdle) { Interval = TimeSpan.FromSeconds(30) };
     readonly DispatcherTimer _themeDelay = new(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(300) };
     readonly DispatcherTimer _maintenance = new(DispatcherPriority.ApplicationIdle) { Interval = TimeSpan.FromMinutes(10) };
 
@@ -40,7 +42,7 @@ public partial class App : Application
         base.OnStartup(e);
         var args = e.Args.Select(a => a.ToLowerInvariant()).ToArray();
 
-        if (args.Contains("--demo") || args.Contains("--shots") || args.Contains("--gif") || args.Contains("--appearance") || args.Contains("--classify") || args.Contains("--grab") && args.Contains("--theme"))
+        if (args.Contains("--demo") || args.Contains("--bench") || args.Contains("--shots") || args.Contains("--gif") || args.Contains("--appearance") || args.Contains("--classify") || args.Contains("--grab") && args.Contains("--theme"))
         {
             Dev.Demo.Run(this, e.Args);
             return;
@@ -140,7 +142,17 @@ public partial class App : Application
             Dispatcher.BeginInvoke(() => TogglePanel(fg), DispatcherPriority.Send);
         };
         _hook.GrabPressed += () => Dispatcher.BeginInvoke(GrabText, DispatcherPriority.Send);
+        _hook.Key += k => Dispatcher.BeginInvoke(() =>
+        {
+            try { _panel?.OnKey(k); }
+            finally { _hook.Handled(); }
+        }, DispatcherPriority.Send);
+        _hook.MouseDown += pt => Dispatcher.BeginInvoke(() => OnMouseDown(pt));
+        _hook.CaptureLost += () => Dispatcher.BeginInvoke(() => { Paths.Log("panel stopped answering keys"); _panel?.HideNow(); });
         ApplyHotkey();
+        // the panel closes when another window comes to the front, as a focused window would on losing focus
+        _onForeground = (_, _, hwnd, _, _, _, _) => OnForeground(hwnd);
+        Win32.SetWinEventHook(Win32.EVENT_SYSTEM_FOREGROUND, Win32.EVENT_SYSTEM_FOREGROUND, IntPtr.Zero, _onForeground, 0, 0, 0);
 
         _watcher = new ScreenshotWatcher(_pipeline);
         ApplyWatcher();
@@ -155,12 +167,22 @@ public partial class App : Application
         _ocr.Recognised += (_, _) => Dispatcher.BeginInvoke(() => { _changed.Stop(); _changed.Start(); });
         _ocr.Idle += () => Dispatcher.BeginInvoke(ScheduleTrim);
 
-        _trim.Tick += (_, _) => { _trim.Stop(); Trim(); };
+        _idle.Tick += (_, _) =>
+        {
+            // memory goes back to Windows only while the user is away; trimming right after the panel closed made the
+            // next Win+V page everything back in, and a full collection while typing stalls the keyboard hook
+            if (_trimPending && _panel?.IsVisible != true && _library == null && Win32.IdleMilliseconds() > 10 * 60_000)
+            {
+                _trimPending = false;
+                Trim();
+            }
+        };
+        _idle.Start();
         _maintenance.Tick += (_, _) =>
         {
             _hook?.Rearm();
             Backup.DailyIfDue(Store, Settings);
-            if (_panel?.IsVisible != true && _library == null) Trim();
+            ScheduleTrim();
         };
         _maintenance.Start();
         Task.Run(() => Backup.DailyIfDue(Store, Settings));
@@ -169,6 +191,41 @@ public partial class App : Application
 
         _panel = CreatePanel();
         GCSettings.LatencyMode = GCLatencyMode.Interactive;
+        WarmPanelSoon();
+    }
+
+    /// <summary>Lays the panel out once off-screen a few seconds after start, so the first Win+V opens as fast as the rest.</summary>
+    void WarmPanelSoon()
+    {
+        var once = new DispatcherTimer(DispatcherPriority.ApplicationIdle) { Interval = TimeSpan.FromSeconds(4) };
+        once.Tick += async (_, _) =>
+        {
+            once.Stop();
+            try { if (_panel != null) await _panel.Warm(); }
+            catch (Exception ex) { Paths.Log("warm: " + ex.Message); }
+        };
+        once.Start();
+    }
+
+    /// <summary>While the panel is open its keys come from the hook, and a click anywhere else closes it.</summary>
+    public void CaptureKeys(bool on)
+    {
+        if (_hook != null) _hook.Capture = on;
+    }
+
+    void OnMouseDown(Win32.POINT pt)
+    {
+        if (_panel is not { IsVisible: true } panel) return;
+        IntPtr hit = Win32.GetAncestor(Win32.WindowFromPoint(pt), Win32.GA_ROOT);
+        Win32.GetWindowThreadProcessId(hit, out uint pid);
+        if (pid != (uint)Environment.ProcessId) panel.HideNow(); // menus and the panel itself are ours
+    }
+
+    void OnForeground(IntPtr hwnd)
+    {
+        if (_panel is not { IsVisible: true } panel || hwnd == panel.Target) return;
+        Win32.GetWindowThreadProcessId(hwnd, out uint pid);
+        if (pid != (uint)Environment.ProcessId) panel.HideNow();
     }
 
     // ── capture ──────────────────────────────────────────────────────────────
@@ -176,6 +233,8 @@ public partial class App : Application
     void OnClipboardChanged()
     {
         if (Settings.Paused) return;
+        // a clip SweaxClip put back is being pasted right now: don't open the clipboard under the app that is reading it
+        if (Win32.IsClipboardFormatAvailable(ClipboardReader.FmtMarker)) return;
         var r = ClipboardReader.Read(_host.Handle, Settings.RespectPrivateFlags, Settings.CaptureText, Settings.CaptureImages, Settings.CaptureFiles, out var clip);
         if (r != ClipboardReader.Result.Ok) return;
 
@@ -269,6 +328,7 @@ public partial class App : Application
         _panel.HideNow();
         _panel.Close();
         _panel = CreatePanel();
+        WarmPanelSoon();
     }
 
     void TogglePanel(IntPtr foreground)
@@ -323,11 +383,8 @@ public partial class App : Application
         menu.IsOpen = true;
     }
 
-    public void ScheduleTrim()
-    {
-        _trim.Stop();
-        _trim.Start();
-    }
+    /// <summary>Memory can go back to Windows the next time the user is away (see the idle timer).</summary>
+    public void ScheduleTrim() => _trimPending = true;
 
     /// <summary>Hand memory back to Windows while SweaxClip sits in the tray.</summary>
     void Trim()

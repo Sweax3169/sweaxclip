@@ -4,7 +4,7 @@
         xmlns:c="clr-namespace:SweaxClip.Core"
         xmlns:ui="clr-namespace:SweaxClip.UI"
         Title="SweaxClip" Width="464" Height="660"
-        WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="True" ShowInTaskbar="False" Topmost="True"
+        WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="False" ShowInTaskbar="False" Topmost="True"
         Background="Transparent" Foreground="{DynamicResource Ink}"
         FontFamily="{StaticResource UiFont}" UseLayoutRounding="True"
         TextOptions.TextFormattingMode="Ideal"

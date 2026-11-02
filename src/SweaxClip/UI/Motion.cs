@@ -322,6 +322,83 @@ public sealed class SmoothHeight : Decorator
     }
 }
 
+/// <summary>
+/// Moves a list's scroll position on a spring instead of jumping. ScrollIntoView and the mouse wheel teleport the
+/// content by a whole row (up to a hundred pixels in one frame), which reads as stutter however fast the frames are.
+/// </summary>
+public sealed class Glide
+{
+    readonly ScrollViewer _sv;
+    double _x, _v, _target, _followLeft;
+    bool _running;
+    Func<double, double?>? _follow;
+
+    public Glide(ScrollViewer sv) => _sv = sv;
+
+    /// <summary>Glides by <paramref name="delta"/> pixels from wherever it is heading (the mouse wheel).</summary>
+    public void By(double delta)
+    {
+        _follow = null;
+        _target = Clamp((_running ? _target : _sv.VerticalOffset) + delta);
+        Start();
+    }
+
+    /// <summary>
+    /// For <paramref name="seconds"/>, asks <paramref name="target"/> every frame where to head (given the current
+    /// target; null keeps it) — the selected row keeps changing size while it opens and its neighbour closes.
+    /// </summary>
+    public void Follow(Func<double, double?> target, double seconds)
+    {
+        _follow = target;
+        _followLeft = seconds;
+        if (!_running) _target = _sv.VerticalOffset;
+        Start();
+    }
+
+    /// <summary>Stops gliding where the list is now (before a jump that has nothing to glide over).</summary>
+    public void Stop()
+    {
+        _follow = null;
+        _running = false;
+        _v = 0;
+    }
+
+    void Start()
+    {
+        if (_running) return;
+        _running = true;
+        _x = _sv.VerticalOffset;
+        _v = 0;
+        Springs.Run(Step);
+    }
+
+    bool Step(double dt)
+    {
+        if (!_running) return false;
+        if (_follow != null)
+        {
+            if (_follow(_target) is double t) _target = Clamp(t);
+            if ((_followLeft -= dt) <= 0) _follow = null;
+        }
+        // nearly critically damped: quick, no bounce, so the row lands where the eye expects it; stiffer when far
+        // behind (a held arrow key moves the selection 30 rows a second)
+        double k = Math.Abs(_target - _x) > 140 ? 1500 : 700, c = 2 * 0.96 * Math.Sqrt(k);
+        for (int i = 0; i < 2; i++)
+        {
+            double h = dt / 2;
+            _v += ((_target - _x) * k - _v * c) * h;
+            _x += _v * h;
+        }
+        bool done = _follow == null && Math.Abs(_target - _x) < 0.5 && Math.Abs(_v) < 6;
+        if (done) _x = _target;
+        _sv.ScrollToVerticalOffset(_x);
+        if (done) _running = false;
+        return !done;
+    }
+
+    double Clamp(double y) => Math.Clamp(y, 0, Math.Max(0, _sv.ExtentHeight - _sv.ViewportHeight));
+}
+
 /// <summary>Paints a TextBlock's text with the search terms picked out.</summary>
 public static class Highlight
 {

@@ -32,6 +32,16 @@ public static class Bench
         report.AppendLine($"SweaxClip bench · {DateTime.Now:yyyy-MM-dd HH:mm} · trim between opens: {trim} · render tier {RenderCapability.Tier >> 16}");
         QuickPanel.BenchPlace = (-6000, 60);
         var panel = new QuickPanel(app) { ShowActivated = false };
+        if (args.Contains("--onscreen"))
+        {
+            // on the primary monitor where the panel really opens, but under every window and at 2% opacity
+            var wa = SystemParameters.WorkArea;
+            QuickPanel.BenchPlace = ((int)(wa.Left + (wa.Width - panel.Width) / 2), (int)(wa.Bottom - panel.Height));
+            QuickPanel.BenchBottom = true;
+            panel.Topmost = false;
+            if (panel.AllowsTransparency) panel.Opacity = 0.02;
+            else if (panel.Content is UIElement content) content.Opacity = 0.02;
+        }
         CompositionTarget.Rendering += OnFrame;
         await Task.Delay(800);
         if (args.Contains("--warm"))
@@ -41,7 +51,11 @@ public static class Bench
             report.AppendLine($"warm-up {Clock.Elapsed.TotalMilliseconds - w0:0} ms");
             await Task.Delay(500);
         }
+        if (args.Contains("--seethrough")) { File.WriteAllText(file, await SeeThrough(panel)); return; }
         var box = (System.Windows.Controls.TextBox)panel.FindName("search");
+        int ui = (int)Win32.GetCurrentThreadId();
+        report.AppendLine($"clips: {app.Store.Counts()[Scope.All]} · window layered: {panel.AllowsTransparency}");
+        report.AppendLine($"in front: {Layers.Describe(Win32.GetForegroundWindow())} · admin above us: {Layers.IsAdminAboveUs(Win32.GetForegroundWindow())}");
 
         for (int run = 0; run < 7; run++)
         {
@@ -61,29 +75,56 @@ public static class Bench
             double t0 = Clock.Elapsed.TotalMilliseconds;
             last = t0;
             IntPtr before = Win32.GetForegroundWindow();
+            var cpu0 = ThreadTimes();
             panel.Toggle(IntPtr.Zero);
             while (!panel.IsVisible && Clock.Elapsed.TotalMilliseconds - t0 < 3000) await Task.Delay(1);
             double shown = Clock.Elapsed.TotalMilliseconds - t0;
             await Task.Delay(30);
             bool stillFront = Win32.GetForegroundWindow() == before;
-            report.AppendLine($"        focus stays with the app below: {stillFront} · search box has keyboard focus: {box.IsKeyboardFocused}");
             await Task.Delay(750);
             var open = Stats(Frames.Where(f => f >= t0).ToList());
+            string openCpu = Busiest(cpu0, ThreadTimes(), Clock.Elapsed.TotalMilliseconds - t0, ui);
             double firstFrame = Frames.FirstOrDefault(f => f >= t0 + shown) - t0;
 
-            Frames.Clear();
-            for (int i = 0; i < 8; i++)
+            // where the selected row sits on screen, frame by frame: smooth motion moves it a little each frame, a jump moves it a lot
+            var track = new List<(double t, double y, double off)>();
+            var list = (System.Windows.Controls.ListBox)panel.FindName("list");
+            var sv = FindScroll(list);
+            EventHandler onTrack = (_, _) =>
             {
-                panel.Model.Move(1);
-                await Task.Delay(120);
-            }
+                if (panel.Model.Selected is { } sel && list.ItemContainerGenerator.ContainerFromItem(sel) is FrameworkElement row && row.IsVisible)
+                    track.Add((Clock.Elapsed.TotalMilliseconds, row.TranslatePoint(new Point(0, 0), list).Y, sv?.VerticalOffset ?? 0));
+            };
+            CompositionTarget.Rendering += onTrack;
+            // a press every 120 ms, then a held key repeating every 33 ms
+            Frames.Clear();
+            double n0 = Clock.Elapsed.TotalMilliseconds;
+            cpu0 = ThreadTimes();
+            for (int i = 0; i < 8; i++) { panel.Model.Move(1); await Task.Delay(120); }
             await Task.Delay(300);
             var nav = Stats(Frames.ToList());
+            string navCpu = Busiest(cpu0, ThreadTimes(), Clock.Elapsed.TotalMilliseconds - n0, ui);
+            Frames.Clear();
+            n0 = Clock.Elapsed.TotalMilliseconds;
+            cpu0 = ThreadTimes();
+            for (int i = 0; i < 24; i++) { panel.Model.Move(i < 12 ? 1 : -1); await Task.Delay(33); }
+            await Task.Delay(400);
+            var held = Stats(Frames.ToList());
+            string heldCpu = Busiest(cpu0, ThreadTimes(), Clock.Elapsed.TotalMilliseconds - n0, ui);
+            CompositionTarget.Rendering -= onTrack;
+            var jumps = track.Zip(track.Skip(1), (p, q) => (dy: Math.Abs(q.off - p.off), dt: q.t - p.t)).Where(x => x.dy > 30).ToList();
+            var steps2 = track.Zip(track.Skip(1), (p, q) => Math.Abs(q.off - p.off)).ToList();
+            string motion = $"scroll jumps >30px in one frame: {jumps.Count} · largest step {(steps2.Count > 0 ? steps2.Max() : 0):0.0} px · scrolled {steps2.Sum():0} px in all · row hidden {track.Count(x => x.y < -2 || x.y > list.ActualHeight)} frames";
 
+            if (run == 0 && args.Contains("--onscreen")) PrintPanel(panel, Path.ChangeExtension(Output, ".window.png"));
             if (run == 2) { report.AppendLine("        keys: " + await Keys(panel, box)); continue; }
 
             panel.HideNow();
-            report.AppendLine($"open {run + 1}: shown after {shown,6:0.0} ms · first frame {firstFrame,6:0.0} ms · opening frames {open} · browsing frames {nav}");
+            report.AppendLine($"open {run + 1}: shown after {shown,6:0.0} ms · first frame {firstFrame,6:0.0} ms · focus kept {stillFront}");
+            report.AppendLine($"        opening  {open} · cpu {openCpu}");
+            report.AppendLine($"        presses  {nav} · cpu {navCpu}");
+            report.AppendLine($"        held key {held} · cpu {heldCpu}");
+            report.AppendLine($"        {motion}");
             report.AppendLine("        " + string.Join("  ", steps));
         }
         CompositionTarget.Rendering -= OnFrame;
@@ -103,6 +144,40 @@ public static class Bench
         enc.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(rtb));
         using var fs = File.Create(file);
         enc.Save(fs);
+    }
+
+    [System.Runtime.InteropServices.DllImport("gdi32.dll")]
+    static extern IntPtr CreateDIBSection(IntPtr hdc, ref BITMAPINFOHEADER bmi, uint usage, out IntPtr bits, IntPtr section, uint offset);
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    struct BITMAPINFOHEADER { public int biSize, biWidth, biHeight; public short biPlanes, biBitCount; public int biCompression, biSizeImage, biXPelsPerMeter, biYPelsPerMeter, biClrUsed, biClrImportant; }
+
+    /// <summary>What the compositor holds for the window (PrintWindow, full content), alpha included, to check see-through corners.</summary>
+    static void PrintPanel(Window w, string file)
+    {
+        IntPtr hwnd = new System.Windows.Interop.WindowInteropHelper(w).Handle;
+        Win32.GetWindowRect(hwnd, out var r);
+        var bmi = new BITMAPINFOHEADER { biSize = 40, biWidth = r.Width, biHeight = -r.Height, biPlanes = 1, biBitCount = 32 };
+        IntPtr screen = Win32.GetDC(IntPtr.Zero), mem = Win32.CreateCompatibleDC(screen);
+        IntPtr dib = CreateDIBSection(mem, ref bmi, 0, out IntPtr bits, IntPtr.Zero, 0);
+        IntPtr old = Win32.SelectObject(mem, dib);
+        try
+        {
+            Win32.PrintWindow(hwnd, mem, 2);
+            var px = new byte[r.Width * r.Height * 4];
+            System.Runtime.InteropServices.Marshal.Copy(bits, px, 0, px.Length);
+            var src = System.Windows.Media.Imaging.BitmapSource.Create(r.Width, r.Height, 96, 96, PixelFormats.Bgra32, null, px, r.Width * 4);
+            var enc = new System.Windows.Media.Imaging.PngBitmapEncoder();
+            enc.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(src));
+            using var fs = File.Create(file);
+            enc.Save(fs);
+        }
+        finally
+        {
+            Win32.SelectObject(mem, old);
+            Win32.DeleteObject(dib);
+            Win32.DeleteDC(mem);
+            Win32.ReleaseDC(IntPtr.Zero, screen);
+        }
     }
 
     static CapturedKey K(int vk, bool shift = false, bool ctrl = false, bool alt = false) =>
@@ -148,6 +223,74 @@ public static class Bench
         Check("esc-closes", !panel.IsVisible);
         return string.Join(" · ", log);
     }
+
+    /// <summary>
+    /// Shows the panel for half a second in a corner of a side monitor and compares the pixels around it with the same
+    /// spot before: where the panel is transparent they must match. Only numbers are kept, never the picture.
+    /// </summary>
+    static async Task<string> SeeThrough(QuickPanel panel)
+    {
+        var mons = Win32.Monitors();
+        var mon = mons.FirstOrDefault(m => m.Left >= 2560, mons[0]);
+        int w = (int)panel.Width, h = (int)panel.Height;
+        var rect = new Win32.RECT { Left = mon.Left + 120, Top = mon.Bottom - h - 90, Right = mon.Left + 120 + w, Bottom = mon.Bottom - 90 };
+        var before = Pixels(Win32.CaptureScreen(rect));
+        QuickPanel.BenchPlace = (rect.Left, rect.Top);
+        QuickPanel.BenchBottom = false;
+        panel.Toggle(IntPtr.Zero);
+        await Task.Delay(550);
+        var after = Pixels(Win32.CaptureScreen(rect));
+        panel.HideNow();
+        bool Same(int x, int y)
+        {
+            int i = (y * w + x) * 4;
+            return Math.Abs(before[i] - after[i]) <= 14 && Math.Abs(before[i + 1] - after[i + 1]) <= 14 && Math.Abs(before[i + 2] - after[i + 2]) <= 14;
+        }
+        int topSame = 0, topAll = 0;
+        for (int y = 0; y < 8; y++) for (int x = 0; x < w; x++) { topAll++; if (Same(x, y)) topSame++; }
+        int cornerSame = 0;
+        for (int y = 0; y < 6; y++) for (int x = 0; x < 6; x++) if (Same(x, y)) cornerSame++;
+        int mid = ((h - 200) * w + w / 2) * 4;
+        return $"monitor {mon.Left},{mon.Top} · window layered {panel.AllowsTransparency}\n" +
+               $"top band unchanged {topSame * 100 / topAll}% · top-left corner unchanged {cornerSame}/36\n" +
+               $"panel body pixel BGR {after[mid]},{after[mid + 1]},{after[mid + 2]} (was {before[mid]},{before[mid + 1]},{before[mid + 2]})\n" +
+               $"top band mean brightness before {Mean(before, w, 8):0} after {Mean(after, w, 8):0}";
+    }
+
+    static byte[] Pixels(System.Windows.Media.Imaging.BitmapSource b)
+    {
+        var c = new System.Windows.Media.Imaging.FormatConvertedBitmap(b, PixelFormats.Bgra32, null, 0);
+        var px = new byte[c.PixelWidth * c.PixelHeight * 4];
+        c.CopyPixels(px, c.PixelWidth * 4, 0);
+        return px;
+    }
+
+    static double Mean(byte[] px, int w, int rows)
+    {
+        double sum = 0;
+        for (int i = 0; i < w * rows * 4; i += 4) sum += (px[i] + px[i + 1] + px[i + 2]) / 3.0;
+        return sum / (w * rows);
+    }
+
+    static System.Windows.Controls.ScrollViewer? FindScroll(DependencyObject d)
+    {
+        if (d is System.Windows.Controls.ScrollViewer sv) return sv;
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(d); i++) if (FindScroll(VisualTreeHelper.GetChild(d, i)) is { } hit) return hit;
+        return null;
+    }
+
+    static Dictionary<int, TimeSpan> ThreadTimes()
+    {
+        var d = new Dictionary<int, TimeSpan>();
+        using var p = Process.GetCurrentProcess();
+        foreach (ProcessThread t in p.Threads) { try { d[t.Id] = t.TotalProcessorTime; } catch { } }
+        return d;
+    }
+
+    /// <summary>The three threads that used the most CPU over the interval, as a share of one core ("ui" is the UI thread).</summary>
+    static string Busiest(Dictionary<int, TimeSpan> a, Dictionary<int, TimeSpan> b, double wallMs, int ui) =>
+        string.Join(" ", b.Select(kv => (id: kv.Key, ms: (kv.Value - (a.TryGetValue(kv.Key, out var v) ? v : TimeSpan.Zero)).TotalMilliseconds))
+            .OrderByDescending(x => x.ms).Take(3).Select(x => $"{(x.id == ui ? "ui" : "t" + x.id)}:{x.ms / wallMs * 100:0}%"));
 
     /// <summary>Frame pacing: how many frames, the typical gap, the 95th percentile and the worst gap (ms).</summary>
     static string Stats(List<double> stamps)

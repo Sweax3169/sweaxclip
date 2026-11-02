@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.5.5 — 2026-11-02
+
+Smooth all the way, and it opens over everything it can.
+
+- **Browsing glides.** Moving through the list used to jump the content by a whole row — up to a hundred pixels in one frame, a dozen times in a short browse — which looked like a few frames a second however fast the panel drew. The list now glides on a spring to keep the selected row in view, keeps up with a held arrow key, and the mouse wheel glides too.
+- **Drawn by the graphics card all the way.** The panel was a layered window: every frame was copied back from the graphics card and handed to Windows again, which slows down at high refresh rates or with a busy card (games, live wallpapers, overlays). It is now an ordinary window whose transparent pixels the desktop compositor blends, clipped to the panel and its shadow so clicks beside it still reach the app.
+- **Opens over Windows' own surfaces.** Task View, the notification centre, the snipping overlay and other surfaces that sit above every app are closed first, as Start and Search already were; the clip then goes to the app that comes back to the front.
+- **Stays on top.** If another always-on-top window covers the panel when it opens, the panel is raised above it.
+- The log now notes what was in front when the panel was slow to open or covered, and when an administrator window is in front — Windows keeps the keys typed into such windows from ordinary apps, so Win+V there opens Windows' own panel.
+
 ## 1.5.4 — 2026-11-02
 
 Opens at once, and pastes into every text box.

@@ -93,8 +93,9 @@ public partial class DeckPanel : Window, IQuickPanel
         _showing = true;
         try
         {
+            // Start, Search, Task View, the notification centre and the snipping overlay sit above every app window
             _shellTarget = QuickPanel.IsShellSurface(previous);
-            if (_shellTarget)
+            if (_shellTarget || Layers.Band(previous) > 1 && !Layers.IsOurs(previous))
             {
                 Win32.Send(Win32.Key(Win32.VK_ESCAPE, false), Win32.Key(Win32.VK_ESCAPE, true));
                 await Task.Delay(160);

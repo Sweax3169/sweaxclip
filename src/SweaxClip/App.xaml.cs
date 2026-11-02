@@ -223,9 +223,21 @@ public partial class App : Application
 
     void OnForeground(IntPtr hwnd)
     {
+        NoteAdminWindow(hwnd);
         if (_panel is not { IsVisible: true } panel || hwnd == panel.Target) return;
         Win32.GetWindowThreadProcessId(hwnd, out uint pid);
         if (pid != (uint)Environment.ProcessId) panel.HideNow();
+    }
+
+    readonly HashSet<string> _adminNoted = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Notes (once per app) when an administrator window comes to the front: Win+V can't reach SweaxClip there.</summary>
+    void NoteAdminWindow(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero || !Layers.IsAdminAboveUs(hwnd)) return;
+        string what = Layers.Describe(hwnd);
+        if (_adminNoted.Add(what.Split(' ')[0]))
+            Paths.Log($"administrator window in front ({what}): Windows keeps its keys from ordinary apps, so Win+V there opens Windows' own panel");
     }
 
     // ── capture ──────────────────────────────────────────────────────────────

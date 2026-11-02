@@ -23,6 +23,8 @@ public partial class QuickPanel : Window, IQuickPanel
     Point? _caretInPanel;
     readonly DispatcherTimer _toastTimer = new() { Interval = TimeSpan.FromMilliseconds(1300) };
     ClipItem? _lastSelected;
+    Glide? _glide;
+    ScrollViewer? _scroll;
     bool _staggerNext;
 
     /// <summary>Tab button width without its label: 8 + 18 + 8.</summary>
@@ -39,6 +41,8 @@ public partial class QuickPanel : Window, IQuickPanel
     /// <summary>Bench mode: open here (off-screen) and never take focus.</summary>
     internal static (int x, int y)? BenchPlace;
     internal static Action<string>? BenchStep;
+    /// <summary>Bench mode on a real monitor: behind every window (and nearly transparent), so nobody sees it.</summary>
+    internal static bool BenchBottom;
 
     public QuickPanel(App app)
     {
@@ -74,8 +78,25 @@ public partial class QuickPanel : Window, IQuickPanel
             // never activated: the app below keeps focus and its text cursor, so a paste lands where the user was typing
             long ex = (long)Win32.GetWindowLongPtr(_hwnd, Win32.GWL_EXSTYLE);
             Win32.SetWindowLongPtr(_hwnd, Win32.GWL_EXSTYLE, (IntPtr)((ex | Win32.WS_EX_TOOLWINDOW | Win32.WS_EX_NOACTIVATE) & ~Win32.WS_EX_APPWINDOW));
+            if (!AllowsTransparency) WindowEffects.SeeThrough(_hwnd);
         };
+        // the window is the panel's full height; outside the panel and its shadow it lets clicks through
+        host.SizeChanged += (_, _) => FitRegion();
+        PreviewMouseDown += (_, e) => { if (!host.IsMouseOver) { e.Handled = true; HideNow(); } };
         IsVisibleChanged += (_, _) => { if (!_warming) _app.CaptureKeys(IsVisible); };
+        list.Loaded += (_, _) =>
+        {
+            if (_scroll != null || list.FindChild<ScrollViewer>() is not { } sv) return;
+            _scroll = sv;
+            _glide = new Glide(sv);
+        };
+        // the wheel glides too: a notch is about one row
+        list.PreviewMouseWheel += (_, e) =>
+        {
+            if (_glide == null) return;
+            e.Handled = true;
+            _glide.By(-e.Delta * 0.9);
+        };
 
         CommandBindings.Add(new CommandBinding(Cmds.Paste, (_, e) => Paste(e.Parameter as ClipItem, false)));
         CommandBindings.Add(new CommandBinding(Cmds.PastePlain, (_, e) => Paste(e.Parameter as ClipItem, true)));
@@ -107,14 +128,16 @@ public partial class QuickPanel : Window, IQuickPanel
 
     public async Task ShowAt(IntPtr previous)
     {
-        if (_showing) return;
+        if (_showing) { Paths.Log("Win+V pressed again while the panel was still opening"); return; }
         _showing = true;
+        long started = Environment.TickCount64;
         try
         {
-            // Start, Search and the notification centre are drawn above every app window, so close them first;
-            // a clip picked for them is pasted into Search when it reopens.
+            // Start, Search, Task View, the notification centre and the snipping overlay sit in bands above every app
+            // window, where the panel can't be drawn, so close them first. A clip picked over Start or Search is pasted
+            // into Search when it reopens; over the others it goes to the app that comes back to the front.
             _shellTarget = IsShellSurface(previous);
-            if (_shellTarget)
+            if (_shellTarget || Layers.Band(previous) > 1 && !Layers.IsOurs(previous))
             {
                 Win32.Send(Win32.Key(Win32.VK_ESCAPE, false), Win32.Key(Win32.VK_ESCAPE, true));
                 await Task.Delay(160);
@@ -136,7 +159,7 @@ public partial class QuickPanel : Window, IQuickPanel
             UpdateCount();
 
             var (x, y) = BenchPlace ?? Placement(await caret);
-            Win32.SetWindowPos(_hwnd, Win32.HWND_TOPMOST, x, y, 0, 0, Win32.SWP_NOSIZE | Win32.SWP_NOACTIVATE);
+            Win32.SetWindowPos(_hwnd, BenchBottom ? new IntPtr(1) : Win32.HWND_TOPMOST, x, y, 0, 0, Win32.SWP_NOSIZE | Win32.SWP_NOACTIVATE);
             host.Opacity = 0;
             BenchStep?.Invoke("placed");
             Show();
@@ -144,10 +167,15 @@ public partial class QuickPanel : Window, IQuickPanel
             search.Focus();
             sizer.Snap();
             UpdateLayout();
+            FitRegion();
+            _glide?.Stop();
             list.ScrollIntoView(_model.Selected);
             BenchStep?.Invoke("layout");
             Enter();
             BenchStep?.Invoke("enter");
+            long took = Environment.TickCount64 - started;
+            if (took > 300) Paths.Log($"slow open: {took} ms over {Layers.Describe(previous)}");
+            if (BenchPlace == null) _ = StayOnTop();
         }
         finally { _showing = false; }
     }
@@ -181,6 +209,41 @@ public partial class QuickPanel : Window, IQuickPanel
             Hide();
         }
         finally { _warming = false; }
+    }
+
+    /// <summary>
+    /// Clips the window to the panel and its shadow. A window that is not layered takes every click on its rectangle,
+    /// transparent or not, so without this the empty space above a short panel would swallow clicks meant for the app.
+    /// </summary>
+    void FitRegion()
+    {
+        if (_hwnd == IntPtr.Zero || AllowsTransparency || !host.IsArrangeValid) return;
+        var at = root.TranslatePoint(new Point(0, 0), this) + VisualTreeHelper.GetOffset(host);
+        var dpi = VisualTreeHelper.GetDpi(this);
+        double l = Math.Max(0, at.X - root.Margin.Left), t = Math.Max(0, at.Y - root.Margin.Top);
+        double r = Math.Min(ActualWidth, at.X + host.ActualWidth + root.Margin.Right), b = Math.Min(ActualHeight, at.Y + host.ActualHeight + root.Margin.Bottom);
+        var region = (l: (int)Math.Floor(l * dpi.DpiScaleX), t: (int)Math.Floor(t * dpi.DpiScaleY), r: (int)Math.Ceiling(r * dpi.DpiScaleX), b: (int)Math.Ceiling(b * dpi.DpiScaleY));
+        if (region == _region) return;
+        _region = region;
+        Win32.SetWindowRgn(_hwnd, Win32.CreateRectRgn(region.l, region.t, region.r, region.b), true);
+    }
+
+    (int l, int t, int r, int b) _region;
+
+    /// <summary>
+    /// Another always-on-top window that came to the front later can hide the panel, and a second Win+V would then
+    /// close it unseen. Raise the panel once if something covers it, and note what it was.
+    /// </summary>
+    async Task StayOnTop()
+    {
+        await Task.Delay(90);
+        IntPtr over = IsVisible ? Layers.CoveredBy(_hwnd, host) : IntPtr.Zero;
+        if (over == IntPtr.Zero) return;
+        string what = Layers.Describe(over);
+        Win32.SetWindowPos(_hwnd, Win32.HWND_TOPMOST, 0, 0, 0, 0, Win32.SWP_NOMOVE | Win32.SWP_NOSIZE | Win32.SWP_NOACTIVATE);
+        await Task.Delay(60);
+        bool still = IsVisible && Layers.CoveredBy(_hwnd, host) != IntPtr.Zero;
+        Paths.Log($"panel was covered by {what}{(still ? "; still covered after raising it" : "; raised above it")}");
     }
 
     /// <summary>The opening: the panel grows out of the caret (or the taskbar) and the rows settle in one after another.</summary>
@@ -286,13 +349,26 @@ public partial class QuickPanel : Window, IQuickPanel
         var sel = _model.Selected;
         if (sel == null || ReferenceEquals(sel, _lastSelected)) return;
         _lastSelected = sel;
-        list.ScrollIntoView(sel);
-        // the row opens over ~0.4 s; make sure all of it ends up in view
-        Dispatcher.BeginInvoke(async () =>
+        if (_glide == null || list.ItemContainerGenerator.ContainerFromItem(sel) is not FrameworkElement { IsVisible: true })
         {
-            await Task.Delay(Springs.ManualClock ? 0 : 380);
-            if (ReferenceEquals(_model.Selected, sel) && list.ItemContainerGenerator.ContainerFromItem(sel) is FrameworkElement row) row.BringIntoView();
-        }, DispatcherPriority.Background);
+            // far away (Home, End, a search hit): nothing in between to glide over, so jump there first
+            _glide?.Stop();
+            list.ScrollIntoView(sel);
+        }
+        // the row opens over ~0.4 s while its neighbour closes; keep all of it in view, gliding
+        _glide?.Follow(KeepInView, 0.75);
+    }
+
+    /// <summary>Where the list should scroll so the selected row is fully visible, or null if it already is.</summary>
+    double? KeepInView(double target)
+    {
+        if (_scroll == null || _model.Selected is not { } sel || list.ItemContainerGenerator.ContainerFromItem(sel) is not FrameworkElement { IsVisible: true } row) return null;
+        const double margin = 10;
+        double view = _scroll.ViewportHeight;
+        double top = _scroll.VerticalOffset + row.TranslatePoint(new Point(0, 0), _scroll).Y, bottom = top + row.ActualHeight;
+        if (bottom - top + 2 * margin >= view || top - margin < target) return top - margin;
+        if (bottom + margin > target + view) return bottom + margin - view;
+        return null;
     }
 
     void MoveIndicator(bool instant = false)

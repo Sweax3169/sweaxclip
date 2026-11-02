@@ -35,8 +35,10 @@ public static class Demo
         }
         bool tr = Arg("--lang") == "tr";
         string? theme = Arg("--theme");
-        string dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"sweaxclip-demo-{(tr ? "tr" : "en")}-{theme ?? "auto"}");
-        try { if (Directory.Exists(dir)) Directory.Delete(dir, true); } catch { }
+        // --data DIR: a copy of a real archive (bench only); otherwise a fresh synthetic one
+        string? data = Arg("--data");
+        string dir = data ?? System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"sweaxclip-demo-{(tr ? "tr" : "en")}-{theme ?? "auto"}");
+        if (data == null) try { if (Directory.Exists(dir)) Directory.Delete(dir, true); } catch { }
         Paths.Init(dir);
         var settings = Settings.Load(dir);
         settings.Language = tr ? "tr" : "en";
@@ -47,7 +49,7 @@ public static class Demo
         ThemeManager.PaletteKey = Arg("--palette") ?? "ember";
         settings.PanelStyle = Arg("--style") ?? "timeline";
         ThemeManager.Apply();
-        DemoData.Fill(app.Store, tr);
+        if (data == null) DemoData.Fill(app.Store, tr);
 
         try
         {

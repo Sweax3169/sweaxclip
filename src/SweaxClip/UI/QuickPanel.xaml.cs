@@ -24,6 +24,7 @@ public partial class QuickPanel : Window, IQuickPanel
     readonly DispatcherTimer _toastTimer = new() { Interval = TimeSpan.FromMilliseconds(1300) };
     ClipItem? _lastSelected;
     Glide? _glide;
+    internal Glide? GlideForBench => _glide;
     ScrollViewer? _scroll;
     bool _staggerNext;
 
@@ -352,6 +353,7 @@ public partial class QuickPanel : Window, IQuickPanel
         if (_glide == null || list.ItemContainerGenerator.ContainerFromItem(sel) is not FrameworkElement { IsVisible: true })
         {
             // far away (Home, End, a search hit): nothing in between to glide over, so jump there first
+            BenchStep?.Invoke("jump");
             _glide?.Stop();
             list.ScrollIntoView(sel);
         }

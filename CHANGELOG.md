@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.6 — 2026-11-07
+
+- **Deleting no longer throws you back to the top.** Scrolled down in the library or the panel, deleting a clip used to rebuild the whole list and select the first clip again, so the view jumped to the top. The list now changes in place and keeps its selection: the clip folds away and the rest stays where it was. The same holds when the next page of the library loads, when the window is resized and when something new is copied while the library is open.
+- **No more lurches while browsing big screenshots.** A screenshot whose picture held a lot of text (a whole web page) opened into a row taller than the panel, and moving on from it made the list leap hundreds of pixels at once. The text read from a picture now shows three lines in the panel, a file list at most eight names, and the list glides no faster than about 25 pixels a frame.
+- A refresh of the library reloads every clip already shown, not only the first page.
+
 ## 1.5.5 — 2026-11-02
 
 Smooth all the way, and it opens over everything it can.

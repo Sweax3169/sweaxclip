@@ -335,6 +335,10 @@ public sealed class Glide
 
     public Glide(ScrollViewer sv) => _sv = sv;
 
+    /// <summary>The last offset the glide asked for (bench: tells its own steps from the panel's corrections).</summary>
+    public double LastSet { get; private set; } = double.NaN;
+    public bool Running => _running;
+
     /// <summary>Glides by <paramref name="delta"/> pixels from wherever it is heading (the mouse wheel).</summary>
     public void By(double delta)
     {
@@ -367,7 +371,7 @@ public sealed class Glide
     {
         if (_running) return;
         _running = true;
-        _x = _sv.VerticalOffset;
+        _x = LastSet = _sv.VerticalOffset;
         _v = 0;
         Springs.Run(Step);
     }
@@ -375,6 +379,14 @@ public sealed class Glide
     bool Step(double dt)
     {
         if (!_running) return false;
+        // The list re-anchors itself when rows it had only estimated turn out taller or shorter: its offset changes while
+        // the content stays put. Follow its new numbers instead of pulling the content back to the old ones.
+        double actual = _sv.VerticalOffset;
+        if (!double.IsNaN(LastSet) && Math.Abs(actual - LastSet) > 0.5)
+        {
+            _x += actual - LastSet;
+            _target += actual - LastSet;
+        }
         if (_follow != null)
         {
             if (_follow(_target) is double t) _target = Clamp(t);
@@ -386,15 +398,19 @@ public sealed class Glide
         for (int i = 0; i < 2; i++)
         {
             double h = dt / 2;
-            _v += ((_target - _x) * k - _v * c) * h;
+            // never faster than about 25 px a frame at 240 Hz: a far target is reached in a glide, not a lurch
+            _v = Math.Clamp(_v + ((_target - _x) * k - _v * c) * h, -MaxSpeed, MaxSpeed);
             _x += _v * h;
         }
         bool done = _follow == null && Math.Abs(_target - _x) < 0.5 && Math.Abs(_v) < 6;
         if (done) _x = _target;
         _sv.ScrollToVerticalOffset(_x);
+        LastSet = _x;
         if (done) _running = false;
         return !done;
     }
+
+    const double MaxSpeed = 6000;
 
     double Clamp(double y) => Math.Clamp(y, 0, Math.Max(0, _sv.ExtentHeight - _sv.ViewportHeight));
 }

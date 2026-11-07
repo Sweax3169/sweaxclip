@@ -141,7 +141,10 @@
             </ui:Grow>
             <ui:Reveal Closed="0">
                 <StackPanel>
+                    <!-- three lines of the text read from the picture: a screenshot of a page can carry thousands of characters,
+                         which made the open row taller than the panel -->
                     <TextBlock Style="{StaticResource RowNote}" Margin="0,8,0,0" Visibility="{Binding HasOcr, Converter={StaticResource CVis}}"
+                               TextWrapping="Wrap" LineHeight="17" LineStackingStrategy="BlockLineHeight" MaxHeight="51"
                                ui:Highlight.Text="{Binding Ocr}" ui:Highlight.Query="{Binding DataContext.Search, RelativeSource={RelativeSource AncestorType=ListBox}}"/>
                     <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource Body.Meta}"/>
                 </StackPanel>
@@ -167,7 +170,7 @@
             </Grid>
             <ui:Reveal Closed="0">
                 <StackPanel>
-                    <ItemsControl ItemsSource="{Binding FileNames}" Margin="32,6,0,0" Focusable="False">
+                    <ItemsControl ItemsSource="{Binding FileNames}" Margin="32,6,0,0" Focusable="False" MaxHeight="152" ClipToBounds="True">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate><TextBlock Text="{Binding}" FontSize="12.5" Foreground="{DynamicResource Ink2}" TextTrimming="CharacterEllipsis" Margin="0,1"/></DataTemplate>
                         </ItemsControl.ItemTemplate>

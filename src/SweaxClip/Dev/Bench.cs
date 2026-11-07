@@ -52,6 +52,7 @@ public static class Bench
             await Task.Delay(500);
         }
         if (args.Contains("--seethrough")) { File.WriteAllText(file, await SeeThrough(panel)); return; }
+        if (args.Contains("--scrolltest")) { File.WriteAllText(file, await ScrollTest(app, panel)); return; }
         var box = (System.Windows.Controls.TextBox)panel.FindName("search");
         int ui = (int)Win32.GetCurrentThreadId();
         report.AppendLine($"clips: {app.Store.Counts()[Scope.All]} · window layered: {panel.AllowsTransparency}");
@@ -88,33 +89,55 @@ public static class Bench
 
             // where the selected row sits on screen, frame by frame: smooth motion moves it a little each frame, a jump moves it a lot
             var track = new List<(double t, double y, double off)>();
+            var seen = new List<(object item, double y)>();
+            var trace = new StringBuilder("t;id;y;height;offset;glideSet;glideRunning;extent;event\n");
+            string pending = "";
+            var prevStep2 = QuickPanel.BenchStep;
+            int jumpsAsked = 0, corrections = 0;
+            double lastOff = double.NaN;
+            var prevStep = QuickPanel.BenchStep;
+            QuickPanel.BenchStep = n => { if (n == "jump") jumpsAsked++; prevStep?.Invoke(n); };
             var list = (System.Windows.Controls.ListBox)panel.FindName("list");
             var sv = FindScroll(list);
             EventHandler onTrack = (_, _) =>
             {
                 if (panel.Model.Selected is { } sel && list.ItemContainerGenerator.ContainerFromItem(sel) is FrameworkElement row && row.IsVisible)
+                {
                     track.Add((Clock.Elapsed.TotalMilliseconds, row.TranslatePoint(new Point(0, 0), list).Y, sv?.VerticalOffset ?? 0));
+                    seen.Add((sel, track[^1].y));
+                    var gl2 = panel.GlideForBench;
+                    trace.Append($"{Clock.Elapsed.TotalMilliseconds:0.0};{sel.Id};{track[^1].y:0.0};{row.ActualHeight:0.0};{sv?.VerticalOffset:0.0};{gl2?.LastSet:0.0};{gl2?.Running};{sv?.ExtentHeight:0};{pending}\n");
+                    pending = "";
+                }
+                // the panel moved the list by itself: the offset is not what the glide set
+                if (sv != null && panel.GlideForBench is { } gl && !double.IsNaN(gl.LastSet) && !double.IsNaN(lastOff) && Math.Abs(sv.VerticalOffset - lastOff) > 30 && Math.Abs(sv.VerticalOffset - gl.LastSet) > 30) corrections++;
+                lastOff = sv?.VerticalOffset ?? double.NaN;
             };
             CompositionTarget.Rendering += onTrack;
             // a press every 120 ms, then a held key repeating every 33 ms
             Frames.Clear();
             double n0 = Clock.Elapsed.TotalMilliseconds;
             cpu0 = ThreadTimes();
-            for (int i = 0; i < 8; i++) { panel.Model.Move(1); await Task.Delay(120); }
+            for (int i = 0; i < 8; i++) { pending = "move"; panel.Model.Move(1); await Task.Delay(120); }
             await Task.Delay(300);
             var nav = Stats(Frames.ToList());
             string navCpu = Busiest(cpu0, ThreadTimes(), Clock.Elapsed.TotalMilliseconds - n0, ui);
             Frames.Clear();
             n0 = Clock.Elapsed.TotalMilliseconds;
             cpu0 = ThreadTimes();
-            for (int i = 0; i < 24; i++) { panel.Model.Move(i < 12 ? 1 : -1); await Task.Delay(33); }
+            for (int i = 0; i < 24; i++) { pending = "move"; panel.Model.Move(i < 12 ? 1 : -1); await Task.Delay(33); }
             await Task.Delay(400);
             var held = Stats(Frames.ToList());
             string heldCpu = Busiest(cpu0, ThreadTimes(), Clock.Elapsed.TotalMilliseconds - n0, ui);
             CompositionTarget.Rendering -= onTrack;
+            if (run == 1) File.WriteAllText(Path.ChangeExtension(Output, ".trace.csv"), trace.ToString());
+            QuickPanel.BenchStep = prevStep;
             var jumps = track.Zip(track.Skip(1), (p, q) => (dy: Math.Abs(q.off - p.off), dt: q.t - p.t)).Where(x => x.dy > 30).ToList();
             var steps2 = track.Zip(track.Skip(1), (p, q) => Math.Abs(q.off - p.off)).ToList();
-            string motion = $"scroll jumps >30px in one frame: {jumps.Count} · largest step {(steps2.Count > 0 ? steps2.Max() : 0):0.0} px · scrolled {steps2.Sum():0} px in all · row hidden {track.Count(x => x.y < -2 || x.y > list.ActualHeight)} frames";
+            // what the eye sees: how far the selected row moves on screen in one frame (same row in both frames)
+            var moves = seen.Zip(seen.Skip(1), (a, b) => ReferenceEquals(a.item, b.item) ? Math.Abs(b.y - a.y) : 0).ToList();
+            string seenStat = $"row on screen: jumps >30px {moves.Count(m => m > 30)}, largest {(moves.Count > 0 ? moves.Max() : 0):0} px";
+            string motion = seenStat + $" · offset jumps >30px in one frame: {jumps.Count} · largest step {(steps2.Count > 0 ? steps2.Max() : 0):0.0} px · scrolled {steps2.Sum():0} px in all · row hidden {track.Count(x => x.y < -2 || x.y > list.ActualHeight)} frames";
 
             if (run == 0 && args.Contains("--onscreen")) PrintPanel(panel, Path.ChangeExtension(Output, ".window.png"));
             if (run == 2) { report.AppendLine("        keys: " + await Keys(panel, box)); continue; }
@@ -124,7 +147,7 @@ public static class Bench
             report.AppendLine($"        opening  {open} · cpu {openCpu}");
             report.AppendLine($"        presses  {nav} · cpu {navCpu}");
             report.AppendLine($"        held key {held} · cpu {heldCpu}");
-            report.AppendLine($"        {motion}");
+            report.AppendLine($"        {motion} · jumps asked {jumpsAsked} · list moved itself {corrections}");
             report.AppendLine("        " + string.Join("  ", steps));
         }
         CompositionTarget.Rendering -= OnFrame;
@@ -255,6 +278,79 @@ public static class Bench
                $"top band unchanged {topSame * 100 / topAll}% · top-left corner unchanged {cornerSame}/36\n" +
                $"panel body pixel BGR {after[mid]},{after[mid + 1]},{after[mid + 2]} (was {before[mid]},{before[mid + 1]},{before[mid + 2]})\n" +
                $"top band mean brightness before {Mean(before, w, 8):0} after {Mean(after, w, 8):0}";
+    }
+
+    /// <summary>
+    /// Scrolls the panel and the library down, deletes a clip that is in view, lets the archive refresh the list (as it
+    /// does after every change) and checks the view stayed where it was. Runs on a copy of the archive (--data).
+    /// </summary>
+    static async Task<string> ScrollTest(App app, QuickPanel panel)
+    {
+        var log = new StringBuilder();
+
+        // the panel
+        panel.Toggle(IntPtr.Zero);
+        await Task.Delay(900);
+        var plist = (System.Windows.Controls.ListBox)panel.FindName("list");
+        var psv = FindScroll(plist)!;
+        psv.ScrollToVerticalOffset(900);
+        await Task.Delay(400);
+        log.AppendLine("panel: " + await DeleteInView(app, panel, plist, psv, () => panel.Model.Reload(true)));
+        panel.HideNow();
+
+        // the library, off-screen and never activated
+        var lib = new LibraryWindow(app) { ShowActivated = false, Left = -6000, Top = 60, Width = 1100, Height = 800, WindowStartupLocation = WindowStartupLocation.Manual };
+        lib.SourceInitialized += (_, _) =>
+        {
+            IntPtr h = new System.Windows.Interop.WindowInteropHelper(lib).Handle;
+            long ex = (long)Win32.GetWindowLongPtr(h, Win32.GWL_EXSTYLE);
+            Win32.SetWindowLongPtr(h, Win32.GWL_EXSTYLE, (IntPtr)(ex | Win32.WS_EX_NOACTIVATE | Win32.WS_EX_TOOLWINDOW));
+        };
+        lib.Show();
+        await Task.Delay(1500);
+        var llist = (System.Windows.Controls.ListBox)lib.FindName("list");
+        var lsv = FindScroll(llist)!;
+        foreach (bool grid in new[] { true, false })
+        {
+            lib.Model.GridPreferred = grid;
+            await Task.Delay(600);
+            lsv.ScrollToVerticalOffset(2200);
+            await Task.Delay(500);
+            log.AppendLine($"library ({(grid ? "grid" : "list")}): " + await DeleteInView(app, lib, llist, lsv, lib.Refresh));
+            // the next page arriving while scrolled down
+            double before = lsv.VerticalOffset;
+            lsv.ScrollToVerticalOffset(lsv.ExtentHeight);
+            await Task.Delay(800);
+            double end = lsv.VerticalOffset;
+            await lib.Model.LoadMore();
+            await Task.Delay(400);
+            log.AppendLine($"    next page: offset {end:0} -> {lsv.VerticalOffset:0} (clips loaded {lib.Model.Items.Count})");
+        }
+        lib.Close();
+        return log.ToString();
+    }
+
+    /// <summary>Deletes a clip in the middle of the view the way its delete button does, refreshes, and reports how far the view moved.</summary>
+    static async Task<string> DeleteInView(App app, Window w, System.Windows.Controls.ListBox list, System.Windows.Controls.ScrollViewer sv, Func<Task> refresh)
+    {
+        double before = sv.VerticalOffset;
+        ClipItem? victim = null;
+        foreach (var row in list.Items)
+        {
+            var c = row is GridRow g ? g.Items.FirstOrDefault() : row as ClipItem;
+            if (c == null || list.ItemContainerGenerator.ContainerFromItem(row) is not FrameworkElement el || !el.IsVisible) continue;
+            double y = el.TranslatePoint(new Point(0, 0), sv).Y;
+            if (y > sv.ViewportHeight * 0.3 && y < sv.ViewportHeight * 0.7) { victim = c; break; }
+        }
+        if (victim == null) return $"no clip in view (offset {before:0})";
+        Cmds.Delete.Execute(victim, w);
+        await Task.Delay(300);
+        double afterDrop = sv.VerticalOffset;
+        await refresh();
+        await Task.Delay(400);
+        double afterRefresh = sv.VerticalOffset;
+        bool kept = Math.Abs(afterRefresh - before) < 150;
+        return $"offset {before:0} -> {afterDrop:0} after delete -> {afterRefresh:0} after refresh · {(kept ? "kept" : "MOVED")}";
     }
 
     static byte[] Pixels(System.Windows.Media.Imaging.BitmapSource b)

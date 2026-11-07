@@ -514,7 +514,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ListBox">
-                    <ScrollViewer Focusable="False" Padding="{TemplateBinding Padding}" CanContentScroll="True">
+                    <ScrollViewer Focusable="False" Padding="{TemplateBinding Padding}" CanContentScroll="{TemplateBinding ScrollViewer.CanContentScroll}">
                         <ItemsPresenter/>
                     </ScrollViewer>
                 </ControlTemplate>

@@ -88,7 +88,7 @@ public sealed class ClipListModel : Observable
         set
         {
             value = Math.Clamp(value, 1, 12);
-            if (Set(ref _columns, value) && UseGrid) Rebuild();
+            if (Set(ref _columns, value) && UseGrid) Reconcile();
         }
     }
 
@@ -103,20 +103,24 @@ public sealed class ClipListModel : Observable
         int v = ++_version;
         var scope = _scope;
         var search = _search;
+        // a refresh reloads every clip already shown, so a list scrolled past the first page keeps its length
+        int limit = keepSelection ? Math.Max(PageSize, Items.Count) : PageSize;
         List<ClipItem> items;
-        try { items = await Task.Run(() => _store.Query(scope, search, PageSize, 0)); }
+        try { items = await Task.Run(() => _store.Query(scope, search, limit, 0)); }
         catch (Exception ex) { Paths.Log("query: " + ex.Message); return; }
         if (v != _version) return;
 
         long? keepId = keepSelection ? _selected?.Id : null;
-        _hasMore = items.Count == PageSize;
-        if (!UseGrid && !DayHeaders) Sync(items);
-        else
-        {
-            Items.Clear();
-            Items.AddRange(items);
-            Rebuild();
-        }
+        _hasMore = items.Count == limit;
+        // A refresh (something was copied, deleted or read by OCR) changes the list in place and keeps the clip objects,
+        // so the view stays where the user scrolled it. A new scope or search starts from the top with fresh rows,
+        // except in the panel, whose rows are kept so it opens without building them again.
+        bool inPlace = keepSelection || !UseGrid && !DayHeaders;
+        if (inPlace) Reuse(items);
+        Items.Clear();
+        Items.AddRange(items);
+        if (inPlace) Reconcile();
+        else Rebuild();
         Selected = (keepId != null ? Items.FirstOrDefault(i => i.Id == keepId) : null) ?? Items.FirstOrDefault();
 
         IsEmpty = Items.Count == 0;
@@ -146,7 +150,7 @@ public sealed class ClipListModel : Observable
             more = more.Where(m => !known.Contains(m.Id)).ToList();
             if (more.Count == 0) return;
             Items.AddRange(more);
-            if (UseGrid) { Rebuild(); return; }
+            if (UseGrid) { Reconcile(); return; }
             DateTime? lastDay = Items.Count > more.Count ? DayOf(Items[Items.Count - more.Count - 1]) : null;
             foreach (var c in more)
             {
@@ -166,9 +170,10 @@ public sealed class ClipListModel : Observable
         return new HeaderRow { Label = label, Sub = sub };
     }
 
-    void Rebuild()
+    /// <summary>The rows for the current clips: date headers, then the clips (or rows of clips in the grid).</summary>
+    List<object> BuildRows()
     {
-        var rows = new ObservableCollection<object>();
+        var rows = new List<object>();
         int idx = 1;
         foreach (var c in Items) c.Index = idx <= 9 ? idx++ : 0;
 
@@ -190,14 +195,56 @@ public sealed class ClipListModel : Observable
                 rows.Add(c);
             }
         }
-        Rows = rows;
+        return rows;
     }
 
+    /// <summary>Fresh rows in a new collection: the list starts again from the top.</summary>
+    void Rebuild() => Rows = new ObservableCollection<object>(BuildRows());
+
     /// <summary>
-    /// Brings the list to <paramref name="fresh"/> with the fewest changes: a clip that is still there keeps its object
-    /// and its row, so only new clips get a row built. Rebuilding every row on each Win+V took a full template pass.
+    /// Brings the rows to the current clips in place: a row that is still there keeps its object, and the collection
+    /// stays the same, so deleting a clip far down the list, a refresh or the next page leaves the view where it was.
+    /// (A new collection makes the list start over from the top.)
     /// </summary>
-    void Sync(List<ClipItem> fresh)
+    void Reconcile()
+    {
+        var want = BuildRows();
+        var rows = _rows;
+        var have = new Dictionary<object, object>();
+        foreach (var r in rows) have.TryAdd(Key(r), r);
+        for (int i = 0; i < want.Count; i++)
+            if (have.TryGetValue(Key(want[i]), out var old) && Same(old, want[i])) want[i] = old;
+
+        var wanted = new HashSet<object>(want, ReferenceEqualityComparer.Instance);
+        for (int i = rows.Count - 1; i >= 0; i--)
+            if (!wanted.Contains(rows[i])) rows.RemoveAt(i);
+        for (int i = 0; i < want.Count; i++)
+        {
+            if (i < rows.Count && ReferenceEquals(rows[i], want[i])) continue;
+            int at = -1;
+            for (int j = i + 1; j < rows.Count; j++) if (ReferenceEquals(rows[j], want[i])) { at = j; break; }
+            if (at >= 0) rows.Move(at, i);
+            else rows.Insert(i, want[i]);
+        }
+        while (rows.Count > want.Count) rows.RemoveAt(rows.Count - 1);
+        Raise(nameof(Rows));
+    }
+
+    /// <summary>Clips are matched by object; a date header by its day; a grid row by the clips in it.</summary>
+    static object Key(object row) => row switch
+    {
+        HeaderRow h => "h|" + h.Label + "|" + h.Sub,
+        GridRow g => "g|" + g.Columns + "|" + string.Join(",", g.Items.Select(i => i.Id)),
+        _ => row,
+    };
+
+    static bool Same(object a, object b) => a is not GridRow ga || b is GridRow gb && ga.Items.SequenceEqual(gb.Items, ReferenceEqualityComparer.Instance);
+
+    /// <summary>
+    /// Keeps the objects of clips that are still there and unchanged, copying over what can change (uses, pin, the text
+    /// read from an image), so their rows stay as they are and the selection does not move.
+    /// </summary>
+    void Reuse(List<ClipItem> fresh)
     {
         var known = new Dictionary<long, ClipItem>(Items.Count);
         foreach (var c in Items) known[c.Id] = c;
@@ -210,28 +257,9 @@ public sealed class ClipListModel : Observable
             have.Uses = f.Uses;
             have.Pinned = f.Pinned;
             have.Ocr = f.Ocr;
+            have.Deleted = f.Deleted;
             fresh[i] = have;
         }
-        Items.Clear();
-        Items.AddRange(fresh);
-        int idx = 1;
-        foreach (var c in Items) c.Index = idx <= 9 ? idx++ : 0;
-
-        var rows = _rows;
-        if (rows.Any(r => r is not ClipItem)) { Rebuild(); return; }
-        var wanted = new HashSet<ClipItem>(fresh);
-        for (int i = rows.Count - 1; i >= 0; i--)
-            if (!wanted.Contains((ClipItem)rows[i])) rows.RemoveAt(i);
-        for (int i = 0; i < fresh.Count; i++)
-        {
-            if (i < rows.Count && ReferenceEquals(rows[i], fresh[i])) continue;
-            int at = -1;
-            for (int j = i + 1; j < rows.Count; j++) if (ReferenceEquals(rows[j], fresh[i])) { at = j; break; }
-            if (at >= 0) rows.Move(at, i);
-            else rows.Insert(i, fresh[i]);
-        }
-        while (rows.Count > fresh.Count) rows.RemoveAt(rows.Count - 1);
-        Raise(nameof(Rows));
     }
 
     /// <summary>Back to every clip with no search, without the reloads that changing scope and search one by one would start.</summary>
@@ -281,7 +309,7 @@ public sealed class ClipListModel : Observable
         if (i < 0) return;
         Items.RemoveAt(i);
         bool wasSelected = ReferenceEquals(item, _selected);
-        Rebuild();
+        Reconcile();
         if (wasSelected) Selected = Items.Count == 0 ? null : Items[Math.Min(i, Items.Count - 1)];
         IsEmpty = Items.Count == 0;
         _ = RefreshCounts();

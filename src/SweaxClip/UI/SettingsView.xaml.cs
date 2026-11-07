@@ -32,7 +32,12 @@ public partial class SettingsView : UserControl
     {
         _loading = true;
         var s = _app.Settings;
-        startup.IsChecked = AutoStart.IsEnabled();
+        startup.IsChecked = AutoStart.IsEnabled() || s.RunAsAdmin;
+        // the sign-in task starts SweaxClip while it works over administrator windows
+        startup.IsEnabled = !s.RunAsAdmin;
+        admin.IsChecked = s.RunAsAdmin;
+        adminStatus.Text = s.RunAsAdmin && !Elevation.IsElevated ? Loc.T("AdminNextSignIn") : "";
+        adminStatus.Visibility = adminStatus.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         plain.IsChecked = s.PastePlainByDefault;
         toTop.IsChecked = s.MoveToTopOnPaste;
         capText.IsChecked = s.CaptureText;
@@ -160,6 +165,21 @@ public partial class SettingsView : UserControl
         long size = await Task.Run(Backup.FolderSize);
         var counts = await Task.Run(_app.Store.Counts);
         dataStats.Text = $"{Loc.Format("ClipsStored", counts[Scope.All].ToString("N0", Loc.Culture))} · {Loc.Format("OnDisk", Bytes.Format(size))}";
+    }
+
+    async void Admin_Click(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        bool on = admin.IsChecked == true;
+        admin.IsEnabled = false;
+        adminStatus.Text = Loc.T(on && !Elevation.IsElevated ? "AdminAsking" : "AdminRestarting");
+        adminStatus.Visibility = Visibility.Visible;
+        string? note = await _app.SetRunAsAdmin(on);
+        admin.IsEnabled = true;
+        if (note == null) return; // the other copy takes over in a moment
+        admin.IsChecked = _app.Settings.RunAsAdmin;
+        startup.IsEnabled = !_app.Settings.RunAsAdmin;
+        adminStatus.Text = note;
     }
 
     void Toggle_Click(object sender, RoutedEventArgs e)

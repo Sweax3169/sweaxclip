@@ -14,8 +14,8 @@ namespace SweaxClip;
 public partial class App : Application
 {
     const string InstanceName = "SweaxClip.SingleInstance.6f1c2a";
-    Mutex? _instance;
-    EventWaitHandle? _activate;
+    WaitHandle? _instance;
+    bool _deleteTaskOnQuit;
 
     public ClipStore Store { get; internal set; } = null!;
     public Settings Settings { get; internal set; } = null!;
@@ -42,15 +42,19 @@ public partial class App : Application
         base.OnStartup(e);
         var args = e.Args.Select(a => a.ToLowerInvariant()).ToArray();
 
-        if (args.Contains("--demo") || args.Contains("--bench") || args.Contains("--shots") || args.Contains("--gif") || args.Contains("--appearance") || args.Contains("--classify") || args.Contains("--grab") && args.Contains("--theme"))
+        if (args.Contains("--demo") || args.Contains("--task-xml") || args.Contains("--bench") || args.Contains("--shots") || args.Contains("--gif") || args.Contains("--appearance") || args.Contains("--classify") || args.Contains("--grab") && args.Contains("--theme"))
         {
             Dev.Demo.Run(this, e.Args);
             return;
         }
 
-        _instance = new Mutex(true, InstanceName, out bool first);
+        _instance = Shared.Mutex(InstanceName, out bool first);
+        // --replace (the sign-in task): take over from a copy started with the other kind of rights
+        if (!first && args.Contains("--replace") && _instance != null && Shared.TakeOver(_instance, InstanceName + ".quit")) first = true;
         if (!first)
         {
+            // started at sign-in while a copy already runs: nothing to do
+            if (args.Contains("--background")) { Shutdown(); return; }
             // second launch: --toggle opens the quick panel (bind it to a mouse button or macro key), anything else opens the library
             string name = InstanceName + (args.Contains("--toggle") ? ".toggle" : args.Contains("--grab") ? ".grab" : args.Contains("--quit") ? ".quit" : ".activate");
             try { EventWaitHandle.OpenExisting(name).Set(); } catch { }
@@ -58,13 +62,13 @@ public partial class App : Application
             return;
         }
         if (args.Contains("--quit")) { Shutdown(); return; }
-        _activate = new EventWaitHandle(false, EventResetMode.AutoReset, InstanceName + ".activate");
-        var toggle = new EventWaitHandle(false, EventResetMode.AutoReset, InstanceName + ".toggle");
-        var quit = new EventWaitHandle(false, EventResetMode.AutoReset, InstanceName + ".quit");
-        var grab = new EventWaitHandle(false, EventResetMode.AutoReset, InstanceName + ".grab");
+        var activate = Shared.Event(InstanceName + ".activate");
+        var toggle = Shared.Event(InstanceName + ".toggle");
+        var quit = Shared.Event(InstanceName + ".quit");
+        var grab = Shared.Event(InstanceName + ".grab");
         new Thread(() =>
         {
-            var handles = new WaitHandle[] { _activate, toggle, quit, grab };
+            var handles = new WaitHandle[] { activate, toggle, quit, grab };
             while (true)
             {
                 int i = WaitHandle.WaitAny(handles);
@@ -84,8 +88,7 @@ public partial class App : Application
         if (!args.Contains("--no-install") && Installer.RelocateIfNeeded() is { } installed)
         {
             // hand over to the installed copy (release the single-instance lock first)
-            _instance.ReleaseMutex();
-            _instance.Dispose();
+            if (_instance != null) Shared.Release(_instance);
             _instance = null;
             Process.Start(new ProcessStartInfo(installed, string.Join(' ', e.Args.Select(a => $"\"{a}\""))) { UseShellExecute = false, WorkingDirectory = Path.GetDirectoryName(installed) });
             Shutdown();
@@ -104,6 +107,7 @@ public partial class App : Application
             if (Settings.StartWithWindows) AutoStart.Set(true);
             AutoStart.EnsureStartMenuShortcut();
         }
+        else if (Settings.RunAsAdmin) KeepAdminRights(args.Contains("--replace"));
         else if (Settings.StartWithWindows && !AutoStart.IsEnabled()) AutoStart.Set(true); // exe moved
 
         if (!Settings.ScreenshotsImported && Settings.WatchScreenshots)
@@ -410,8 +414,57 @@ public partial class App : Application
         Win32.TrimWorkingSet();
     }
 
+    /// <summary>
+    /// With "work over administrator windows" on, the sign-in task starts SweaxClip (the Run entry would start a second,
+    /// ordinary copy). A copy started without administrator rights — after an update, or by hand — asks the task to
+    /// start the administrator copy, which takes over.
+    /// </summary>
+    void KeepAdminRights(bool startedByTask)
+    {
+        AutoStart.Set(false);
+        if (Elevation.IsElevated || startedByTask) return;
+        Task.Run(() =>
+        {
+            if (Elevation.RunTask()) return;
+            Paths.Log("the administrator sign-in task is missing; running without administrator rights");
+            Dispatcher.BeginInvoke(() =>
+            {
+                Settings.RunAsAdmin = false;
+                Settings.Save();
+                if (Settings.StartWithWindows) AutoStart.Set(true);
+            });
+        });
+    }
+
+    /// <summary>
+    /// Turns "work over administrator windows" on or off. On: the sign-in task is made with administrator rights (Windows
+    /// asks once) and started, and the administrator copy takes over from this one. Off: the task is made ordinary and
+    /// started the same way, and is removed as this copy quits. Returns a note for Settings when nothing changed.
+    /// </summary>
+    public async Task<string?> SetRunAsAdmin(bool on)
+    {
+        if (on == Settings.RunAsAdmin && (!on || Elevation.IsElevated)) return null;
+        if (!await Elevation.RegisterTask(on)) return Loc.T(on ? "AdminDeclined" : "AdminFailed");
+        Settings.RunAsAdmin = on;
+        if (on) Settings.StartWithWindows = true;
+        Settings.Save();
+        if (on) AutoStart.Set(false);
+        else
+        {
+            AutoStart.Set(Settings.StartWithWindows);
+            _deleteTaskOnQuit = true;
+        }
+        if (!Elevation.RunTask())
+        {
+            if (!on) { Elevation.DeleteTask(); _deleteTaskOnQuit = false; }
+            return Loc.T("AdminNextSignIn");
+        }
+        return null; // the new copy asks this one to quit in a moment
+    }
+
     public void Quit()
     {
+        if (_deleteTaskOnQuit) Elevation.DeleteTask();
         _hook?.Dispose();
         _watcher?.Dispose();
         _tray?.Dispose();
@@ -432,6 +485,14 @@ public partial class App : Application
 
     public static void Shell(string target)
     {
+        // with administrator rights, anything opened here would get them too (a browser running as administrator):
+        // Explorer opens it as the user instead
+        if (Elevation.IsElevated)
+        {
+            try { Process.Start(new ProcessStartInfo("explorer.exe", $"\"{target}\"") { UseShellExecute = false }); }
+            catch (Exception ex) { Paths.Log("shell: " + ex.Message); }
+            return;
+        }
         try { Process.Start(new ProcessStartInfo(target) { UseShellExecute = true }); }
         catch (Exception ex) { Paths.Log("shell: " + ex.Message); }
     }

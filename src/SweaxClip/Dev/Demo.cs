@@ -26,6 +26,12 @@ public static class Demo
     public static async void Run(App app, string[] args)
     {
         string? Arg(string name) { int i = Array.FindIndex(args, a => a.Equals(name, StringComparison.OrdinalIgnoreCase)); return i >= 0 && i + 1 < args.Length ? args[i + 1] : null; }
+        if (Arg("--task-xml") is { } taskFile)
+        {
+            File.WriteAllText(taskFile, Elevation.TaskXml(args.Contains("admin")), System.Text.Encoding.Unicode);
+            app.Shutdown();
+            return;
+        }
         if (Arg("--classify") is { } samples)
         {
             var blocks = File.ReadAllText(samples).Replace("\r\n", "\n").Split("\n===\n");

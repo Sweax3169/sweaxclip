@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.6.0 — 2026-11-08
+
+Win+V over administrator windows.
+
+- **Work over administrator windows.** Windows keeps the keys typed into an administrator window — Task Manager, an installer, an elevated terminal — away from ordinary apps, so Win+V there reached Windows' own panel instead of SweaxClip. Settings → General → *Work over administrator windows* makes SweaxClip start with administrator rights at sign-in, through a scheduled task; Windows asks for permission once, when you turn it on. Turning it off hands back to an ordinary copy at once.
+- The task is made to last: it is never stopped after 72 hours and runs at normal priority, unlike Task Scheduler's defaults, and also on battery.
+- **Win+V over Chrome, Edge and Electron apps opens on time.** Finding the text cursor asks the app below; Chromium-based apps can hang on that question, and each hung question held a shared worker thread until the panel's own work had to wait for one (an 800 ms opening over the Claude app, in the log). The question is now asked on a thread of its own, one at a time.
+- With administrator rights, links and files opened from SweaxClip are still opened as you (by Explorer), the tray icon keeps working, and a second launch, `--toggle`, `--grab` and `--quit` still reach the running copy. A copy started without the rights (after an update, or by hand) hands over to the administrator copy by itself.
+
 ## 1.5.6 — 2026-11-07
 
 - **Deleting no longer throws you back to the top.** Scrolled down in the library or the panel, deleting a clip used to rebuild the whole list and select the first clip again, so the view jumped to the top. The list now changes in place and keeps its selection: the clip folds away and the rest stays where it was. The same holds when the next page of the library loads, when the window is resized and when something new is copied while the library is open.

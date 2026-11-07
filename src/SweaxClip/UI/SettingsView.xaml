@@ -245,6 +245,17 @@
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <StackPanel Style="{StaticResource RowText}">
+                                <TextBlock Text="{c:T SetAdmin}" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{c:T SetAdminNote}" Style="{StaticResource Note}"/>
+                                <TextBlock x:Name="adminStatus" Style="{StaticResource Note}" Foreground="{DynamicResource Accent}" Visibility="Collapsed"/>
+                            </StackPanel>
+                            <CheckBox x:Name="admin" Grid.Column="1" Style="{StaticResource Switch}" VerticalAlignment="Center" Click="Admin_Click"/>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Style="{StaticResource RowText}">
                                 <TextBlock Text="{c:T SetPastePlain}" Style="{StaticResource Label}"/>
                                 <TextBlock Text="{c:T SetPastePlainNote}" Style="{StaticResource Note}"/>
                             </StackPanel>

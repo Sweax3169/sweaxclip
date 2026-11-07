@@ -38,6 +38,9 @@ public sealed class HostWindow : IDisposable
         };
         _src = new HwndSource(p);
         _src.AddHook(WndProc);
+        // with administrator rights, Windows drops messages from ordinary programs unless they are allowed by name:
+        // the tray icon's clicks, Explorer restarting, theme changes
+        foreach (uint m in new[] { (uint)WM_TRAY, _taskbarCreated, 0x001Au, 0x0320u }) Win32.ChangeWindowMessageFilterEx(Handle, m, 1, IntPtr.Zero);
         Win32.AddClipboardFormatListener(Handle);
         Win32.WTSRegisterSessionNotification(Handle, 0);
 

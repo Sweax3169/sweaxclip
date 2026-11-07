@@ -20,9 +20,23 @@ internal static class CaretLocator
     public static async Task<Win32.RECT?> FindAsync(IntPtr window, int timeoutMs)
     {
         if (window == IntPtr.Zero || !Win32.IsWindow(window)) return null;
-        var task = Task.Run(() => FindCore(window));
-        return await Task.WhenAny(task, Task.Delay(timeoutMs)) == task ? task.Result : null;
+        // An app that hangs on the question (Chromium and Electron can, while they switch accessibility on) holds the
+        // thread asking it. Ask on a thread of our own, one question at a time: lookups stuck on the shared pool used to
+        // starve the panel's own work and made Win+V open late.
+        if (Interlocked.CompareExchange(ref _asking, 1, 0) != 0) return null;
+        var answer = new TaskCompletionSource<Win32.RECT?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var thread = new Thread(() =>
+        {
+            try { answer.TrySetResult(FindCore(window)); }
+            catch { answer.TrySetResult(null); }
+            finally { Volatile.Write(ref _asking, 0); }
+        }) { IsBackground = true, Name = "SweaxClip.Caret" };
+        thread.SetApartmentState(ApartmentState.MTA);
+        thread.Start();
+        return await Task.WhenAny(answer.Task, Task.Delay(timeoutMs)) == answer.Task ? answer.Task.Result : null;
     }
+
+    static int _asking;
 
     static Win32.RECT? FindCore(IntPtr window)
     {

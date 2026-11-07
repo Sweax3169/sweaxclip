@@ -8,6 +8,8 @@ public sealed class Settings
 {
     public string Language { get; set; } = "auto";
     public bool StartWithWindows { get; set; } = true;
+    /// <summary>Start with administrator rights through a sign-in task, so Win+V also works over administrator windows.</summary>
+    public bool RunAsAdmin { get; set; }
     public string Hotkey { get; set; } = "Win+V";
     public bool PastePlainByDefault { get; set; }
     public bool MoveToTopOnPaste { get; set; } = true;

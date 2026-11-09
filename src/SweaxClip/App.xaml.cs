@@ -25,12 +25,12 @@ public partial class App : Application
     TrayIcon? _tray;
     KeyboardHook? _hook;
     ScreenshotWatcher? _watcher;
-    IQuickPanel? _panel;
+    PanelHost? _panel;
     LibraryWindow? _library;
     Window? _menuHost;
     long _keepOwnCopyUntil;
+    ClipboardWatcher? _clipboard;
     bool _trimPending;
-    Win32.WinEventProc? _onForeground;
 
     readonly DispatcherTimer _changed = new(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(180) };
     readonly DispatcherTimer _idle = new(DispatcherPriority.ApplicationIdle) { Interval = TimeSpan.FromSeconds(30) };
@@ -42,7 +42,7 @@ public partial class App : Application
         base.OnStartup(e);
         var args = e.Args.Select(a => a.ToLowerInvariant()).ToArray();
 
-        if (args.Contains("--demo") || args.Contains("--task-xml") || args.Contains("--bench") || args.Contains("--shots") || args.Contains("--gif") || args.Contains("--appearance") || args.Contains("--classify") || args.Contains("--grab") && args.Contains("--theme"))
+        if (args.Contains("--demo") || args.Contains("--caret-probe") || args.Contains("--task-xml") || args.Contains("--bench") || args.Contains("--shots") || args.Contains("--gif") || args.Contains("--appearance") || args.Contains("--classify") || args.Contains("--grab") && args.Contains("--theme"))
         {
             Dev.Demo.Run(this, e.Args);
             return;
@@ -73,7 +73,7 @@ public partial class App : Application
             {
                 int i = WaitHandle.WaitAny(handles);
                 if (i == 0) Dispatcher.BeginInvoke(() => ShowLibrary(null));
-                else if (i == 1) { IntPtr fg = Win32.GetForegroundWindow(); Dispatcher.BeginInvoke(() => TogglePanel(fg)); }
+                else if (i == 1) _panel?.Toggle(Win32.GetForegroundWindow(), Environment.TickCount64);
                 else if (i == 3) Dispatcher.BeginInvoke(GrabText);
                 else { Dispatcher.BeginInvoke(Quit); return; }
             }
@@ -130,7 +130,8 @@ public partial class App : Application
         _ocr.Kick(); // finish anything left from last session
 
         _host = new HostWindow();
-        _host.ClipboardChanged += OnClipboardChanged;
+        _clipboard = new ClipboardWatcher(ReadClipboard);
+        _host.ClipboardChanged += _clipboard.Signal;
         _host.SessionUnlocked += () => _hook?.Rearm();
         _host.ThemeChanged += () => { _themeDelay.Stop(); _themeDelay.Start(); };
         _themeDelay.Tick += (_, _) => { _themeDelay.Stop(); ThemeManager.Apply(); };
@@ -140,23 +141,13 @@ public partial class App : Application
         _tray.RightClick += ShowTrayMenu;
 
         _hook = new KeyboardHook();
-        _hook.Pressed += () =>
-        {
-            IntPtr fg = Win32.GetForegroundWindow();
-            Dispatcher.BeginInvoke(() => TogglePanel(fg), DispatcherPriority.Send);
-        };
+        // straight to the panel's own thread: nothing on the main thread can hold Win+V up
+        _hook.Pressed += () => _panel?.Toggle(Win32.GetForegroundWindow(), Environment.TickCount64);
         _hook.GrabPressed += () => Dispatcher.BeginInvoke(GrabText, DispatcherPriority.Send);
-        _hook.Key += k => Dispatcher.BeginInvoke(() =>
-        {
-            try { _panel?.OnKey(k); }
-            finally { _hook.Handled(); }
-        }, DispatcherPriority.Send);
-        _hook.MouseDown += pt => Dispatcher.BeginInvoke(() => OnMouseDown(pt));
-        _hook.CaptureLost += () => Dispatcher.BeginInvoke(() => { Paths.Log("panel stopped answering keys"); _panel?.HideNow(); });
+        _hook.Key += k => _panel?.Key(k, _hook.Handled);
+        _hook.MouseDown += pt => _panel?.MouseDown(pt);
+        _hook.CaptureLost += () => { Paths.Log("panel stopped answering keys"); _panel?.Hide(); };
         ApplyHotkey();
-        // the panel closes when another window comes to the front, as a focused window would on losing focus
-        _onForeground = (_, _, hwnd, _, _, _, _) => OnForeground(hwnd);
-        Win32.SetWinEventHook(Win32.EVENT_SYSTEM_FOREGROUND, Win32.EVENT_SYSTEM_FOREGROUND, IntPtr.Zero, _onForeground, 0, 0, 0);
 
         _watcher = new ScreenshotWatcher(_pipeline);
         ApplyWatcher();
@@ -165,7 +156,8 @@ public partial class App : Application
         _changed.Tick += async (_, _) =>
         {
             _changed.Stop();
-            if (_panel is { IsVisible: true }) await _panel.Model.Reload(true);
+            // the panel's rows are kept current while it is hidden, so Win+V never has to wait for the archive
+            _panel?.Refresh();
             if (_library is { IsVisible: true }) await _library.Refresh();
         };
         _ocr.Recognised += (_, _) => Dispatcher.BeginInvoke(() => { _changed.Stop(); _changed.Start(); });
@@ -175,7 +167,7 @@ public partial class App : Application
         {
             // memory goes back to Windows only while the user is away; trimming right after the panel closed made the
             // next Win+V page everything back in, and a full collection while typing stalls the keyboard hook
-            if (_trimPending && _panel?.IsVisible != true && _library == null && Win32.IdleMilliseconds() > 10 * 60_000)
+            if (_trimPending && _panel?.Shown != true && _library == null && Win32.IdleMilliseconds() > 10 * 60_000)
             {
                 _trimPending = false;
                 Trim();
@@ -185,7 +177,7 @@ public partial class App : Application
         _maintenance.Tick += (_, _) =>
         {
             _hook?.Rearm();
-            Backup.DailyIfDue(Store, Settings);
+            Task.Run(() => Backup.DailyIfDue(Store, Settings));
             ScheduleTrim();
         };
         _maintenance.Start();
@@ -193,9 +185,11 @@ public partial class App : Application
         // clips saved before the code rules improved get sorted again once (Text → Code only)
         Task.Run(() => { try { int n = Store.ReclassifyText(2, Classifier.Classify); if (n > 0) Paths.Log($"reclassified {n} clips as code"); } catch (Exception ex) { Paths.Log("reclassify: " + ex.Message); } });
 
-        _panel = CreatePanel();
+        _panel = new PanelHost(this);
+        ThemeManager.Changed += () => _panel?.ApplyTheme();
         GCSettings.LatencyMode = GCLatencyMode.Interactive;
         WarmPanelSoon();
+        new Watchdog(Dispatcher, "UI");
     }
 
     /// <summary>Lays the panel out once off-screen a few seconds after start, so the first Win+V opens as fast as the rest.</summary>
@@ -207,6 +201,7 @@ public partial class App : Application
             once.Stop();
             try { if (_panel != null) await _panel.Warm(); }
             catch (Exception ex) { Paths.Log("warm: " + ex.Message); }
+            StayResident();
         };
         once.Start();
     }
@@ -217,41 +212,18 @@ public partial class App : Application
         if (_hook != null) _hook.Capture = on;
     }
 
-    void OnMouseDown(Win32.POINT pt)
-    {
-        if (_panel is not { IsVisible: true } panel) return;
-        IntPtr hit = Win32.GetAncestor(Win32.WindowFromPoint(pt), Win32.GA_ROOT);
-        Win32.GetWindowThreadProcessId(hit, out uint pid);
-        if (pid != (uint)Environment.ProcessId) panel.HideNow(); // menus and the panel itself are ours
-    }
 
-    void OnForeground(IntPtr hwnd)
-    {
-        NoteAdminWindow(hwnd);
-        if (_panel is not { IsVisible: true } panel || hwnd == panel.Target) return;
-        Win32.GetWindowThreadProcessId(hwnd, out uint pid);
-        if (pid != (uint)Environment.ProcessId) panel.HideNow();
-    }
 
-    readonly HashSet<string> _adminNoted = new(StringComparer.OrdinalIgnoreCase);
-
-    /// <summary>Notes (once per app) when an administrator window comes to the front: Win+V can't reach SweaxClip there.</summary>
-    void NoteAdminWindow(IntPtr hwnd)
-    {
-        if (hwnd == IntPtr.Zero || !Layers.IsAdminAboveUs(hwnd)) return;
-        string what = Layers.Describe(hwnd);
-        if (_adminNoted.Add(what.Split(' ')[0]))
-            Paths.Log($"administrator window in front ({what}): Windows keeps its keys from ordinary apps, so Win+V there opens Windows' own panel");
-    }
 
     // ── capture ──────────────────────────────────────────────────────────────
 
-    void OnClipboardChanged()
+    /// <summary>Runs on the clipboard thread (see <see cref="ClipboardWatcher"/>), never on the UI thread.</summary>
+    void ReadClipboard()
     {
         if (Settings.Paused) return;
         // a clip SweaxClip put back is being pasted right now: don't open the clipboard under the app that is reading it
         if (Win32.IsClipboardFormatAvailable(ClipboardReader.FmtMarker)) return;
-        var r = ClipboardReader.Read(_host.Handle, Settings.RespectPrivateFlags, Settings.CaptureText, Settings.CaptureImages, Settings.CaptureFiles, out var clip);
+        var r = ClipboardReader.Read(IntPtr.Zero, Settings.RespectPrivateFlags, Settings.CaptureText, Settings.CaptureImages, Settings.CaptureFiles, out var clip);
         if (r != ClipboardReader.Result.Ok) return;
 
         IntPtr fg = Win32.GetForegroundWindow();
@@ -263,8 +235,7 @@ public partial class App : Application
         if (pid == (uint)Environment.ProcessId)
         {
             // our own writes are clips being pasted back, except the text copied from the screen
-            if (Environment.TickCount64 > _keepOwnCopyUntil) return;
-            _keepOwnCopyUntil = 0;
+            if (Environment.TickCount64 > Interlocked.Exchange(ref _keepOwnCopyUntil, 0)) return;
             fromScreen = true;
         }
         clip.AppPath = Win32.GetProcessPath(pid);
@@ -277,12 +248,12 @@ public partial class App : Application
     /// <summary>Freezes the screen and lets you drag over text to copy it.</summary>
     public void GrabText()
     {
-        if (_panel is { IsVisible: true }) _panel.HideNow();
+        _panel?.Hide();
         TextGrabber.Start();
     }
 
     /// <summary>The next clipboard change from this process is text read off the screen: keep it in the history.</summary>
-    public void KeepNextOwnCopy() => _keepOwnCopyUntil = Environment.TickCount64 + 2000;
+    public void KeepNextOwnCopy() => Interlocked.Exchange(ref _keepOwnCopyUntil, Environment.TickCount64 + 2000);
 
     /// <summary>Captures the next shortcut pressed anywhere, for the settings recorder (null: cancelled).</summary>
     public void RecordHotkey(Action<Hotkey?> done)
@@ -335,27 +306,15 @@ public partial class App : Application
 
     // ── windows ──────────────────────────────────────────────────────────────
 
-    IQuickPanel CreatePanel() => Settings.PanelStyle == "deck" ? new DeckPanel(this) : new QuickPanel(this);
 
     /// <summary>Swaps the Win+V panel for the style chosen in Settings.</summary>
-    public void ApplyPanelStyle()
-    {
-        if (_panel == null) return;
-        _panel.HideNow();
-        _panel.Close();
-        _panel = CreatePanel();
-        WarmPanelSoon();
-    }
+    public void ApplyPanelStyle() => _panel?.Restyle();
 
-    void TogglePanel(IntPtr foreground)
-    {
-        if (_panel == null) return;
-        if (_library is { IsActive: true } && !_panel.IsVisible) foreground = new System.Windows.Interop.WindowInteropHelper(_library).Handle;
-        _panel.Toggle(foreground);
-    }
 
     public async void ShowLibrary(long? focusId)
     {
+        // the panel asks for the library from its own thread
+        if (!Dispatcher.CheckAccess()) { _ = Dispatcher.BeginInvoke(() => ShowLibrary(focusId)); return; }
         if (_library == null)
         {
             _library = new LibraryWindow(this);
@@ -402,16 +361,28 @@ public partial class App : Application
     /// <summary>Memory can go back to Windows the next time the user is away (see the idle timer).</summary>
     public void ScheduleTrim() => _trimPending = true;
 
-    /// <summary>Hand memory back to Windows while SweaxClip sits in the tray.</summary>
+    /// <summary>
+    /// Tidies the managed heap while the user is away. The panel's own memory — its rows, pictures and code — stays put
+    /// (see <see cref="StayResident"/>): emptying it made the next Win+V read it all back from disk, seconds on a busy PC.
+    /// </summary>
     void Trim()
     {
-        if (_panel?.IsVisible == true || _library != null) return;
-        ThumbLoader.Clear();
+        if (_panel?.Shown == true || _library != null) return;
         GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
         GC.Collect(2, GCCollectionMode.Forced, true, true);
-        GC.WaitForPendingFinalizers();
-        GC.Collect(2, GCCollectionMode.Forced, true, true);
-        Win32.TrimWorkingSet();
+    }
+
+    /// <summary>
+    /// Keeps SweaxClip in memory like a part of Windows. A hard minimum working set stops Windows from paging it out when
+    /// other programs (builds, renders, emulators) want memory; otherwise the first Win+V after that has to read
+    /// everything back from disk. Normal-and-above priority keeps it quick while those programs use every core — the
+    /// panel never takes focus, so it doesn't get the foreground boost windows normally get.
+    /// </summary>
+    static void StayResident()
+    {
+        try { Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.AboveNormal; } catch { }
+        if (!Win32.SetProcessWorkingSetSizeEx(Win32.GetCurrentProcess(), 160u << 20, 1024u << 20, Win32.QUOTA_LIMITS_HARDWS_MIN_ENABLE | Win32.QUOTA_LIMITS_HARDWS_MAX_DISABLE))
+            Paths.Log("could not keep SweaxClip in memory: error " + System.Runtime.InteropServices.Marshal.GetLastWin32Error());
     }
 
     /// <summary>
@@ -464,6 +435,8 @@ public partial class App : Application
 
     public void Quit()
     {
+        _clipboard?.Dispose();
+        _panel?.Shutdown();
         if (_deleteTaskOnQuit) Elevation.DeleteTask();
         _hook?.Dispose();
         _watcher?.Dispose();

@@ -31,6 +31,8 @@ public partial class DeckPanel : Window, IQuickPanel
         _app = app;
         _model = new ClipListModel(app.Store, library: false);
         DataContext = _model;
+        // on the panel's own thread, its copy of the app's resources (see ThreadResources)
+        if (ThreadResources.Dictionary is { } own) Resources.MergedDictionaries.Add(own);
         InitializeComponent();
         Caret.Attach(search);
         deck.Model = _model;
@@ -81,7 +83,7 @@ public partial class DeckPanel : Window, IQuickPanel
 
     // ── show / hide ──────────────────────────────────────────────────────────
 
-    public async void Toggle(IntPtr previous)
+    public async void Toggle(IntPtr previous, long pressed = 0)
     {
         if (IsVisible) { HideNow(); return; }
         await ShowAt(previous);
@@ -104,12 +106,18 @@ public partial class DeckPanel : Window, IQuickPanel
             _previous = previous;
             _previousFocus = _shellTarget ? IntPtr.Zero : Win32.FocusOf(previous);
             // the text cursor is looked up while the list loads; a slow app can't hold the panel up
-            var caret = _shellTarget ? Task.FromResult<Win32.RECT?>(null) : CaretLocator.FindAsync(previous, 150);
+            var caret = _shellTarget ? Task.FromResult<Win32.RECT?>(null) : CaretLocator.FindAsync(previous, 250);
             if (_hwnd == IntPtr.Zero) new WindowInteropHelper(this).EnsureHandle();
             pausedBadge.Visibility = _app.Settings.Paused ? Visibility.Visible : Visibility.Collapsed;
 
             _model.ResetQuietly();
-            await _model.Reload(false);
+            // the rows are kept current while the panel is hidden: show them now, never wait for the archive
+            if (_model.ShowsEverything)
+            {
+                _model.SelectFirst();
+                _ = _model.Reload(false);
+            }
+            else await _model.Reload(false);
             SetIndexes(false);
             UpdateCount();
 
@@ -286,7 +294,7 @@ public partial class DeckPanel : Window, IQuickPanel
             if (!ReferenceEquals(item, _model.Selected)) _model.Selected = item;
             var full = await Task.Run(() => _app.Store.Get(item.Id)) ?? item;
             if (_app.Settings.PastePlainByDefault) plain = !plain;
-            if (!Paster.SetClipboard(full, plain)) { Toast(Loc.T("ClipboardBusy")); return; }
+            if (!await Paster.SetClipboardAsync(full, plain)) { Toast(Loc.T("ClipboardBusy")); return; }
             if (_app.Settings.MoveToTopOnPaste) _ = Task.Run(() => _app.Store.TouchId(item.Id));
 
             // from here on the keyboard is the app's again: whatever the user types next must not be lost to the panel
@@ -314,7 +322,7 @@ public partial class DeckPanel : Window, IQuickPanel
     {
         if (item == null) return;
         var full = await Task.Run(() => _app.Store.Get(item.Id)) ?? item;
-        if (Paster.SetClipboard(full, false))
+        if (await Paster.SetClipboardAsync(full, false))
         {
             if (_app.Settings.MoveToTopOnPaste) _ = Task.Run(() => _app.Store.TouchId(item.Id));
             HideNow();
@@ -326,7 +334,8 @@ public partial class DeckPanel : Window, IQuickPanel
     {
         if (item == null) return;
         item.Pinned = !item.Pinned;
-        _app.Store.SetPinned(item.Id, item.Pinned);
+        bool pinned = item.Pinned;
+        _ = Task.Run(() => _app.Store.SetPinned(item.Id, pinned)); // never wait for the archive on the panel's thread
         deck.Bump(item);
         Toast(item.Pinned ? Loc.T("Pinned") : Loc.T("Unpinned"));
         _ = _model.RefreshCounts();
@@ -335,7 +344,7 @@ public partial class DeckPanel : Window, IQuickPanel
     void Delete(ClipItem? item)
     {
         if (item == null) return;
-        _app.Store.Trash(item.Id);
+        _ = Task.Run(() => _app.Store.Trash(item.Id));
         deck.Discard(item);
         _model.Drop(item);
         Toast(Loc.T("MovedToTrash"));

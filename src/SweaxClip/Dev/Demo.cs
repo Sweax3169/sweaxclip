@@ -26,6 +26,22 @@ public static class Demo
     public static async void Run(App app, string[] args)
     {
         string? Arg(string name) { int i = Array.FindIndex(args, a => a.Equals(name, StringComparison.OrdinalIgnoreCase)); return i >= 0 && i + 1 < args.Length ? args[i + 1] : null; }
+        if (Arg("--caret-probe") is { } probeFile)
+        {
+            // where the text cursor of the window in front is, and how long finding it takes (read-only)
+            var sb = new System.Text.StringBuilder();
+            for (int i = 0; i < 3; i++)
+            {
+                IntPtr fg = Win32.GetForegroundWindow();
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                var r = UI.CaretLocator.FindCore(fg);
+                sb.AppendLine($"{UI.Layers.Describe(fg)}: {(r is { } c ? $"caret at {c.Left},{c.Top} h {c.Bottom - c.Top}" : "no caret")} in {sw.Elapsed.TotalMilliseconds:0.0} ms");
+                Thread.Sleep(400);
+            }
+            File.WriteAllText(probeFile, sb.ToString());
+            app.Shutdown();
+            return;
+        }
         if (Arg("--task-xml") is { } taskFile)
         {
             File.WriteAllText(taskFile, Elevation.TaskXml(args.Contains("admin")), System.Text.Encoding.Unicode);

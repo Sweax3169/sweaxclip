@@ -23,22 +23,26 @@ internal static class CaretLocator
         // An app that hangs on the question (Chromium and Electron can, while they switch accessibility on) holds the
         // thread asking it. Ask on a thread of our own, one question at a time: lookups stuck on the shared pool used to
         // starve the panel's own work and made Win+V open late.
-        if (Interlocked.CompareExchange(ref _asking, 1, 0) != 0) return null;
+        // one question at a time; a question stuck for over a second is given up on, so a hung app can't stop the panel
+        // finding the caret everywhere else
+        long now = Environment.TickCount64, since = Interlocked.Read(ref _askingSince);
+        if (since != 0 && now - since < 1000) return null;
+        if (Interlocked.CompareExchange(ref _askingSince, now, since) != since) return null;
         var answer = new TaskCompletionSource<Win32.RECT?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var thread = new Thread(() =>
         {
             try { answer.TrySetResult(FindCore(window)); }
             catch { answer.TrySetResult(null); }
-            finally { Volatile.Write(ref _asking, 0); }
+            finally { Interlocked.CompareExchange(ref _askingSince, 0, now); }
         }) { IsBackground = true, Name = "SweaxClip.Caret" };
         thread.SetApartmentState(ApartmentState.MTA);
         thread.Start();
         return await Task.WhenAny(answer.Task, Task.Delay(timeoutMs)) == answer.Task ? answer.Task.Result : null;
     }
 
-    static int _asking;
+    static long _askingSince;
 
-    static Win32.RECT? FindCore(IntPtr window)
+    internal static Win32.RECT? FindCore(IntPtr window)
     {
         Win32.GetWindowRect(window, out var bounds);
         uint thread = Win32.GetWindowThreadProcessId(window, out _);

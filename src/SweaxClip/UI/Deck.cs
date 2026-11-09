@@ -271,12 +271,12 @@ public sealed class Deck : Canvas
             Children.Add(new ContentPresenter
             {
                 Content = item,
-                ContentTemplateSelector = (DataTemplateSelector)Application.Current.FindResource("Cards"),
+                ContentTemplateSelector = (DataTemplateSelector)ThreadResources.Find("Cards")!,
             });
             _dim = new Border { CornerRadius = new CornerRadius(14), IsHitTestVisible = false, Opacity = 0 };
             _dim.SetResourceReference(Border.BackgroundProperty, "ShadowTint");
             Children.Add(_dim);
-            if (Application.Current.TryFindResource("ClipMenu") is ContextMenu menu) ContextMenu = menu;
+            if (ThreadResources.Find("ClipMenu") is ContextMenu menu) ContextMenu = menu;
             MouseEnter += (_, _) => Owner?.Kick();
             MouseLeave += (_, _) => Owner?.Kick();
         }

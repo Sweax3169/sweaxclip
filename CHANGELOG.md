@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.7.0 — 2026-11-10
+
+Win+V that never waits.
+
+- **Win+V no longer waits half a minute.** The clipboard was read on the UI thread. Many apps — Java apps such as Android Studio, Office, games — make their copy only when someone reads it, and a busy app keeps the reader waiting, up to 30 seconds. Everything waited with it, so Win+V opened 15 to 40 seconds late (the log caught 15.7 s over Android Studio). The clipboard is now read on a thread of its own.
+- **The panel has a thread of its own.** Win+V goes from the keyboard hook straight to the panel's own UI thread, so the library, the archive, a slow clipboard or anything else in SweaxClip can never hold it up. Measured with the main thread blocked for 3 seconds: the panel still opens in 15–20 ms.
+- **Opens without asking the archive.** The panel's rows are kept current while it is hidden, so Win+V shows them at once (15–30 ms) and the archive confirms them afterwards.
+- **Stays ready under load.** SweaxClip runs above normal priority and keeps a 160 MB minimum working set, so builds, renders and emulators can't starve it or page it out. Its memory is no longer emptied after ten minutes away, which made the next Win+V read everything back from disk. The keyboard hook's thread runs at the highest priority.
+- **Opens where you are.** The text cursor is looked for on its own thread for up to 250 ms (the first look into a browser or Electron app can take a hundred; the lookup is warmed up at start), a lookup stuck in a hung app no longer stops it everywhere else, and where no text cursor can be found (Java apps, games) the panel opens by the mouse pointer when it is over the app instead of at the bottom of the screen.
+- Pasting waits up to 3 seconds for a program that is still holding the clipboard instead of giving up at once; deleting and pinning never wait for the archive.
+- The log notes every slow Win+V with where the time went, any thread that stops answering for over a second, and keys that reached the keyboard hook late.
+
 ## 1.6.0 — 2026-11-08
 
 Win+V over administrator windows.

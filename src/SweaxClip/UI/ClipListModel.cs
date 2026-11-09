@@ -98,6 +98,13 @@ public sealed class ClipListModel : Observable
 
     int _total; public int Total { get => _total; private set => Set(ref _total, value); }
 
+    Scope? _loadedScope;
+    string? _loadedSearch;
+    /// <summary>The rows hold every clip with no search applied — what Win+V opens on.</summary>
+    public bool ShowsEverything => _loadedScope == Scope.All && _loadedSearch == "" && Items.Count > 0;
+
+    public void SelectFirst() => Selected = Items.FirstOrDefault();
+
     public async Task Reload(bool keepSelection = true)
     {
         int v = ++_version;
@@ -109,6 +116,8 @@ public sealed class ClipListModel : Observable
         try { items = await Task.Run(() => _store.Query(scope, search, limit, 0)); }
         catch (Exception ex) { Paths.Log("query: " + ex.Message); return; }
         if (v != _version) return;
+        _loadedScope = scope;
+        _loadedSearch = search;
 
         long? keepId = keepSelection ? _selected?.Id : null;
         _hasMore = items.Count == limit;

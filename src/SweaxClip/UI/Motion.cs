@@ -52,10 +52,13 @@ public static class Springs
         public double X, V, T, K, Z, Delay;
     }
 
-    static readonly List<Anim> _anims = [];
-    static readonly List<Func<double, bool>> _steppers = [];
-    static bool _ticking;
-    static TimeSpan _last;
+    // one set of springs per UI thread: the Win+V panel runs on a thread of its own
+    [ThreadStatic] static List<Anim>? _animsOfThread;
+    [ThreadStatic] static List<Func<double, bool>>? _steppersOfThread;
+    [ThreadStatic] static bool _ticking;
+    [ThreadStatic] static TimeSpan _last;
+    static List<Anim> _anims => _animsOfThread ??= [];
+    static List<Func<double, bool>> _steppers => _steppersOfThread ??= [];
 
     /// <summary>When set, nothing moves until <see cref="Step"/> is called.</summary>
     public static bool ManualClock { get; set; }

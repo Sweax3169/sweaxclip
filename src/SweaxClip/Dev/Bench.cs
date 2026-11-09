@@ -24,6 +24,28 @@ public static class Bench
 
     public static async Task Run(App app, string file, bool trim, string[] args)
     {
+        if (!args.Contains("--threaded")) { await RunCore(app, file, trim, args); return; }
+        // the way the app runs the panel: on a UI thread of its own, with its own copy of the resources
+        var done = new TaskCompletionSource();
+        var thread = new Thread(() =>
+        {
+            ThreadResources.Init();
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(async () =>
+            {
+                try { await RunCore(app, file, trim, args); }
+                catch (Exception ex) { File.WriteAllText(file, "threaded bench failed: " + ex); }
+                done.SetResult();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.InvokeShutdown();
+            });
+            System.Windows.Threading.Dispatcher.Run();
+        }) { IsBackground = true };
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        await done.Task;
+    }
+
+    static async Task RunCore(App app, string file, bool trim, string[] args)
+    {
         var steps = new List<string>();
         double last = 0;
         QuickPanel.BenchStep = name => { double now = Clock.Elapsed.TotalMilliseconds; steps.Add($"{name} +{now - last:0.0}"); last = now; };
@@ -55,7 +77,9 @@ public static class Bench
         if (args.Contains("--scrolltest")) { File.WriteAllText(file, await ScrollTest(app, panel)); return; }
         var box = (System.Windows.Controls.TextBox)panel.FindName("search");
         int ui = (int)Win32.GetCurrentThreadId();
-        report.AppendLine($"clips: {app.Store.Counts()[Scope.All]} · window layered: {panel.AllowsTransparency}");
+        if (args.Contains("--above")) Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.AboveNormal;
+        report.AppendLine($"priority: {Process.GetCurrentProcess().PriorityClass}");
+        report.AppendLine($"clips: {app.Store.Counts()[Scope.All]} · window layered: {panel.AllowsTransparency} · own thread: {ThreadResources.Dictionary != null}");
         report.AppendLine($"in front: {Layers.Describe(Win32.GetForegroundWindow())} · admin above us: {Layers.IsAdminAboveUs(Win32.GetForegroundWindow())}");
 
         for (int run = 0; run < 7; run++)
@@ -77,6 +101,13 @@ public static class Bench
             last = t0;
             IntPtr before = Win32.GetForegroundWindow();
             var cpu0 = ThreadTimes();
+            // --block-main: the main thread is stuck for 3 s (as a slow clipboard used to make it) while Win+V is pressed
+            if (args.Contains("--block-main") && run >= 3 && ThreadResources.Dictionary != null)
+            {
+                _ = app.Dispatcher.BeginInvoke(() => Thread.Sleep(3000));
+                await Task.Delay(50);
+                report.AppendLine("        (main thread blocked for 3 s during this open)");
+            }
             panel.Toggle(IntPtr.Zero);
             while (!panel.IsVisible && Clock.Elapsed.TotalMilliseconds - t0 < 3000) await Task.Delay(1);
             double shown = Clock.Elapsed.TotalMilliseconds - t0;

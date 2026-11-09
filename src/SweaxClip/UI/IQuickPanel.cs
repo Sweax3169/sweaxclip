@@ -9,7 +9,8 @@ public interface IQuickPanel
     bool IsVisible { get; }
     /// <summary>The window the panel opened over; it keeps focus while the panel is open.</summary>
     IntPtr Target { get; }
-    void Toggle(IntPtr previous);
+    /// <param name="pressed">When the shortcut was pressed (Environment.TickCount64), to note slow openings.</param>
+    void Toggle(IntPtr previous, long pressed = 0);
     void HideNow();
     void Close();
     /// <summary>A key from the keyboard hook: the panel never takes focus, so this is how it hears the keyboard.</summary>

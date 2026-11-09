@@ -165,6 +165,8 @@ internal static class Win32
     [DllImport("kernel32.dll")] public static extern IntPtr GetCurrentProcess();
     [DllImport("kernel32.dll")] public static extern bool SetProcessWorkingSetSize(IntPtr proc, IntPtr min, IntPtr max);
     [DllImport("psapi.dll")] public static extern bool EmptyWorkingSet(IntPtr hProcess);
+    [DllImport("kernel32.dll", SetLastError = true)] public static extern bool SetProcessWorkingSetSizeEx(IntPtr process, nuint min, nuint max, uint flags);
+    public const uint QUOTA_LIMITS_HARDWS_MIN_ENABLE = 0x1, QUOTA_LIMITS_HARDWS_MAX_DISABLE = 0x8;
     public const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 
     // ── shell32 ──────────────────────────────────────────────────────────────

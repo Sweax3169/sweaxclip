@@ -9,6 +9,21 @@ namespace SweaxClip.Core;
 /// <summary>Puts an archived clip back on the clipboard and pastes it into the window the user came from.</summary>
 public static class Paster
 {
+    /// <summary>
+    /// Puts the clip on the clipboard, trying for up to three seconds when another program holds the clipboard open
+    /// (one that copied a moment ago may still be handing its copy over). Waits without blocking the panel.
+    /// </summary>
+    public static async Task<bool> SetClipboardAsync(ClipItem item, bool plain)
+    {
+        long until = Environment.TickCount64 + 3000;
+        while (true)
+        {
+            if (SetClipboard(item, plain)) return true;
+            if (Environment.TickCount64 > until) return false;
+            await Task.Delay(100);
+        }
+    }
+
     public static bool SetClipboard(ClipItem item, bool plain)
     {
         var data = new DataObject();

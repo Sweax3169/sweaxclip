@@ -20,6 +20,7 @@ public partial class QuickPanel : Window, IQuickPanel
     readonly ClipListModel _model;
     IntPtr _hwnd, _previous, _previousFocus;
     bool _pasting, _showing, _shellTarget, _warming;
+    int _pressedAgain;
     Point? _caretInPanel;
     readonly DispatcherTimer _toastTimer = new() { Interval = TimeSpan.FromMilliseconds(1300) };
     ClipItem? _lastSelected;
@@ -50,6 +51,8 @@ public partial class QuickPanel : Window, IQuickPanel
         _app = app;
         _model = new ClipListModel(app.Store, library: false) { DayHeaders = false };
         DataContext = _model;
+        // on the panel's own thread, its copy of the app's resources (see ThreadResources)
+        if (ThreadResources.Dictionary is { } own) Resources.MergedDictionaries.Add(own);
         InitializeComponent();
         Caret.Attach(search);
 
@@ -121,17 +124,19 @@ public partial class QuickPanel : Window, IQuickPanel
 
     // ── show / hide ──────────────────────────────────────────────────────────
 
-    public async void Toggle(IntPtr previous)
+    public async void Toggle(IntPtr previous, long pressed = 0)
     {
         if (IsVisible) { HideNow(); return; }
-        await ShowAt(previous);
+        await ShowAt(previous, pressed);
     }
 
-    public async Task ShowAt(IntPtr previous)
+    public async Task ShowAt(IntPtr previous, long pressed = 0)
     {
-        if (_showing) { Paths.Log("Win+V pressed again while the panel was still opening"); return; }
+        if (_showing) { _pressedAgain++; return; }
         _showing = true;
+        _pressedAgain = 0;
         long started = Environment.TickCount64;
+        if (pressed == 0) pressed = started;
         try
         {
             // Start, Search, Task View, the notification centre and the snipping overlay sit in bands above every app
@@ -146,20 +151,31 @@ public partial class QuickPanel : Window, IQuickPanel
             }
             _previous = previous;
             _previousFocus = _shellTarget ? IntPtr.Zero : Win32.FocusOf(previous);
-            // the text cursor is looked up while the list loads; a slow app can't hold the panel up
-            var caret = _shellTarget ? Task.FromResult<Win32.RECT?>(null) : CaretLocator.FindAsync(previous, 150);
+            // the text cursor is asked for on a thread of its own; the panel waits for it at most 250 ms (usually 1–2 ms;
+            // the first question to a browser or Electron app can take a hundred)
+            var caret = _shellTarget ? Task.FromResult<Win32.RECT?>(null) : CaretLocator.FindAsync(previous, 250);
             if (_hwnd == IntPtr.Zero) new WindowInteropHelper(this).EnsureHandle();
             pausedBadge.Visibility = _app.Settings.Paused ? Visibility.Visible : Visibility.Collapsed;
             shadowFx.Opacity = ThemeManager.IsDark ? 0.55 : 0.2;
 
             BenchStep?.Invoke("start");
             _model.ResetQuietly();
-            await _model.Reload(false);
+            // the rows are kept current while the panel is hidden (PanelHost.Refresh): show them now and let the archive
+            // confirm them after; Win+V never waits for it
+            if (_model.ShowsEverything)
+            {
+                _model.SelectFirst();
+                _ = _model.Reload(false);
+            }
+            else await _model.Reload(false);
             BenchStep?.Invoke("reload");
             SetIndexes(false);
             UpdateCount();
 
-            var (x, y) = BenchPlace ?? Placement(await caret);
+            long askedAt = Environment.TickCount64;
+            var caretRect = await caret;
+            long caretWait = Environment.TickCount64 - askedAt;
+            var (x, y) = BenchPlace ?? Placement(caretRect, previous);
             Win32.SetWindowPos(_hwnd, BenchBottom ? new IntPtr(1) : Win32.HWND_TOPMOST, x, y, 0, 0, Win32.SWP_NOSIZE | Win32.SWP_NOACTIVATE);
             host.Opacity = 0;
             BenchStep?.Invoke("placed");
@@ -174,8 +190,10 @@ public partial class QuickPanel : Window, IQuickPanel
             BenchStep?.Invoke("layout");
             Enter();
             BenchStep?.Invoke("enter");
-            long took = Environment.TickCount64 - started;
-            if (took > 300) Paths.Log($"slow open: {took} ms over {Layers.Describe(previous)}");
+            long total = Environment.TickCount64 - pressed;
+            if (total > 250 && BenchPlace == null)
+                Paths.Log($"slow open: {total} ms after the key (reaching the panel {started - pressed} ms, text cursor {caretWait} ms, the rest {total - (started - pressed) - caretWait} ms)" +
+                          $"{(_pressedAgain > 0 ? $", pressed {_pressedAgain} more times meanwhile" : "")} over {Layers.Describe(previous)}");
             if (BenchPlace == null) _ = StayOnTop();
         }
         finally { _showing = false; }
@@ -197,6 +215,9 @@ public partial class QuickPanel : Window, IQuickPanel
     {
         if (IsVisible || _showing) return;
         if (_hwnd == IntPtr.Zero) new WindowInteropHelper(this).EnsureHandle();
+        // load the accessibility machinery once, so the first real caret lookup takes milliseconds, not a hundred
+        IntPtr me = _hwnd;
+        _ = Task.Run(() => CaretLocator.FindCore(me));
         await _model.Reload(false);
         if (IsVisible || _showing) return;
         Win32.SetWindowPos(_hwnd, IntPtr.Zero, -32000, -32000, 0, 0, Win32.SWP_NOSIZE | Win32.SWP_NOZORDER | Win32.SWP_NOACTIVATE);
@@ -298,9 +319,14 @@ public partial class QuickPanel : Window, IQuickPanel
     /// Same place Windows opens its clipboard panel: under the text cursor when one can be found,
     /// otherwise centred above the taskbar. Returns the window's top-left in physical pixels.
     /// </summary>
-    (int x, int y) Placement(Win32.RECT? caret)
+    (int x, int y) Placement(Win32.RECT? caret, IntPtr target = default)
     {
         Win32.GetCursorPos(out var mouse);
+        // No text cursor to be found (Java apps such as Android Studio, games, some web pages): open by the mouse pointer
+        // when it is over the app — where the user just clicked — rather than at the bottom of the screen.
+        if (caret == null && target != IntPtr.Zero && Win32.GetWindowRect(target, out var app)
+            && mouse.X >= app.Left && mouse.X < app.Right && mouse.Y >= app.Top && mouse.Y < app.Bottom)
+            caret = new Win32.RECT { Left = mouse.X, Top = mouse.Y - 2, Right = mouse.X + 1, Bottom = mouse.Y + 18 };
         var anchor = caret is { } c ? new Win32.POINT { X = c.Left, Y = c.Bottom } : mouse;
 
         IntPtr mon = Win32.MonitorFromPoint(anchor, Win32.MONITOR_DEFAULTTONEAREST);
@@ -467,7 +493,7 @@ public partial class QuickPanel : Window, IQuickPanel
             if (!ReferenceEquals(item, _model.Selected)) _model.Selected = item;
             var full = await Task.Run(() => _app.Store.Get(item.Id)) ?? item;
             if (_app.Settings.PastePlainByDefault) plain = !plain;
-            if (!Paster.SetClipboard(full, plain)) { Toast(Loc.T("ClipboardBusy")); return; }
+            if (!await Paster.SetClipboardAsync(full, plain)) { Toast(Loc.T("ClipboardBusy")); return; }
             if (_app.Settings.MoveToTopOnPaste) _ = Task.Run(() => _app.Store.TouchId(item.Id));
             // from here on the keyboard is the app's again: whatever the user types next must not be lost to the panel
             _app.CaptureKeys(false);
@@ -502,7 +528,7 @@ public partial class QuickPanel : Window, IQuickPanel
     {
         if (item == null) return;
         var full = await Task.Run(() => _app.Store.Get(item.Id)) ?? item;
-        if (Paster.SetClipboard(full, false))
+        if (await Paster.SetClipboardAsync(full, false))
         {
             if (_app.Settings.MoveToTopOnPaste) _ = Task.Run(() => _app.Store.TouchId(item.Id));
             HideNow();
@@ -514,7 +540,8 @@ public partial class QuickPanel : Window, IQuickPanel
     {
         if (item == null) return;
         item.Pinned = !item.Pinned;
-        _app.Store.SetPinned(item.Id, item.Pinned);
+        bool pinned = item.Pinned;
+        _ = Task.Run(() => _app.Store.SetPinned(item.Id, pinned)); // never wait for the archive on the panel's thread
         Toast(item.Pinned ? Loc.T("Pinned") : Loc.T("Unpinned"));
         _ = _model.RefreshCounts();
     }
@@ -523,7 +550,7 @@ public partial class QuickPanel : Window, IQuickPanel
     async void Delete(ClipItem? item)
     {
         if (item == null) return;
-        _app.Store.Trash(item.Id);
+        _ = Task.Run(() => _app.Store.Trash(item.Id));
         if (list.ItemContainerGenerator.ContainerFromItem(item) is ListBoxItem row)
         {
             if (row.LayoutTransform is not ScaleTransform fold) row.LayoutTransform = fold = new ScaleTransform();

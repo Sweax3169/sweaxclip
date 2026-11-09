@@ -83,6 +83,8 @@ public sealed class KeyboardHook : IDisposable
     readonly bool[] _eaten = new bool[256];
     volatile bool _capture;
     long _waitingSince;
+    // how late Windows handed the hook a key (the PC was too busy for it): noted in the log every 20 s at most
+    long _worstLate, _lateKeys;
 
     public volatile bool Enabled = true;
     public Hotkey Hotkey { get; set; } = Hotkey.Parse("Win+V");
@@ -131,7 +133,7 @@ public sealed class KeyboardHook : IDisposable
     {
         _proc = Callback;
         _mouseProc = MouseCallback;
-        _thread = new Thread(Loop) { IsBackground = true, Name = "SweaxClip.Hook", Priority = ThreadPriority.AboveNormal };
+        _thread = new Thread(Loop) { IsBackground = true, Name = "SweaxClip.Hook", Priority = ThreadPriority.Highest };
         _thread.Start();
         _ready.Wait(2000);
     }
@@ -146,7 +148,14 @@ public sealed class KeyboardHook : IDisposable
         _ready.Set();
         while (Win32.GetMessage(out var msg, IntPtr.Zero, 0, 0) > 0)
         {
-            if (msg.hwnd == IntPtr.Zero && msg.message is WM_REHOOK or Win32.WM_TIMER) { Uninstall(); Install(); continue; }
+            if (msg.hwnd == IntPtr.Zero && msg.message is WM_REHOOK or Win32.WM_TIMER)
+            {
+                Uninstall();
+                Install();
+                long worst = Interlocked.Exchange(ref _worstLate, 0), late = Interlocked.Exchange(ref _lateKeys, 0);
+                if (late > 0) Paths.Log($"{late} key(s) reached SweaxClip's keyboard hook late, the worst {worst} ms: the PC was too busy (Windows drops a hook that answers too late; it was put back)");
+                continue;
+            }
             if (msg.message == WM_MOUSEHOOK)
             {
                 if (msg.wParam != IntPtr.Zero && _mouseHook == IntPtr.Zero) _mouseHook = Win32.SetWindowsHookEx(Win32.WH_MOUSE_LL, _mouseProc, Win32.GetModuleHandle(null), 0);
@@ -185,6 +194,12 @@ public sealed class KeyboardHook : IDisposable
         {
             var kb = (Win32.KBDLLHOOKSTRUCT*)lParam;
             int msg = (int)wParam;
+            uint late = unchecked((uint)Environment.TickCount - kb->time);
+            if (late is > 400 and < 60_000)
+            {
+                Interlocked.Increment(ref _lateKeys);
+                if (late > Interlocked.Read(ref _worstLate)) Interlocked.Exchange(ref _worstLate, late);
+            }
             bool down = msg is Win32.WM_KEYDOWN or Win32.WM_SYSKEYDOWN;
             bool up = msg is Win32.WM_KEYUP or Win32.WM_SYSKEYUP;
             // keys we send ourselves (Ctrl+V, the Start-menu blocker) are skipped; keys injected by macro software

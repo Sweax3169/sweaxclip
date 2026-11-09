@@ -127,7 +127,7 @@ public static class ObjectIcons
         _ => "Obj.Text",
     });
 
-    static ImageSource? Find(string key) => Application.Current?.TryFindResource(key) as ImageSource;
+    static ImageSource? Find(string key) => ThreadResources.Find(key) as ImageSource;
 }
 
 /// <summary>Picks the card for a clip ("Card.Text", "Card.Image", …).</summary>
@@ -179,7 +179,7 @@ public static class KindHue
         _ => "Hue.All",
     });
 
-    static Brush? Find(string key) => Application.Current?.TryFindResource(key) as Brush;
+    static Brush? Find(string key) => ThreadResources.Find(key) as Brush;
 
     /// <summary>"Releases · Sweax3169/sweaxclip — Google Chrome" → "Releases · Sweax3169/sweaxclip".</summary>
     public static string PageTitle(string windowTitle)
